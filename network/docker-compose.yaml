@@ -1,0 +1,89 @@
+version: "2"
+
+networks:
+  geodb:
+
+services:
+  orderer0.geodb.com:
+    image: hyperledger/fabric-orderer:1.4.1
+    container_name: orderer0.geodb.com
+    environment:
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=geodbMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+    volumes:
+      - ./orderer/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+      - ./crypto-config/geodb.com/orderers/orderer0.geodb.com/msp:/var/hyperledger/orderer/msp
+
+    command: orderer
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    ports:
+      - 7050:7050
+    networks:
+      - geodb
+
+  peer0.geodb.com:
+    extends:
+      file: ./peer-base.yaml
+      service: peer
+    container_name: peer0.geodb.com
+    environment:
+      - CORE_PEER_ID=peer0.geodb.com
+      - CORE_PEER_ADDRESS=peer0.geodb.com:7051
+      - CORE_PEER_LOCALMSPID=geodbMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.geodb.com:7051
+    volumes:
+      - ./crypto-config/geodb.com/peers/peer0.geodb.com/msp:/etc/hyperledger/msp/peer
+      # - ./crypto-config/peerOrganizations/geodb.com/peers/peer.geodb.com/msp:/etc/hyperledger/msp/peer
+    ports:
+      - 7051:7051
+      - 7053:7053
+    depends_on:
+      - orderer0.geodb.com
+    networks:
+      - geodb
+
+  clipeer0.geodb.com:
+    extends:
+      file: ./cli-base.yaml
+      service: cli
+    container_name: clipeer0.geodb.com
+    environment:
+      - CORE_PEER_ID=clipeer0.geodb.com
+      - CORE_PEER_ADDRESS=peer0.geodb.com:7051
+      - CORE_PEER_LOCALMSPID=geodbMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@geodb.com/msp
+    volumes:
+      - ./crypto-config/geodb.com:/etc/hyperledger/msp
+    depends_on:
+      - peer0.geodb.com
+    networks:
+      - geodb
+
+  # ca.geodb.com:
+  #   image: hyperledger/fabric-ca:1.4.1
+  #   environment:
+  #     - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server-config
+  #     - FABRIC_CA_SERVER_CA_NAME=ca.geodb
+  #   ports:
+  #     - "7054:7054"
+  #   working_dir: /etc/hyperledger/fabric-ca-server-config
+  #   command: sh -c 'fabric-ca-server start -b admin:adminpw'
+  #   volumes:
+  #     - ./crypto-config/geodb.com/ca/root/:/etc/hyperledger/fabric-ca-server-config
+  #   container_name: ca.geodb.com
+  #   networks:
+  #     - geodb
+
+  couchdb:
+    container_name: couchdb
+    image: hyperledger/fabric-couchdb
+    environment:
+      DB_URL: http://localhost:5984/
+    ports:
+      - "5984:5984"
+    networks:
+      - geodb
