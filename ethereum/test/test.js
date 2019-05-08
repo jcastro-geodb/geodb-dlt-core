@@ -99,12 +99,35 @@ describe("GeoDBRoot", () => {
       contractProxy["org1"] = rootSmartContract.connect(accounts["org1"]);
       contractProxy["org2"] = rootSmartContract.connect(accounts["org2"]);
       contractProxy["org3"] = rootSmartContract.connect(accounts["org3"]);
+
+      await (await contractProxy["geodb"].transfer(
+        accounts["org1"].address,
+        stakeRequirement
+      )).wait();
+      await (await contractProxy["geodb"].transfer(
+        accounts["org2"].address,
+        stakeRequirement
+      )).wait();
+      await (await contractProxy["geodb"].transfer(
+        accounts["org3"].address,
+        stakeRequirement
+      )).wait();
+
+      const org1Balance = (await rootSmartContract.balanceOf(
+        accounts["org1"].address
+      )).toNumber();
+      const org2Balance = (await rootSmartContract.balanceOf(
+        accounts["org2"].address
+      )).toNumber();
+      const org3Balance = (await rootSmartContract.balanceOf(
+        accounts["org3"].address
+      )).toNumber();
     });
 
     beforeEach("Update organizations balance", async () => {
-      oldBalances["contract"] = (await rootSmartContract.balanceOf(
-        rootSmartContract.address
-      )).toNumber();
+      oldBalances[
+        "contract"
+      ] = (await rootSmartContract.totalStake()).toNumber();
       oldBalances["geodb"] = (await rootSmartContract.balanceOf(
         accounts["geodb"].address
       )).toNumber();
@@ -120,23 +143,21 @@ describe("GeoDBRoot", () => {
     });
 
     it("allows to stake if sender has enough GEOs", async () => {
-      const tx = await contractProxy["geodb"].federationStakeLock(
+      const tx = await contractProxy["org1"].federationStakeLock(
         stakeRequirement
       );
       const result = await tx.wait();
 
-      const contractBalance = await contractProxy["geodb"].balanceOf(
-        rootSmartContract.address
-      );
+      const contractBalance = await contractProxy["org1"].totalStake();
 
-      const geodbBalance = await contractProxy["geodb"].balanceOf(
-        accounts["geodb"].address
+      const org1Balance = await contractProxy["org1"].balanceOf(
+        accounts["org1"].address
       );
 
       const contractBalanceDelta =
         contractBalance.toNumber() - oldBalances["contract"];
 
-      const geodbBalanceDelta = geodbBalance.toNumber() - oldBalances["geodb"];
+      const org1BalanceDelta = org1Balance.toNumber() - oldBalances["org1"];
 
       assert.ok(
         Web3Utils.isHexStrict(result.transactionHash),
@@ -150,7 +171,7 @@ describe("GeoDBRoot", () => {
       );
 
       assert.equal(
-        geodbBalanceDelta,
+        org1BalanceDelta,
         -stakeRequirement,
         `Balance delta did not match. Actual: ${contractBalanceDelta}, Expected: ${-stakeRequirement}`
       );
@@ -195,9 +216,7 @@ describe("GeoDBRoot", () => {
       const tx = await contractProxy["geodb"].federationStakeWithdraw();
       const result = await tx.wait();
 
-      const contractBalance = await contractProxy["geodb"].balanceOf(
-        rootSmartContract.address
-      );
+      const contractBalance = await contractProxy["geodb"].totalStake();
 
       const geodbBalance = await contractProxy["geodb"].balanceOf(
         accounts["geodb"].address
@@ -321,27 +340,7 @@ describe("GeoDBRoot", () => {
       contractProxy["org1"] = rootSmartContract.connect(accounts["org1"]);
       contractProxy["org2"] = rootSmartContract.connect(accounts["org2"]);
       contractProxy["org3"] = rootSmartContract.connect(accounts["org3"]);
-    });
 
-    beforeEach("Update organizations balance", async () => {
-      oldBalances["contract"] = (await rootSmartContract.balanceOf(
-        rootSmartContract.address
-      )).toNumber();
-      oldBalances["geodb"] = (await rootSmartContract.balanceOf(
-        accounts["geodb"].address
-      )).toNumber();
-      oldBalances["org1"] = (await rootSmartContract.balanceOf(
-        accounts["org1"].address
-      )).toNumber();
-      oldBalances["org2"] = (await rootSmartContract.balanceOf(
-        accounts["org2"].address
-      )).toNumber();
-      oldBalances["org3"] = (await rootSmartContract.balanceOf(
-        accounts["org3"].address
-      )).toNumber();
-    });
-
-    it("allows token transfer", async () => {
       await (await contractProxy["geodb"].transfer(
         accounts["org1"].address,
         stakeRequirement
@@ -364,48 +363,27 @@ describe("GeoDBRoot", () => {
       const org3Balance = (await rootSmartContract.balanceOf(
         accounts["org3"].address
       )).toNumber();
+    });
 
-      const org1BalanceDelta = org1Balance - oldBalances["org1"];
-      const org2BalanceDelta = org2Balance - oldBalances["org2"];
-      const org3BalanceDelta = org3Balance - oldBalances["org3"];
-
-      assert.equal(
-        org1BalanceDelta,
-        stakeRequirement,
-        `Balance delta did not match. Actual: ${org1BalanceDelta}, Expected: ${stakeRequirement}`
-      );
-
-      assert.equal(
-        org2BalanceDelta,
-        stakeRequirement,
-        `Balance delta did not match. Actual: ${org2BalanceDelta}, Expected: ${stakeRequirement}`
-      );
-
-      assert.equal(
-        org3BalanceDelta,
-        stakeRequirement,
-        `Balance delta did not match. Actual: ${org3BalanceDelta}, Expected: ${stakeRequirement}`
-      );
+    beforeEach("Update organizations balance", async () => {
+      oldBalances[
+        "contract"
+      ] = (await rootSmartContract.totalStake()).toNumber();
+      oldBalances["geodb"] = (await rootSmartContract.balanceOf(
+        accounts["geodb"].address
+      )).toNumber();
+      oldBalances["org1"] = (await rootSmartContract.balanceOf(
+        accounts["org1"].address
+      )).toNumber();
+      oldBalances["org2"] = (await rootSmartContract.balanceOf(
+        accounts["org2"].address
+      )).toNumber();
+      oldBalances["org3"] = (await rootSmartContract.balanceOf(
+        accounts["org3"].address
+      )).toNumber();
     });
 
     it("allows multiple parties to stake and join the federation", async () => {
-      // GeoDB Assertions
-
-      await (await contractProxy["geodb"].federationStakeLock(
-        stakeRequirement
-      )).wait();
-
-      const geodbBalance = await contractProxy["geodb"].balanceOf(
-        accounts["geodb"].address
-      );
-      const geodbBalanceDelta = geodbBalance.toNumber() - oldBalances["geodb"];
-
-      assert.equal(
-        geodbBalanceDelta,
-        -stakeRequirement,
-        `Balance delta did not match. Actual: ${geodbBalance}, Expected: ${-stakeRequirement}`
-      );
-
       // Org1 Assertions
 
       await (await contractProxy["org1"].federationStakeLock(
@@ -460,17 +438,16 @@ describe("GeoDBRoot", () => {
 
       // Contract assertions
 
-      const contractBalance = await contractProxy["geodb"].balanceOf(
-        rootSmartContract.address
-      );
+      const contractBalance = await contractProxy["geodb"].totalStake();
 
       const contractBalanceDelta =
         contractBalance.toNumber() - oldBalances["contract"];
 
       assert.equal(
         contractBalanceDelta,
-        4 * stakeRequirement,
-        `Balance delta did not match. Actual: ${contractBalanceDelta}, Expected: ${stakeRequirement}`
+        3 * stakeRequirement,
+        `Balance delta did not match. Actual: ${contractBalanceDelta}, Expected: ${3 *
+          stakeRequirement}`
       );
     });
 
@@ -589,13 +566,26 @@ describe("GeoDBRoot", () => {
     });
 
     it("accepts withdrawal with 1/2 of the votes", async () => {
+      let stk;
+
+      stk = (await rootSmartContract.balanceOf(
+        rootSmartContract.address
+      )).toNumber();
+
+      const test = await (await contractProxy["geodb"].transfer(
+        rootSmartContract.address,
+        1000000
+      )).wait();
+
+      stk = (await rootSmartContract.balanceOf(
+        rootSmartContract.address
+      )).toNumber();
+
       const currentStake = (await contractProxy["org3"].getStake()).toNumber();
       const tx = await contractProxy["org3"].federationStakeWithdraw();
       const result = await tx.wait();
 
-      const contractBalance = await contractProxy["org3"].balanceOf(
-        rootSmartContract.address
-      );
+      const contractBalance = await contractProxy["org3"].totalStake();
 
       const org3Balance = await contractProxy["org3"].balanceOf(
         accounts["org3"].address

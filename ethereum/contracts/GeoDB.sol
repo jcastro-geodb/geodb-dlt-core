@@ -3,11 +3,12 @@ pragma solidity ^0.5.2;
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./GeoDBClasses.sol";
 
 /**
 * @title GeoDB ERC20 Token
 */
-contract GeoDB is ERC20, Ownable{
+contract GeoDB is GeoDBClasses, ERC20, Ownable{
 
   // Contract constants
 
@@ -20,22 +21,24 @@ contract GeoDB is ERC20, Ownable{
 
   // Federation
 
-  struct FederationStake {
-    uint256 stake;
-    mapping(uint16 => uint256) withdrawApprovals;
-    mapping(bytes32 => bool) withdrawApprovers;
-    uint16 releaseRequestIndex;
-  }
-
   uint256[] public federationStakeProposals;
   uint256 public currentFederationStakeProposal;
+  uint256 public totalStake;
 
   mapping(address => FederationStake) public federationStakes;
+  FederationStakingBallot[] public federationStakingBallots;
 
   constructor() public {
     _mint(msg.sender, 10000000000000); // Team allocation
     currentFederationStakeProposal = 0;
     federationStakeProposals.push(initialStakeRequirement);
+
+    // Initial stake given to the owner
+    _mint(address(this), federationStakeProposals[0]);
+    federationStakes[msg.sender].approved = true;
+    totalStake = totalStake.add(federationStakeProposals[0]);
+    federationStakes[msg.sender].stake = federationStakeProposals[0];
+
   }
 
   function getCurrentFederationStakeRequirement() public view returns (uint256){
@@ -43,26 +46,39 @@ contract GeoDB is ERC20, Ownable{
   }
 
   function federationStakeLock(uint256 amount) public returns (uint256){
+
+    federationStakes[msg.sender].approved = true; // Delete when voting to join federation is available 
+
     uint256 summedStakes = federationStakes[msg.sender].stake.add(amount);
     require(summedStakes >= federationStakeProposals[currentFederationStakeProposal], "Staked amount is not enough");
     transfer(address(this), amount);
+    totalStake = totalStake.add(amount);
     federationStakes[msg.sender].stake = summedStakes;
   }
 
   function federationStakeWithdraw() public callerMustHaveStake {
 
-    require(federationStakes[msg.sender].releaseRequestIndex > 0, "Request stake withdrawal first");
+    if(federationStakes[msg.sender].approved == false){
+      withdrawStake(msg.sender);
+      return;
+    }
 
+    require(federationStakes[msg.sender].releaseRequestIndex > 0, "Request stake withdrawal first");
     require(
        federationStakes[msg.sender].withdrawApprovals[federationStakes[msg.sender].releaseRequestIndex]
        + federationStakes[msg.sender].stake
-       >= balanceOf(address(this)).div(2), "Voting stake is not enough"
+       >= totalStake.div(2), "Voting stake is not enough"
      );
 
-    uint256 stake = federationStakes[msg.sender].stake;
-    federationStakes[msg.sender].stake = 0;
+    totalStake = totalStake.sub(federationStakes[msg.sender].stake);
+    withdrawStake(msg.sender);
+  }
+
+  function withdrawStake(address addr) internal {
+    uint256 stake = federationStakes[addr].stake;
+    federationStakes[addr].stake = 0;
     GeoDB selfReference = GeoDB(address(this));
-    selfReference.transfer(msg.sender, stake);
+    selfReference.transfer(addr, stake);
   }
 
   function getStake() public view returns(uint256){
@@ -86,6 +102,22 @@ contract GeoDB is ERC20, Ownable{
 
 
   }
+
+  function newStakingBallot(uint256 stake) public {
+
+    address[] memory approvers = new address[](0);
+
+    approvers[0] = msg.sender;
+
+    federationStakingBallots.push(FederationStakingBallot({
+      stake: stake,
+      approved: false,
+      approvers: approvers,
+      block: block.number
+    }));
+  }
+
+
 
   function releaseRewards(address userAddress, uint256 reward) public onlyOwner {
     require(federationStakes[msg.sender].stake >= federationStakeProposals[currentFederationStakeProposal], "Staked amount is not enough");
