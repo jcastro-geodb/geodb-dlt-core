@@ -14,43 +14,42 @@ contract GeoDB is GeoDBClasses, ERC20, Ownable{
 
   uint256 constant public maxSupply = 100000000000000;
   uint32 constant public decimals = 5;
-  uint256 constant public initialStakeRequirement = 100000; // 1 GEO
   string constant public name = "GeoDB Token";
   string public symbol = "GEO";
 
 
   // Federation
 
-  uint256[] public federationStakeProposals;
-  uint256 public currentFederationStakeProposal;
+  uint256 public federationMinimumStake;
   uint256 public totalStake;
 
   mapping(address => FederationStake) public federationStakes;
+  mapping(address => FederationJoinBallot) public federationJoinBallots;
   FederationStakingBallot[] public federationStakingBallots;
 
   constructor() public {
     _mint(msg.sender, 10000000000000); // Team allocation
-    currentFederationStakeProposal = 0;
-    federationStakeProposals.push(initialStakeRequirement);
+
+    federationMinimumStake = 100000; // Initial minimum stake: 1 GEO
 
     // Initial stake given to the owner
-    _mint(address(this), federationStakeProposals[0]);
+    _mint(address(this), federationMinimumStake);
     federationStakes[msg.sender].approved = true;
-    totalStake = totalStake.add(federationStakeProposals[0]);
-    federationStakes[msg.sender].stake = federationStakeProposals[0];
+    totalStake = totalStake.add(federationMinimumStake);
+    federationStakes[msg.sender].stake = federationMinimumStake;
 
   }
 
   function getCurrentFederationStakeRequirement() public view returns (uint256){
-    return federationStakeProposals[currentFederationStakeProposal];
+    return federationMinimumStake;
   }
 
   function federationStakeLock(uint256 amount) public returns (uint256){
 
-    federationStakes[msg.sender].approved = true; // Delete when voting to join federation is available 
+    federationStakes[msg.sender].approved = true; // Delete when voting to join federation is available
 
     uint256 summedStakes = federationStakes[msg.sender].stake.add(amount);
-    require(summedStakes >= federationStakeProposals[currentFederationStakeProposal], "Staked amount is not enough");
+    require(summedStakes >= federationMinimumStake, "Staked amount is not enough");
     transfer(address(this), amount);
     totalStake = totalStake.add(amount);
     federationStakes[msg.sender].stake = summedStakes;
@@ -90,7 +89,7 @@ contract GeoDB is GeoDBClasses, ERC20, Ownable{
     federationStakes[msg.sender].releaseRequestIndex = federationStakes[msg.sender].releaseRequestIndex + 1;
   }
 
-  function voteStakeWithdrawalRequest(address addr, uint16 index) public callerMustBeFederated {
+  function voteStakeWithdrawalRequest(address addr, uint16 index) public callerMustBeFederated() {
     require(addr != msg.sender, "Your votes will be automatically added when you call federationStakeWithdraw()");
     require(index > 0, "Index must be greater than 0");
     require(federationStakes[addr].releaseRequestIndex == index, "Index must be equal to current request");
@@ -103,24 +102,40 @@ contract GeoDB is GeoDBClasses, ERC20, Ownable{
 
   }
 
-  function newStakingBallot(uint256 stake) public {
+  function newStakingBallot(uint256 stake) public callerMustBeFederated() {
 
-    address[] memory approvers = new address[](0);
-
-    approvers[0] = msg.sender;
-
-    federationStakingBallots.push(FederationStakingBallot({
+    FederationStakingBallot memory ballot = FederationStakingBallot({
       stake: stake,
       approved: false,
-      approvers: approvers,
-      block: block.number
-    }));
+      proposer: msg.sender,
+      approvals: federationStakes[msg.sender].stake,
+      deadline: (block.timestamp + 1 days)
+    });
+
+    federationStakingBallots.push(ballot);
+
+
   }
 
+  function voteStakingBallot(uint256 index) public callerMustBeFederated stakingBallotIsValid(index) {
+    require(!federationStakingBallots[index].approvers[msg.sender] && msg.sender != federationStakingBallots[index].proposer, "You cannot vote twice");
+    federationStakingBallots[index].approvers[msg.sender] = true;
+    federationStakingBallots[index].approvals = federationStakingBallots[index].approvals.add(federationStakes[msg.sender].stake);
+  }
 
+  function resolveStakingBallot(uint256 index) public callerMustBeFederated() stakingBallotIsValid(index){
+    require(federationStakingBallots[index].approvals >
+      federationMinimumStake,
+      "Not enough approvals"
+    ); // Untested
 
-  function releaseRewards(address userAddress, uint256 reward) public onlyOwner {
-    require(federationStakes[msg.sender].stake >= federationStakeProposals[currentFederationStakeProposal], "Staked amount is not enough");
+    federationStakingBallots[index].approved = true;
+    federationMinimumStake = federationStakingBallots[index].stake;
+
+  }
+
+  function releaseRewards(address userAddress, uint256 reward) public callerMustBeFederated() {
+    require(federationStakes[msg.sender].stake >= federationMinimumStake, "Staked amount is not enough");
 
     if(totalSupply() + reward < maxSupply){
       _mint(userAddress, reward);
@@ -133,8 +148,17 @@ contract GeoDB is GeoDBClasses, ERC20, Ownable{
   }
 
   modifier callerMustBeFederated() {
-      require(federationStakes[msg.sender].stake >= federationStakeProposals[currentFederationStakeProposal], "Caller must be part of the federation");
-      _;
+    require(federationStakes[msg.sender].stake >= federationMinimumStake
+      && federationStakes[msg.sender].approved,
+      "Caller must be part of the federation"); // Untested
+    _;
+  }
+
+  modifier stakingBallotIsValid(uint256 index){
+    require(index < federationStakingBallots.length, "Index does not exist"); // Untested
+    require(federationStakingBallots[index].deadline <= now, "The deadline has passed"); // Untested
+    require(federationStakingBallots[index].approved == false, "This ballot has already been approved"); // Untested
+    _;
   }
 
 }

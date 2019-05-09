@@ -23,8 +23,10 @@ contract GeoDBClasses {
   struct FederationStakingBallot {
     uint256 stake;
     bool approved;
-    address[] approvers;
-    uint256 block;
+    address proposer;
+    uint256 approvals;
+    mapping(address => bool) approvers;
+    uint256 deadline;
   }
 
 

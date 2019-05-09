@@ -36,6 +36,7 @@ let stakeRequirement = 0;
 
 const errorMsgs = {
   stakedAmountIsNotEnough: "Staked amount is not enough",
+  callerMustBeFederated: "Caller must be part of the federation",
   noStake: "There is no stake for this address",
   unauthorizedWithdrawal: "Unauthorized withdrawal",
   notEnoughVotes: "Voting stake is not enough",
@@ -307,9 +308,9 @@ describe("GeoDBRoot", () => {
           const errorMsg = e.results[`${transactionHash}`].reason;
           assert.equal(
             errorMsg,
-            errorMsgs.stakedAmountIsNotEnough,
+            errorMsgs.callerMustBeFederated,
             `Unexpected error message. Got "${errorMsg}", expected "${
-              errorMsgs.stakedAmountIsNotEnough
+              errorMsgs.callerMustBeFederated
             }"`
           );
         } else {
