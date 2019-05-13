@@ -4,11 +4,7 @@ import yaml from "js-yaml";
 import fs from "fs-extra";
 
 import Card from "react-bootstrap/Card";
-import Button from "react-bootstrap/Button";
-import ButtonToolbar from "react-bootstrap/ButtonToolbar";
-import Spinner from "react-bootstrap/Spinner";
 import ListGroup from "react-bootstrap/ListGroup";
-import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 
@@ -45,7 +41,7 @@ class Home extends React.Component {
               `docker inspect -f '{{.State.Running}}' ${key}`
             );
             running = running.trim() === "true" ? true : false;
-            containers.push({ name: key, running });
+            containers.push({ name: key, running, config: value });
           } catch (e) {
             containers.push({ name: key, running: false });
           }
@@ -109,7 +105,7 @@ class Home extends React.Component {
     return (
       <Row>
         <Col xs={12} sm={6}>
-          <Card border="primary">
+          <Card border="primary" className="shadow-lg p-3 mb-5">
             <Card.Header bg="primary">
               <div className="d-flex justify-content-between">
                 <b>Fabric containers status</b>

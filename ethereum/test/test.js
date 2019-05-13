@@ -14,9 +14,9 @@ const ganacheOptions = {
   gasLimit: "8000000"
 };
 
-const ethersProvider = new ethers.providers.Web3Provider(
-  ganache.provider(ganacheOptions)
-);
+const provider = ganache.provider(ganacheOptions);
+
+const ethersProvider = new ethers.providers.Web3Provider(provider);
 
 const compiledGeoDBRoot = require("../build/contracts/GeoDB.json");
 
@@ -43,7 +43,10 @@ const errorMsgs = {
   cannotVoteTwice: "You cannot vote twice",
   noSelfVoting:
     "Your votes will be automatically added when you call federationStakeWithdraw()",
-  requestWithDrawalFirst: "Request stake withdrawal first"
+  requestWithDrawalFirst: "Request stake withdrawal first",
+  deadline: "The deadline has passed",
+  invalidBallotIndex: "Index does not exist",
+  invalidBallotIsApproved: "This ballot has already been approved"
 };
 
 // ###################
@@ -113,16 +116,6 @@ describe("GeoDBRoot", () => {
         accounts["org3"].address,
         stakeRequirement
       )).wait();
-
-      const org1Balance = (await rootSmartContract.balanceOf(
-        accounts["org1"].address
-      )).toNumber();
-      const org2Balance = (await rootSmartContract.balanceOf(
-        accounts["org2"].address
-      )).toNumber();
-      const org3Balance = (await rootSmartContract.balanceOf(
-        accounts["org3"].address
-      )).toNumber();
     });
 
     beforeEach("Update organizations balance", async () => {
@@ -354,16 +347,6 @@ describe("GeoDBRoot", () => {
         accounts["org3"].address,
         stakeRequirement
       )).wait();
-
-      const org1Balance = (await rootSmartContract.balanceOf(
-        accounts["org1"].address
-      )).toNumber();
-      const org2Balance = (await rootSmartContract.balanceOf(
-        accounts["org2"].address
-      )).toNumber();
-      const org3Balance = (await rootSmartContract.balanceOf(
-        accounts["org3"].address
-      )).toNumber();
     });
 
     beforeEach("Update organizations balance", async () => {
@@ -615,4 +598,400 @@ describe("GeoDBRoot", () => {
       );
     });
   }); // Describe Multiparty staking test
+
+  describe("Basic federation staking change", () => {
+    before("Contract deployment", async () => {
+      let factory = new ethers.ContractFactory(
+        compiledGeoDBRoot.abi,
+        compiledGeoDBRoot.bytecode,
+        accounts["geodb"]
+      );
+
+      rootSmartContract = await factory.deploy();
+      await rootSmartContract.deployed();
+
+      assert.ok(
+        rootSmartContract.address && rootSmartContract.deployTransaction.hash,
+        "Contract could not be deployed"
+      );
+      stakeRequirement = (await rootSmartContract.getCurrentFederationStakeRequirement()).toNumber();
+
+      contractProxy["geodb"] = rootSmartContract.connect(accounts["geodb"]);
+      contractProxy["org1"] = rootSmartContract.connect(accounts["org1"]);
+      contractProxy["org2"] = rootSmartContract.connect(accounts["org2"]);
+      contractProxy["org3"] = rootSmartContract.connect(accounts["org3"]);
+
+      await (await contractProxy["geodb"].federationStakeLock(
+        stakeRequirement * 5
+      )).wait();
+
+      await (await contractProxy["geodb"].transfer(
+        accounts["org1"].address,
+        stakeRequirement * 2
+      )).wait();
+      await (await contractProxy["geodb"].transfer(
+        accounts["org2"].address,
+        stakeRequirement * 3
+      )).wait();
+      await (await contractProxy["geodb"].transfer(
+        accounts["org3"].address,
+        stakeRequirement * 4
+      )).wait();
+
+      await (await contractProxy["geodb"].federationStakeLock(
+        stakeRequirement * 3
+      )).wait();
+
+      await (await contractProxy["org1"].federationStakeLock(
+        stakeRequirement * 2
+      )).wait();
+
+      await (await contractProxy["org2"].federationStakeLock(
+        stakeRequirement * 3
+      )).wait();
+    });
+
+    beforeEach("Update organizations balance", async () => {
+      oldBalances[
+        "contract"
+      ] = (await rootSmartContract.totalStake()).toNumber();
+      oldBalances["geodb"] = (await rootSmartContract.balanceOf(
+        accounts["geodb"].address
+      )).toNumber();
+      oldBalances["org1"] = (await rootSmartContract.balanceOf(
+        accounts["org1"].address
+      )).toNumber();
+      oldBalances["org2"] = (await rootSmartContract.balanceOf(
+        accounts["org2"].address
+      )).toNumber();
+      oldBalances["org3"] = (await rootSmartContract.balanceOf(
+        accounts["org3"].address
+      )).toNumber();
+    });
+
+    it("allows federated member to create a new ballot", async () => {
+      const result = await (await contractProxy["org2"].newStakingBallot(
+        stakeRequirement * 3
+      )).wait();
+
+      assert.ok(
+        Web3Utils.isHexStrict(result.transactionHash),
+        "Transaction did not go through"
+      );
+    });
+
+    it("rejects non-federated member to create a new ballot", async () => {
+      try {
+        const tx = await contractProxy["org3"].newStakingBallot(
+          stakeRequirement * 2
+        );
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.callerMustBeFederated,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+
+    it("rejects non-federated member to vote a new ballot", async () => {
+      try {
+        const tx = await contractProxy["org3"].voteStakingBallot(0);
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.callerMustBeFederated,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+
+    it("rejects new staking resolution if there are not enough votes", async () => {
+      try {
+        const tx = await contractProxy["org2"].resolveStakingBallot(0);
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.notEnoughVotes,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+
+    it("allows federated member to vote on a staking ballot", async () => {
+      const result = await (await contractProxy["geodb"].voteStakingBallot(
+        0
+      )).wait();
+
+      assert.ok(
+        Web3Utils.isHexStrict(result.transactionHash),
+        "Transaction did not go through"
+      );
+
+      let stakingBallot = await rootSmartContract.federationStakingBallots(0);
+      let geodbStake = (await contractProxy["geodb"].getStake()).toNumber();
+      let org1Stake = (await contractProxy["org2"].getStake()).toNumber();
+
+      assert.equal(
+        stakingBallot.approvals.toNumber(),
+        geodbStake + org1Stake,
+        "Staking on ballots mismatch"
+      );
+    });
+
+    it("rejects voting twice", async () => {
+      try {
+        const tx = await contractProxy["geodb"].voteStakingBallot(0);
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.cannotVoteTwice,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+
+      try {
+        const tx = await contractProxy["org2"].voteStakingBallot(0);
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.cannotVoteTwice,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+
+    it("allows to resolve the vote and set new stake minimum", async () => {
+      const result = await (await contractProxy["org2"].resolveStakingBallot(
+        0
+      )).wait();
+
+      assert.ok(
+        Web3Utils.isHexStrict(result.transactionHash),
+        "Transaction did not go through"
+      );
+
+      const newStakeRequirement = (await rootSmartContract.federationMinimumStake()).toNumber();
+
+      assert.equal(
+        stakeRequirement * 3,
+        newStakeRequirement,
+        "Stake was not updated"
+      );
+
+      stakeRequirement = newStakeRequirement;
+    });
+
+    it("rejects member without enough stake after minimum stake update", async () => {
+      try {
+        const tx = await contractProxy["org1"].newStakingBallot(
+          stakeRequirement / 3
+        );
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.callerMustBeFederated,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+
+    it("rejects pre-voting ballots", async () => {
+      try {
+        const tx = await contractProxy["geodb"].voteStakingBallot(1);
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.invalidBallotIndex,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+
+    it("rejects voting approved ballots", async () => {
+      try {
+        const tx = await contractProxy["geodb"].voteStakingBallot(0);
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.invalidBallotIsApproved,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+  }); // Basic federation staking change
+
+  describe("Federation staking change rejected when deadline has passed", async () => {
+    before("Contract deployment", async () => {
+      let factory = new ethers.ContractFactory(
+        compiledGeoDBRoot.abi,
+        compiledGeoDBRoot.bytecode,
+        accounts["geodb"]
+      );
+
+      rootSmartContract = await factory.deploy();
+      await rootSmartContract.deployed();
+
+      assert.ok(
+        rootSmartContract.address && rootSmartContract.deployTransaction.hash,
+        "Contract could not be deployed"
+      );
+      stakeRequirement = (await rootSmartContract.getCurrentFederationStakeRequirement()).toNumber();
+
+      contractProxy["geodb"] = rootSmartContract.connect(accounts["geodb"]);
+      contractProxy["org1"] = rootSmartContract.connect(accounts["org1"]);
+      contractProxy["org2"] = rootSmartContract.connect(accounts["org2"]);
+      contractProxy["org3"] = rootSmartContract.connect(accounts["org3"]);
+
+      await (await contractProxy["geodb"].federationStakeLock(
+        stakeRequirement * 5
+      )).wait();
+
+      await (await contractProxy["geodb"].transfer(
+        accounts["org1"].address,
+        stakeRequirement * 2
+      )).wait();
+      await (await contractProxy["geodb"].transfer(
+        accounts["org2"].address,
+        stakeRequirement * 3
+      )).wait();
+      await (await contractProxy["geodb"].transfer(
+        accounts["org3"].address,
+        stakeRequirement * 4
+      )).wait();
+
+      await (await contractProxy["geodb"].federationStakeLock(
+        stakeRequirement * 3
+      )).wait();
+
+      await (await contractProxy["org1"].federationStakeLock(
+        stakeRequirement * 2
+      )).wait();
+
+      await (await contractProxy["org2"].federationStakeLock(
+        stakeRequirement * 3
+      )).wait();
+
+      // Create staking ballot
+      await (await contractProxy["geodb"].newStakingBallot(
+        stakeRequirement * 2
+      )).wait();
+    });
+
+    beforeEach("Update organizations balance", async () => {
+      oldBalances[
+        "contract"
+      ] = (await rootSmartContract.totalStake()).toNumber();
+      oldBalances["geodb"] = (await rootSmartContract.balanceOf(
+        accounts["geodb"].address
+      )).toNumber();
+      oldBalances["org1"] = (await rootSmartContract.balanceOf(
+        accounts["org1"].address
+      )).toNumber();
+      oldBalances["org2"] = (await rootSmartContract.balanceOf(
+        accounts["org2"].address
+      )).toNumber();
+      oldBalances["org3"] = (await rootSmartContract.balanceOf(
+        accounts["org3"].address
+      )).toNumber();
+    });
+
+    it("rejects staking vote after the deadline has passed", async () => {
+      const delta = 2 * 24 * 3600;
+      const increaseTime = await ethersProvider.send("evm_increaseTime", [
+        delta
+      ]);
+
+      try {
+        const tx = await contractProxy["org1"].voteStakingBallot(0);
+        const result = tx.wait();
+
+        assert.fail("Transaction confirmed an illegal state");
+      } catch (e) {
+        if (e.transactionHash) {
+          const transactionHash = e.transactionHash;
+          const errorMsg = e.results[`${transactionHash}`].reason;
+          assert.equal(
+            errorMsg,
+            errorMsgs.deadline,
+            `Unexpected error message`
+          );
+        } else {
+          assert.fail(e);
+        }
+      }
+    });
+  });
 }); // Describe GeoDBRoot

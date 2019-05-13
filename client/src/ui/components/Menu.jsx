@@ -1,13 +1,13 @@
 import React from "react";
 
-import { Button, ButtonGroup } from "@trendmicro/react-buttons";
-import Dropdown, { MenuItem } from "@trendmicro/react-dropdown";
-import ensureArray from "ensure-array";
-import styled from "styled-components";
+// import { Button, ButtonGroup } from "@trendmicro/react-buttons";
+// import Dropdown, { MenuItem } from "@trendmicro/react-dropdown";
+// import ensureArray from "ensure-array";
+// import styled from "styled-components";
 
 import SideNav, {
-  Toggle,
-  Nav,
+  // Toggle,
+  // Nav,
   NavItem,
   NavIcon,
   NavText
@@ -17,7 +17,7 @@ import "@trendmicro/react-sidenav/dist/react-sidenav.css";
 
 class Menu extends React.PureComponent {
   render() {
-    const { onSelect, onToggle, selected, expanded, routes } = this.props;
+    const { onSelect, onToggle, selected, /*expanded,*/ routes } = this.props;
 
     return (
       <SideNav onSelect={onSelect} onToggle={onToggle}>

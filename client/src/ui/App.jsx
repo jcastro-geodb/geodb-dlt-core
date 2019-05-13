@@ -112,7 +112,7 @@ class App extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.onSelect("home");
+    this.onSelect("ethereum");
   }
 
   render() {
