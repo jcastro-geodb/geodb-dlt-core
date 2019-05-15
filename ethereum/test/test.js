@@ -4,50 +4,24 @@ const ethers = require("ethers");
 const EthersUtils = require("ethers").utils;
 const Web3Utils = require("web3-utils");
 
+const { setupNetwork } = require("./helpers/setupNetwork");
+
 // ###################
 // # ETHEREUM SETUP
 // ###################
 
-require("events").EventEmitter.defaultMaxListeners = 100;
-
-const ganacheOptions = {
-  gasLimit: "8000000"
-};
-
-const provider = ganache.provider(ganacheOptions);
-
-const ethersProvider = new ethers.providers.Web3Provider(provider);
-
-const compiledGeoDBRoot = require("../build/contracts/GeoDB.json");
-
-// ###################
-// # ACCOUNTS
-// ###################
-let mnemonic;
-let accounts = {};
+let accounts, ethersProvider;
 
 // ###################
 // # SMART CONTRACT
 // ###################
 
+const compiledGeoDBRoot = require("../build/contracts/GeoDB.json");
+const errorMsgs = require("./helpers/errorMessages");
+
 let rootSmartContract;
 let contractProxy = {};
 let stakeRequirement = 0;
-
-const errorMsgs = {
-  stakedAmountIsNotEnough: "Staked amount is not enough",
-  callerMustBeFederated: "Caller must be part of the federation",
-  noStake: "There is no stake for this address",
-  unauthorizedWithdrawal: "Unauthorized withdrawal",
-  notEnoughVotes: "Voting stake is not enough",
-  cannotVoteTwice: "You cannot vote twice",
-  noSelfVoting:
-    "Your votes will be automatically added when you call federationStakeWithdraw()",
-  requestWithDrawalFirst: "Request stake withdrawal first",
-  deadline: "The deadline has passed",
-  invalidBallotIndex: "Index does not exist",
-  invalidBallotIsApproved: "This ballot has already been approved"
-};
 
 // ###################
 // # BALANCES
@@ -59,27 +33,11 @@ let oldBalances = {};
 // # TESTING
 // ###################
 
-describe("GeoDBRoot", () => {
-  before(async () => {
-    // Accounts setup:
-    mnemonic = ethersProvider._web3Provider.options.mnemonic;
-
-    let index = 1;
-    accounts["geodb"] = ethers.Wallet.fromMnemonic(mnemonic).connect(
-      ethersProvider
-    );
-    accounts["org1"] = ethers.Wallet.fromMnemonic(
-      mnemonic,
-      `m/44'/60'/0'/0/${index++}`
-    ).connect(ethersProvider);
-    accounts["org2"] = ethers.Wallet.fromMnemonic(
-      mnemonic,
-      `m/44'/60'/0'/0/${index++}`
-    ).connect(ethersProvider);
-    accounts["org3"] = ethers.Wallet.fromMnemonic(
-      mnemonic,
-      `m/44'/60'/0'/0/${index++}`
-    ).connect(ethersProvider);
+describe("Top", () => {
+  before("Setup ethereum network", () => {
+    let setup = setupNetwork();
+    ethersProvider = setup.ethersProvider;
+    accounts = setup.accounts;
   });
 
   describe("Basic staking test", () => {
@@ -170,6 +128,8 @@ describe("GeoDBRoot", () => {
         `Balance delta did not match. Actual: ${contractBalanceDelta}, Expected: ${-stakeRequirement}`
       );
     });
+
+    // it("allows to withdraw the stake");
 
     it("allows to make a withdrawal request", async () => {
       const tx = await contractProxy["geodb"].requestStakeWithdrawal();
