@@ -20,6 +20,7 @@ const setupContract = async accounts => {
   contractProxy["org1"] = rootSmartContract.connect(accounts["org1"]);
   contractProxy["org2"] = rootSmartContract.connect(accounts["org2"]);
   contractProxy["org3"] = rootSmartContract.connect(accounts["org3"]);
+  contractProxy["org4"] = rootSmartContract.connect(accounts["org4"]);
   contractProxy["badorg"] = rootSmartContract.connect(accounts["badorg"]);
 
   await (await contractProxy["geodb"].transfer(
@@ -32,6 +33,10 @@ const setupContract = async accounts => {
   )).wait();
   await (await contractProxy["geodb"].transfer(
     accounts["org3"].address,
+    stakeRequirement * 10
+  )).wait();
+  await (await contractProxy["geodb"].transfer(
+    accounts["org4"].address,
     stakeRequirement * 10
   )).wait();
 

@@ -15,8 +15,8 @@ contract GeoDBClasses {
   // joining, the address must have staked tokens
   struct FederationJoinBallot {
     uint256 requestIndex; // If an address should exit and enter the federation multiple times, we must keep an index of admittance requests
-    bool[] used; // Mark if a request has been already been used to join the federation
-    uint256[] approvals; // Stake used by the rest of the federation supporting a join request
+    mapping(uint256 => bool) used; // Mark if a request has been already been used to join the federation
+    mapping(uint256 => uint256) approvals; // Stake used by the rest of the federation supporting a join request
     mapping(bytes32 => bool) approvers; // List of voters that are supporting this join request so that they do not vote twice
   }
 

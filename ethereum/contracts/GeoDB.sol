@@ -57,16 +57,16 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     federationStakes[msg.sender].stake = summedStakes;
   }
 
-  function withdrawStake() public callerMustHaveStake {
+  function withdrawStake() public callerMustHaveStake() {
 
-    if(federationStakes[msg.sender].approved == false){
-      _withdrawStake(msg.sender);
-      return;
-    }else if(federationStakes[msg.sender].approved && federationStakes[msg.sender].stake < federationMinimumStake){
-      totalStake = totalStake.sub(federationStakes[msg.sender].stake);
-      _withdrawStake(msg.sender);
-      return;
-    }
+    // if(federationStakes[msg.sender].approved == false){
+    //   _withdrawStake(msg.sender);
+    //   return;
+    // }else if(federationStakes[msg.sender].approved && federationStakes[msg.sender].stake < federationMinimumStake){
+    //   totalStake = totalStake.sub(federationStakes[msg.sender].stake);
+    //   _withdrawStake(msg.sender);
+    //   return;
+    // }
 
     require(federationStakes[msg.sender].releaseRequestIndex > 0, "Request stake withdrawal first");
     require(
@@ -92,7 +92,7 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     federationStakes[msg.sender].releaseRequestIndex = federationStakes[msg.sender].releaseRequestIndex.add(1);
   }
 
-  function voteStakeWithdrawalRequest(address addr, uint16 index) public callerMustBeFederated() {
+  function voteStakeWithdrawalRequest(address addr, uint256 index) public callerMustBeFederated() {
     require(addr != msg.sender, "Your votes will be automatically added when you call federationStakeWithdraw()");
     require(index > 0, "Index must be greater than 0");
     require(federationStakes[addr].releaseRequestIndex == index, "Index must be equal to current request");
@@ -115,39 +115,37 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
 
   // Federation join / approve member process
 
-  function requestFederationJoin() public callerCannotBeFederated() callerCannotHaveStake() { // Untested
-
-    // require(balanceOf(msg.sender) >= federationMinimumStake, "Insufficient GEOs to stake");
-    //
-    // require(transfer(address(this), federationMinimumStake), "Insufficient GEOs to stake");
-
+  function requestFederationJoin() public callerCannotBeFederated() callerCannotHaveStake() {
     transfer(address(this), federationMinimumStake);
     federationJoinBallots[msg.sender].requestIndex = federationJoinBallots[msg.sender].requestIndex.add(1);
     federationStakes[msg.sender].stake = federationMinimumStake;
   }
 
   function voteFederationJoin(address addr) public callerMustBeFederated(){
-    require(federationJoinBallots[addr].requestIndex > 0, "Index must be greater than 0"); // Untested
-    uint256 index = federationJoinBallots[msg.sender].requestIndex;
+    require(federationJoinBallots[addr].requestIndex > 0, "Index must be greater than 0");
+    uint256 index = federationJoinBallots[addr].requestIndex;
     require(federationJoinBallots[addr].used[index] == false, "This join request has already been resolved");
     bytes32 approver = keccak256(abi.encode(index, msg.sender));
-    require(federationJoinBallots[addr].approvers[approver] == false, "You cannot vote twice"); // Untested
+    require(federationJoinBallots[addr].approvers[approver] == false, "You cannot vote twice");
 
     federationJoinBallots[addr].approvers[approver] = true;
-    federationJoinBallots[addr].approvals[index].add(federationStakes[msg.sender].stake);
+    federationJoinBallots[addr].approvals[index] = federationJoinBallots[addr].approvals[index].add(federationStakes[msg.sender].stake);
   }
 
-  function resolveFederationJoin() public callerMustHaveStake() callerCannotBeFederated(){ // Untested
-    require(federationJoinBallots[msg.sender].requestIndex > 0, "Index must be greater than 0"); // Untested
+  function resolveFederationJoin(bool commit) public callerMustHaveStake() callerCannotBeFederated() {
     uint256 index = federationJoinBallots[msg.sender].requestIndex;
-    require(federationJoinBallots[msg.sender].approvals[index] > totalStake.div(2), "Voting stake is not enough"); // Untested
-    require(federationJoinBallots[msg.sender].used[index] == false);
+    require(index > 0, "Index must be greater than 0");
+    require(federationJoinBallots[msg.sender].used[index] == false, "This join request has already been resolved");
 
     federationJoinBallots[msg.sender].used[index] = true;
-    federationStakes[msg.sender].approved = true;
-    totalStake = totalStake.add(federationStakes[msg.sender].stake);
+    if(commit){
+      require(federationJoinBallots[msg.sender].approvals[index] > totalStake.div(2), "Voting stake is not enough"); // Untested
+      federationStakes[msg.sender].approved = true;
+      totalStake = totalStake.add(federationStakes[msg.sender].stake);
+    }else{
+      _withdrawStake(msg.sender);
+    }
   }
-
 
   // Federation minimum stake modification process
 
@@ -197,6 +195,35 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     }
   }
 
+  // Getters
+
+  function getStatusForJoinFederationBallot(address addr, uint index) public view returns (bool) {
+    return federationJoinBallots[addr].used[index];
+  }
+
+  function getApprovalsForJoinFederationBallot(address addr, uint index) public view returns (uint) {
+    return federationJoinBallots[addr].approvals[index];
+  }
+
+  function getApproverForJoinFederationBallot(address addr, address approver, uint index) public view returns (bool) {
+    bytes32 approver = keccak256(abi.encode(index, approver));
+    return federationJoinBallots[addr].approvers[approver];
+  }
+
+  function isFederated(address addr) public view returns (bool) {
+    return federationStakes[addr].stake >= federationMinimumStake
+      && federationStakes[addr].approved;
+  }
+
+  function getApprovalsWithdrawRquest(address addr, uint index) public view returns (uint) {
+    return federationStakes[addr].withdrawApprovals[index];
+  }
+
+  function getApproverWithdrawRequest(address addr, address approver, uint index) public view returns (bool) {
+    bytes32 approver = keccak256(abi.encode(index, approver));
+    return federationStakes[addr].withdrawApprovers[approver];
+  }
+
   // Modifiers
 
   modifier callerMustHaveStake() {
@@ -215,15 +242,14 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
   }
 
   modifier callerMustBeFederated() {
-    require(federationStakes[msg.sender].stake >= federationMinimumStake
-      && federationStakes[msg.sender].approved,
+    require(isFederated(msg.sender),
       "Caller must be part of the federation");
     _;
   }
 
   modifier callerCannotBeFederated() {
     require(!federationStakes[msg.sender].approved,
-      "Caller must be part of the federation");
+      "Caller cannot be part of the federation");
     _;
   }
 

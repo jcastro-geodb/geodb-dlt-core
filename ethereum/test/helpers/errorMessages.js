@@ -12,5 +12,11 @@ module.exports = {
   invalidBallotIndex: "Index does not exist",
   invalidBallotIsApproved: "This ballot has already been approved",
   notEnoughGeos: "Insufficient GEOs to stake",
-  safeMathSubstractionOverflow: "SafeMath: subtraction overflow"
+  safeMathSubstractionOverflow: "SafeMath: subtraction overflow",
+  callerCannotBeFederated: "Caller cannot be part of the federation",
+  firstWithdrawYourStake: "First withdraw your stake",
+  firstRequestWithdrawal: "Request stake withdrawal first",
+  indexMustBeGreaterThan0: "Index must be greater than 0",
+  joinRequestAlreadyResolved: "This join request has already been resolved",
+  noStakeForThisAddress: "There is no stake for this address"
 };

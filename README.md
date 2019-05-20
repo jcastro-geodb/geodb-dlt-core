@@ -11,3 +11,9 @@ Contains all Ethereum smart contract materials.
 ## Network
 
 Contains all Hyperledger Fabric materials.
+
+## Security vulnerabilities
+
+On hold:
+
+https://github.com/trufflesuite/truffle/issues/1912
