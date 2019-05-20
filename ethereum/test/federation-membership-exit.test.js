@@ -217,5 +217,161 @@ describe("Federation membership exit", () => {
         }
       });
     });
-  });
-});
+  }); // When the org does not get federation approval to leave
+
+  describe("Prohibited behaviours", () => {
+    describe("When caller is not federated", () => {
+      beforeEach(
+        "bootstrap the network, setup federation and give GEOs to a dishonest address",
+        async () => {
+          await bootstrap();
+          await setupFederation(accounts, contractProxy);
+          await (await contractProxy["geodb"].transfer(
+            accounts["badorg"].address,
+            stakeRequirement
+          )).wait();
+
+          await (await contractProxy["org1"].requestStakeWithdrawal()).wait();
+        }
+      );
+
+      it("rejects withdrawal if there is no stake", async () => {
+        try {
+          const tx = (await contractProxy["badorg"].withdrawStake()).wait();
+
+          assert.fail("Transaction confirmed an illegal state");
+        } catch (e) {
+          if (e.transactionHash) {
+            const transactionHash = e.transactionHash;
+            const errorMsg = e.results[`${transactionHash}`].reason;
+            assert.equal(
+              errorMsg,
+              errorMsgs.noStakeForThisAddress,
+              `Unexpected error message`
+            );
+          } else {
+            assert.fail(e);
+          }
+        }
+      });
+
+      it("rejects withdrawal if the org has not been approved", async () => {
+        try {
+          await (await contractProxy["badorg"].requestFederationJoin()).wait();
+          await (await contractProxy["badorg"].requestStakeWithdrawal()).wait();
+          const tx = (await contractProxy["badorg"].withdrawStake()).wait();
+
+          assert.fail("Transaction confirmed an illegal state");
+        } catch (e) {
+          if (e.transactionHash) {
+            const transactionHash = e.transactionHash;
+            const errorMsg = e.results[`${transactionHash}`].reason;
+            assert.equal(
+              errorMsg,
+              errorMsgs.callerMustBeFederated,
+              `Unexpected error message`
+            );
+          } else {
+            assert.fail(e);
+          }
+        }
+      });
+
+      it("rejects voting on withdrawal requests", async () => {
+        try {
+          await (await contractProxy["badorg"].voteStakeWithdrawalRequest(
+            accounts["org1"].address,
+            1
+          )).wait();
+
+          assert.fail("Transaction confirmed an illegal state");
+        } catch (e) {
+          if (e.transactionHash) {
+            const transactionHash = e.transactionHash;
+            const errorMsg = e.results[`${transactionHash}`].reason;
+            assert.equal(
+              errorMsg,
+              errorMsgs.callerMustBeFederated,
+              `Unexpected error message`
+            );
+          } else {
+            assert.fail(e);
+          }
+        }
+      });
+    }); // When the caller is not federated
+
+    describe("When the caller attempts to self-vote its withdrawal request", () => {
+      before(
+        "bootstrap the network, setup federation and give GEOs to a dishonest address",
+        async () => {
+          await bootstrap();
+          await setupFederation(accounts, contractProxy);
+          await (await contractProxy["org1"].requestStakeWithdrawal()).wait();
+        }
+      );
+
+      it("rejects self-voting withdrawal requests", async () => {
+        try {
+          await (await contractProxy["org1"].voteStakeWithdrawalRequest(
+            accounts["org1"].address,
+            1
+          )).wait();
+
+          assert.fail("Transaction confirmed an illegal state");
+        } catch (e) {
+          if (e.transactionHash) {
+            const transactionHash = e.transactionHash;
+            const errorMsg = e.results[`${transactionHash}`].reason;
+            assert.equal(
+              errorMsg,
+              errorMsgs.votesAdded,
+              `Unexpected error message`
+            );
+          } else {
+            assert.fail(e);
+          }
+        }
+      });
+    });
+
+    describe("When the caller attempts to vote twice to a withdrawal request", () => {
+      before(
+        "bootstrap the network, setup federation and give GEOs to a dishonest address",
+        async () => {
+          await bootstrap();
+          await setupFederation(accounts, contractProxy);
+          await (await contractProxy["org1"].requestStakeWithdrawal()).wait();
+        }
+      );
+
+      it("rejects voting withdrawal requests twice", async () => {
+        try {
+          await (await contractProxy["org2"].voteStakeWithdrawalRequest(
+            accounts["org1"].address,
+            1
+          )).wait();
+
+          await (await contractProxy["org2"].voteStakeWithdrawalRequest(
+            accounts["org1"].address,
+            1
+          )).wait();
+
+          assert.fail("Transaction confirmed an illegal state");
+        } catch (e) {
+          if (e.transactionHash) {
+            const transactionHash = e.transactionHash;
+            const errorMsg = e.results[`${transactionHash}`].reason;
+            assert.equal(
+              errorMsg,
+              errorMsgs.cannotVoteTwice,
+              `Unexpected error message`
+            );
+          } else {
+            assert.fail(e);
+          }
+        }
+      });
+    });
+  }); // Prohibited behaviours
+}); // Federation membership exit

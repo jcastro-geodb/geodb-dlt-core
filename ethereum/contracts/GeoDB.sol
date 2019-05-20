@@ -224,6 +224,10 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     return federationStakes[addr].withdrawApprovers[approver];
   }
 
+  function getApproverForStakingBallot(address approver, uint index) public view returns (bool) {
+    return federationStakingBallots[index].approvers[approver];
+  }
+
   // Modifiers
 
   modifier callerMustHaveStake() {

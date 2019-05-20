@@ -12,14 +12,14 @@
     "absolutePath": "/home/mad/geodb/fabric/ethereum/contracts/GeoDBClasses.sol",
     "exportedSymbols": {
       "GeoDBClasses": [
-        1086
+        1103
       ]
     },
-    "id": 1087,
+    "id": 1104,
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 1040,
+        "id": 1057,
         "literals": [
           "solidity",
           "^",
@@ -35,23 +35,23 @@
         "contractKind": "contract",
         "documentation": null,
         "fullyImplemented": true,
-        "id": 1086,
+        "id": 1103,
         "linearizedBaseContracts": [
-          1086
+          1103
         ],
         "name": "GeoDBClasses",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "canonicalName": "GeoDBClasses.FederationStake",
-            "id": 1055,
+            "id": 1072,
             "members": [
               {
                 "constant": false,
-                "id": 1042,
+                "id": 1059,
                 "name": "stake",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "159:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -60,7 +60,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1041,
+                  "id": 1058,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "159:7:1",
@@ -74,10 +74,10 @@
               },
               {
                 "constant": false,
-                "id": 1044,
+                "id": 1061,
                 "name": "approved",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "202:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -86,7 +86,7 @@
                   "typeString": "bool"
                 },
                 "typeName": {
-                  "id": 1043,
+                  "id": 1060,
                   "name": "bool",
                   "nodeType": "ElementaryTypeName",
                   "src": "202:4:1",
@@ -100,10 +100,10 @@
               },
               {
                 "constant": false,
-                "id": 1046,
+                "id": 1063,
                 "name": "releaseRequestIndex",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "279:27:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -112,7 +112,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1045,
+                  "id": 1062,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "279:7:1",
@@ -126,10 +126,10 @@
               },
               {
                 "constant": false,
-                "id": 1050,
+                "id": 1067,
                 "name": "withdrawApprovals",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "375:45:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -138,9 +138,9 @@
                   "typeString": "mapping(uint256 => uint256)"
                 },
                 "typeName": {
-                  "id": 1049,
+                  "id": 1066,
                   "keyType": {
-                    "id": 1047,
+                    "id": 1064,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "383:7:1",
@@ -156,7 +156,7 @@
                     "typeString": "mapping(uint256 => uint256)"
                   },
                   "valueType": {
-                    "id": 1048,
+                    "id": 1065,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "394:7:1",
@@ -171,10 +171,10 @@
               },
               {
                 "constant": false,
-                "id": 1054,
+                "id": 1071,
                 "name": "withdrawApprovers",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "503:42:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -183,9 +183,9 @@
                   "typeString": "mapping(bytes32 => bool)"
                 },
                 "typeName": {
-                  "id": 1053,
+                  "id": 1070,
                   "keyType": {
-                    "id": 1051,
+                    "id": 1068,
                     "name": "bytes32",
                     "nodeType": "ElementaryTypeName",
                     "src": "511:7:1",
@@ -201,7 +201,7 @@
                     "typeString": "mapping(bytes32 => bool)"
                   },
                   "valueType": {
-                    "id": 1052,
+                    "id": 1069,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "522:4:1",
@@ -217,20 +217,20 @@
             ],
             "name": "FederationStake",
             "nodeType": "StructDefinition",
-            "scope": 1086,
+            "scope": 1103,
             "src": "130:513:1",
             "visibility": "public"
           },
           {
             "canonicalName": "GeoDBClasses.FederationJoinBallot",
-            "id": 1070,
+            "id": 1087,
             "members": [
               {
                 "constant": false,
-                "id": 1057,
+                "id": 1074,
                 "name": "requestIndex",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "809:20:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -239,7 +239,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1056,
+                  "id": 1073,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "809:7:1",
@@ -253,10 +253,10 @@
               },
               {
                 "constant": false,
-                "id": 1061,
+                "id": 1078,
                 "name": "used",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "950:29:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -265,9 +265,9 @@
                   "typeString": "mapping(uint256 => bool)"
                 },
                 "typeName": {
-                  "id": 1060,
+                  "id": 1077,
                   "keyType": {
-                    "id": 1058,
+                    "id": 1075,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "958:7:1",
@@ -283,7 +283,7 @@
                     "typeString": "mapping(uint256 => bool)"
                   },
                   "valueType": {
-                    "id": 1059,
+                    "id": 1076,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "969:4:1",
@@ -298,10 +298,10 @@
               },
               {
                 "constant": false,
-                "id": 1065,
+                "id": 1082,
                 "name": "approvals",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "1056:37:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -310,9 +310,9 @@
                   "typeString": "mapping(uint256 => uint256)"
                 },
                 "typeName": {
-                  "id": 1064,
+                  "id": 1081,
                   "keyType": {
-                    "id": 1062,
+                    "id": 1079,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "1064:7:1",
@@ -328,7 +328,7 @@
                     "typeString": "mapping(uint256 => uint256)"
                   },
                   "valueType": {
-                    "id": 1063,
+                    "id": 1080,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "1075:7:1",
@@ -343,10 +343,10 @@
               },
               {
                 "constant": false,
-                "id": 1069,
+                "id": 1086,
                 "name": "approvers",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "1169:34:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -355,9 +355,9 @@
                   "typeString": "mapping(bytes32 => bool)"
                 },
                 "typeName": {
-                  "id": 1068,
+                  "id": 1085,
                   "keyType": {
-                    "id": 1066,
+                    "id": 1083,
                     "name": "bytes32",
                     "nodeType": "ElementaryTypeName",
                     "src": "1177:7:1",
@@ -373,7 +373,7 @@
                     "typeString": "mapping(bytes32 => bool)"
                   },
                   "valueType": {
-                    "id": 1067,
+                    "id": 1084,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "1188:4:1",
@@ -389,20 +389,20 @@
             ],
             "name": "FederationJoinBallot",
             "nodeType": "StructDefinition",
-            "scope": 1086,
+            "scope": 1103,
             "src": "775:520:1",
             "visibility": "public"
           },
           {
             "canonicalName": "GeoDBClasses.FederationStakingBallot",
-            "id": 1085,
+            "id": 1102,
             "members": [
               {
                 "constant": false,
-                "id": 1072,
+                "id": 1089,
                 "name": "stake",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1336:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -411,7 +411,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1071,
+                  "id": 1088,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "1336:7:1",
@@ -425,10 +425,10 @@
               },
               {
                 "constant": false,
-                "id": 1074,
+                "id": 1091,
                 "name": "approved",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1355:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -437,7 +437,7 @@
                   "typeString": "bool"
                 },
                 "typeName": {
-                  "id": 1073,
+                  "id": 1090,
                   "name": "bool",
                   "nodeType": "ElementaryTypeName",
                   "src": "1355:4:1",
@@ -451,10 +451,10 @@
               },
               {
                 "constant": false,
-                "id": 1076,
+                "id": 1093,
                 "name": "proposer",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1374:16:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -463,7 +463,7 @@
                   "typeString": "address"
                 },
                 "typeName": {
-                  "id": 1075,
+                  "id": 1092,
                   "name": "address",
                   "nodeType": "ElementaryTypeName",
                   "src": "1374:7:1",
@@ -478,10 +478,10 @@
               },
               {
                 "constant": false,
-                "id": 1078,
+                "id": 1095,
                 "name": "approvals",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1396:17:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -490,7 +490,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1077,
+                  "id": 1094,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "1396:7:1",
@@ -504,10 +504,10 @@
               },
               {
                 "constant": false,
-                "id": 1082,
+                "id": 1099,
                 "name": "approvers",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1419:34:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -516,9 +516,9 @@
                   "typeString": "mapping(address => bool)"
                 },
                 "typeName": {
-                  "id": 1081,
+                  "id": 1098,
                   "keyType": {
-                    "id": 1079,
+                    "id": 1096,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
                     "src": "1427:7:1",
@@ -534,7 +534,7 @@
                     "typeString": "mapping(address => bool)"
                   },
                   "valueType": {
-                    "id": 1080,
+                    "id": 1097,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "1438:4:1",
@@ -549,10 +549,10 @@
               },
               {
                 "constant": false,
-                "id": 1084,
+                "id": 1101,
                 "name": "deadline",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1459:16:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -561,7 +561,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1083,
+                  "id": 1100,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "1459:7:1",
@@ -576,12 +576,12 @@
             ],
             "name": "FederationStakingBallot",
             "nodeType": "StructDefinition",
-            "scope": 1086,
+            "scope": 1103,
             "src": "1299:181:1",
             "visibility": "public"
           }
         ],
-        "scope": 1087,
+        "scope": 1104,
         "src": "25:1459:1"
       }
     ],
@@ -591,14 +591,14 @@
     "absolutePath": "/home/mad/geodb/fabric/ethereum/contracts/GeoDBClasses.sol",
     "exportedSymbols": {
       "GeoDBClasses": [
-        1086
+        1103
       ]
     },
-    "id": 1087,
+    "id": 1104,
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 1040,
+        "id": 1057,
         "literals": [
           "solidity",
           "^",
@@ -614,23 +614,23 @@
         "contractKind": "contract",
         "documentation": null,
         "fullyImplemented": true,
-        "id": 1086,
+        "id": 1103,
         "linearizedBaseContracts": [
-          1086
+          1103
         ],
         "name": "GeoDBClasses",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "canonicalName": "GeoDBClasses.FederationStake",
-            "id": 1055,
+            "id": 1072,
             "members": [
               {
                 "constant": false,
-                "id": 1042,
+                "id": 1059,
                 "name": "stake",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "159:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -639,7 +639,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1041,
+                  "id": 1058,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "159:7:1",
@@ -653,10 +653,10 @@
               },
               {
                 "constant": false,
-                "id": 1044,
+                "id": 1061,
                 "name": "approved",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "202:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -665,7 +665,7 @@
                   "typeString": "bool"
                 },
                 "typeName": {
-                  "id": 1043,
+                  "id": 1060,
                   "name": "bool",
                   "nodeType": "ElementaryTypeName",
                   "src": "202:4:1",
@@ -679,10 +679,10 @@
               },
               {
                 "constant": false,
-                "id": 1046,
+                "id": 1063,
                 "name": "releaseRequestIndex",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "279:27:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -691,7 +691,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1045,
+                  "id": 1062,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "279:7:1",
@@ -705,10 +705,10 @@
               },
               {
                 "constant": false,
-                "id": 1050,
+                "id": 1067,
                 "name": "withdrawApprovals",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "375:45:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -717,9 +717,9 @@
                   "typeString": "mapping(uint256 => uint256)"
                 },
                 "typeName": {
-                  "id": 1049,
+                  "id": 1066,
                   "keyType": {
-                    "id": 1047,
+                    "id": 1064,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "383:7:1",
@@ -735,7 +735,7 @@
                     "typeString": "mapping(uint256 => uint256)"
                   },
                   "valueType": {
-                    "id": 1048,
+                    "id": 1065,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "394:7:1",
@@ -750,10 +750,10 @@
               },
               {
                 "constant": false,
-                "id": 1054,
+                "id": 1071,
                 "name": "withdrawApprovers",
                 "nodeType": "VariableDeclaration",
-                "scope": 1055,
+                "scope": 1072,
                 "src": "503:42:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -762,9 +762,9 @@
                   "typeString": "mapping(bytes32 => bool)"
                 },
                 "typeName": {
-                  "id": 1053,
+                  "id": 1070,
                   "keyType": {
-                    "id": 1051,
+                    "id": 1068,
                     "name": "bytes32",
                     "nodeType": "ElementaryTypeName",
                     "src": "511:7:1",
@@ -780,7 +780,7 @@
                     "typeString": "mapping(bytes32 => bool)"
                   },
                   "valueType": {
-                    "id": 1052,
+                    "id": 1069,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "522:4:1",
@@ -796,20 +796,20 @@
             ],
             "name": "FederationStake",
             "nodeType": "StructDefinition",
-            "scope": 1086,
+            "scope": 1103,
             "src": "130:513:1",
             "visibility": "public"
           },
           {
             "canonicalName": "GeoDBClasses.FederationJoinBallot",
-            "id": 1070,
+            "id": 1087,
             "members": [
               {
                 "constant": false,
-                "id": 1057,
+                "id": 1074,
                 "name": "requestIndex",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "809:20:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -818,7 +818,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1056,
+                  "id": 1073,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "809:7:1",
@@ -832,10 +832,10 @@
               },
               {
                 "constant": false,
-                "id": 1061,
+                "id": 1078,
                 "name": "used",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "950:29:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -844,9 +844,9 @@
                   "typeString": "mapping(uint256 => bool)"
                 },
                 "typeName": {
-                  "id": 1060,
+                  "id": 1077,
                   "keyType": {
-                    "id": 1058,
+                    "id": 1075,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "958:7:1",
@@ -862,7 +862,7 @@
                     "typeString": "mapping(uint256 => bool)"
                   },
                   "valueType": {
-                    "id": 1059,
+                    "id": 1076,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "969:4:1",
@@ -877,10 +877,10 @@
               },
               {
                 "constant": false,
-                "id": 1065,
+                "id": 1082,
                 "name": "approvals",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "1056:37:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -889,9 +889,9 @@
                   "typeString": "mapping(uint256 => uint256)"
                 },
                 "typeName": {
-                  "id": 1064,
+                  "id": 1081,
                   "keyType": {
-                    "id": 1062,
+                    "id": 1079,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "1064:7:1",
@@ -907,7 +907,7 @@
                     "typeString": "mapping(uint256 => uint256)"
                   },
                   "valueType": {
-                    "id": 1063,
+                    "id": 1080,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
                     "src": "1075:7:1",
@@ -922,10 +922,10 @@
               },
               {
                 "constant": false,
-                "id": 1069,
+                "id": 1086,
                 "name": "approvers",
                 "nodeType": "VariableDeclaration",
-                "scope": 1070,
+                "scope": 1087,
                 "src": "1169:34:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -934,9 +934,9 @@
                   "typeString": "mapping(bytes32 => bool)"
                 },
                 "typeName": {
-                  "id": 1068,
+                  "id": 1085,
                   "keyType": {
-                    "id": 1066,
+                    "id": 1083,
                     "name": "bytes32",
                     "nodeType": "ElementaryTypeName",
                     "src": "1177:7:1",
@@ -952,7 +952,7 @@
                     "typeString": "mapping(bytes32 => bool)"
                   },
                   "valueType": {
-                    "id": 1067,
+                    "id": 1084,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "1188:4:1",
@@ -968,20 +968,20 @@
             ],
             "name": "FederationJoinBallot",
             "nodeType": "StructDefinition",
-            "scope": 1086,
+            "scope": 1103,
             "src": "775:520:1",
             "visibility": "public"
           },
           {
             "canonicalName": "GeoDBClasses.FederationStakingBallot",
-            "id": 1085,
+            "id": 1102,
             "members": [
               {
                 "constant": false,
-                "id": 1072,
+                "id": 1089,
                 "name": "stake",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1336:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -990,7 +990,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1071,
+                  "id": 1088,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "1336:7:1",
@@ -1004,10 +1004,10 @@
               },
               {
                 "constant": false,
-                "id": 1074,
+                "id": 1091,
                 "name": "approved",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1355:13:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -1016,7 +1016,7 @@
                   "typeString": "bool"
                 },
                 "typeName": {
-                  "id": 1073,
+                  "id": 1090,
                   "name": "bool",
                   "nodeType": "ElementaryTypeName",
                   "src": "1355:4:1",
@@ -1030,10 +1030,10 @@
               },
               {
                 "constant": false,
-                "id": 1076,
+                "id": 1093,
                 "name": "proposer",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1374:16:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -1042,7 +1042,7 @@
                   "typeString": "address"
                 },
                 "typeName": {
-                  "id": 1075,
+                  "id": 1092,
                   "name": "address",
                   "nodeType": "ElementaryTypeName",
                   "src": "1374:7:1",
@@ -1057,10 +1057,10 @@
               },
               {
                 "constant": false,
-                "id": 1078,
+                "id": 1095,
                 "name": "approvals",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1396:17:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -1069,7 +1069,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1077,
+                  "id": 1094,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "1396:7:1",
@@ -1083,10 +1083,10 @@
               },
               {
                 "constant": false,
-                "id": 1082,
+                "id": 1099,
                 "name": "approvers",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1419:34:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -1095,9 +1095,9 @@
                   "typeString": "mapping(address => bool)"
                 },
                 "typeName": {
-                  "id": 1081,
+                  "id": 1098,
                   "keyType": {
-                    "id": 1079,
+                    "id": 1096,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
                     "src": "1427:7:1",
@@ -1113,7 +1113,7 @@
                     "typeString": "mapping(address => bool)"
                   },
                   "valueType": {
-                    "id": 1080,
+                    "id": 1097,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
                     "src": "1438:4:1",
@@ -1128,10 +1128,10 @@
               },
               {
                 "constant": false,
-                "id": 1084,
+                "id": 1101,
                 "name": "deadline",
                 "nodeType": "VariableDeclaration",
-                "scope": 1085,
+                "scope": 1102,
                 "src": "1459:16:1",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -1140,7 +1140,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 1083,
+                  "id": 1100,
                   "name": "uint256",
                   "nodeType": "ElementaryTypeName",
                   "src": "1459:7:1",
@@ -1155,12 +1155,12 @@
             ],
             "name": "FederationStakingBallot",
             "nodeType": "StructDefinition",
-            "scope": 1086,
+            "scope": 1103,
             "src": "1299:181:1",
             "visibility": "public"
           }
         ],
-        "scope": 1087,
+        "scope": 1104,
         "src": "25:1459:1"
       }
     ],
@@ -1172,7 +1172,7 @@
   },
   "networks": {},
   "schemaVersion": "3.0.9",
-  "updatedAt": "2019-05-20T11:26:33.550Z",
+  "updatedAt": "2019-05-20T13:44:04.740Z",
   "devdoc": {
     "methods": {}
   },

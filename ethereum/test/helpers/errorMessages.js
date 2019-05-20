@@ -18,5 +18,7 @@ module.exports = {
   firstRequestWithdrawal: "Request stake withdrawal first",
   indexMustBeGreaterThan0: "Index must be greater than 0",
   joinRequestAlreadyResolved: "This join request has already been resolved",
-  noStakeForThisAddress: "There is no stake for this address"
+  noStakeForThisAddress: "There is no stake for this address",
+  votesAdded:
+    "Your votes will be automatically added when you call federationStakeWithdraw()"
 };
