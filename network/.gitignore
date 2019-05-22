@@ -4,6 +4,7 @@
 crypto-config/
 orderer/
 channels/
+chaincode/github.com/hyperledger/
 
 # misc
 .DS_Store
