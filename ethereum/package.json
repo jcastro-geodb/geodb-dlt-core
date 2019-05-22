@@ -22,7 +22,8 @@
     "openzeppelin-test-helpers": "^0.3.2"
   },
   "scripts": {
-    "test": "mocha"
+    "compile": "rm -rf ./build; truffle compile; cp ./build/contracts/GeoDB.json ../network/chaincode/github.com/geodb/ethereum/abi/GeoDB.json",
+    "test": "mocha ./test/*.test.js"
   },
   "author": "",
   "license": "ISC",

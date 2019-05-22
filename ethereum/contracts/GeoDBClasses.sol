@@ -29,5 +29,12 @@ contract GeoDBClasses {
     uint256 deadline;
   }
 
+  struct BlockSummary {
+    address minter;
+    address nextMinter;
+    address[] rewardedAddresses;
+    mapping(address => uint256) rewardedAmounts;
+  }
+
 
 }

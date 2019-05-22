@@ -88,7 +88,7 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     selfReference.transfer(addr, stake);
   }
 
-  function requestStakeWithdrawal() public callerMustBeFederated() {
+  function requestStakeWithdrawal() public callerMustHaveStake() {
     federationStakes[msg.sender].releaseRequestIndex = federationStakes[msg.sender].releaseRequestIndex.add(1);
   }
 
@@ -103,6 +103,7 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     federationStakes[addr].withdrawApprovers[withdrawApprover] = true;
   }
 
+  // TODO: add deadline 
   function purgeMember(address addr) public callerMustBeFederated(){
     require(federationStakes[addr].stake < federationMinimumStake && federationStakes[addr].approved, "Member cannot be purged");
     uint256 stake = federationStakes[addr].stake;
@@ -166,7 +167,7 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     federationStakingBallots.push(ballot);
   }
 
-  function voteStakingBallot(uint256 index) public callerMustBeFederated stakingBallotIsValid(index) {
+  function voteStakingBallot(uint256 index) public callerMustBeFederated() stakingBallotIsValid(index) {
     require(!federationStakingBallots[index].approvers[msg.sender] && msg.sender != federationStakingBallots[index].proposer, "You cannot vote twice");
     federationStakingBallots[index].approvers[msg.sender] = true;
     federationStakingBallots[index].approvals = federationStakingBallots[index].approvals.add(federationStakes[msg.sender].stake);
@@ -205,9 +206,9 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     return federationJoinBallots[addr].approvals[index];
   }
 
-  function getApproverForJoinFederationBallot(address addr, address approver, uint index) public view returns (bool) {
-    bytes32 approver = keccak256(abi.encode(index, approver));
-    return federationJoinBallots[addr].approvers[approver];
+  function getApproverForJoinFederationBallot(address addr, address approverAddr, uint index) public view returns (bool) {
+    bytes32 approverHash = keccak256(abi.encode(index, approverAddr));
+    return federationJoinBallots[addr].approvers[approverHash];
   }
 
   function isFederated(address addr) public view returns (bool) {
@@ -219,9 +220,9 @@ contract GeoDB is GeoDBClasses, ERC20Burnable, Ownable{
     return federationStakes[addr].withdrawApprovals[index];
   }
 
-  function getApproverWithdrawRequest(address addr, address approver, uint index) public view returns (bool) {
-    bytes32 approver = keccak256(abi.encode(index, approver));
-    return federationStakes[addr].withdrawApprovers[approver];
+  function getApproverWithdrawRequest(address addr, address approverAddr, uint index) public view returns (bool) {
+    bytes32 approverHash = keccak256(abi.encode(index, approverAddr));
+    return federationStakes[addr].withdrawApprovers[approverHash];
   }
 
   function getApproverForStakingBallot(address approver, uint index) public view returns (bool) {

@@ -255,28 +255,6 @@ describe("Federation membership exit", () => {
         }
       });
 
-      it("rejects withdrawal if the org has not been approved", async () => {
-        try {
-          await (await contractProxy["badorg"].requestFederationJoin()).wait();
-          await (await contractProxy["badorg"].requestStakeWithdrawal()).wait();
-          const tx = (await contractProxy["badorg"].withdrawStake()).wait();
-
-          assert.fail("Transaction confirmed an illegal state");
-        } catch (e) {
-          if (e.transactionHash) {
-            const transactionHash = e.transactionHash;
-            const errorMsg = e.results[`${transactionHash}`].reason;
-            assert.equal(
-              errorMsg,
-              errorMsgs.callerMustBeFederated,
-              `Unexpected error message`
-            );
-          } else {
-            assert.fail(e);
-          }
-        }
-      });
-
       it("rejects voting on withdrawal requests", async () => {
         try {
           await (await contractProxy["badorg"].voteStakeWithdrawalRequest(
