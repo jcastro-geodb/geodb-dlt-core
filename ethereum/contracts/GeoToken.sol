@@ -2,12 +2,14 @@ pragma solidity >= 0.5.0 <6.0.0;
 
 import "../externals/openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 import "../externals/openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "../externals/openzeppelin-solidity/contracts/math/SafeMath.sol";
 // Replace the two above for:
 // import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 // import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 // in production
 
 contract GeoToken is Ownable, ERC20Burnable {
+  using SafeMath for uint256;
   // Token constants
 
   uint256 constant public maxSupply = 100000000000000;
@@ -30,7 +32,7 @@ contract GeoToken is Ownable, ERC20Burnable {
   );
 
   function releaseReward(address to, uint256 reward) public onlyOwner() {
-    if(totalSupply() + reward < maxSupply){
+    if(totalSupply().add(reward) < maxSupply){
       _mint(to, reward);
       emit LogReward(tx.origin, to, reward);
     }

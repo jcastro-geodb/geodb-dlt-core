@@ -1,10 +1,5 @@
 const GeoToken = artifacts.require("./GeoToken.sol");
-const {
-  BN,
-  constants,
-  expectEvent,
-  shouldFail
-} = require("openzeppelin-test-helpers");
+const { BN, expectEvent } = require("openzeppelin-test-helpers");
 
 contract("GeoToken", accounts => {
   before("Define accounts", () => {
