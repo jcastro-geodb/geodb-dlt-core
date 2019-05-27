@@ -92,13 +92,16 @@ contract GeoFederation is GeoDBClasses, Ownable{
   }
 
   function newJoinBallot(uint256 amount) public callerCannotBeApproved() callerCannotHaveStake() {
-    require(amount > federationMinimumStake, "Not enough stake");
-    require(token.transferFrom(msg.sender, address(this), amount), "Could not retrieve stake from token contract");
+    require(amount >= federationMinimumStake, "Not enough stake");
     federationJoinBallots[msg.sender] = Ballot({
       approvals: 0,
       deadline: (block.timestamp + 1 days),
-      resolved: false
+      resolved: false,
+      resolving: true
     });
+    federationStakes[msg.sender].stake = amount;
+    emit LogNewJoinBallot(msg.sender, amount, federationJoinBallots[msg.sender].deadline);
+    require(token.transferFrom(msg.sender, address(this), amount), "Could not retrieve stake from token contract");
   }
 
   function voteJoinBallot(address newMember) public callerMustBeFederated() ballotMustBeValid(newMember) {
