@@ -25,6 +25,7 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 const fs = require("fs-extra");
+require("chai/register-should");
 
 const HDWalletProvider = require("truffle-hdwallet-provider");
 

@@ -19,6 +19,9 @@
     "web3-utils": "^1.0.0-beta.54"
   },
   "devDependencies": {
+    "chai": "^4.2.0",
+    "gulp": "^4.0.2",
+    "gulp-watch": "^5.0.1",
     "openzeppelin-test-helpers": "^0.3.2"
   },
   "scripts": {

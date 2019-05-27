@@ -52,7 +52,8 @@ installGo(){
 
   pwd
 
-  ls $HOME
+  echo $HOME
+  echo $USER
   # wget https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz -O golang.tar.gz
   # tar -xvf golang.tar.gz
   #
@@ -82,7 +83,10 @@ if [ `id -u` != "0" ]; then
   exit 1
 fi
 
-checkCURL
+
+
+# checkCURL
 # checkDocker
 # checkDockerCompose
+checkGo
 # curl -sSL http://bit.ly/2ysbOFE | bash -s -- 1.4.1 1.4.1 0.4.15
