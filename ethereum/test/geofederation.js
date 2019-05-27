@@ -46,24 +46,73 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, ...accounts]) => {
 
   describe("Federation join process", () => {
     describe("When creating a ballot", () => {
-      it("allows to make a new join ballot", async () => {
-        await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
-        const { tx, logs } = await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
+      describe("With sufficient funds", () => {
+        it("allows to make a new join ballot", async () => {
+          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
+          const { tx, logs } = await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
 
-        const event = expectEvent.inLogs(logs, "LogNewJoinBallot", {
-          sender: partner
+          const event = expectEvent.inLogs(logs, "LogNewJoinBallot", { sender: partner });
+
+          event.args.stake.should.be.bignumber.equal(initialMinimumFederationStake);
+
+          (await this.token.balanceOf(this.federation.address)).should.be.bignumber.equal(
+            initialMinimumFederationStake.mul(new BN("2"))
+          );
         });
 
-        event.args.stake.should.be.bignumber.equal(initialMinimumFederationStake);
+        it("allows to vote the ballot", async () => {
+          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
+          await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
 
-        (await this.token.balanceOf(this.federation.address)).should.be.bignumber.equal(
-          initialMinimumFederationStake.mul(new BN("2"))
-        );
+          const { tx, logs } = await this.federation.voteJoinBallot(partner, { from: geodb });
+
+          const event = expectEvent.inLogs(logs, "LogVoteJoinBallot", { sender: geodb, ballot: partner });
+
+          event.args.voteWeight.should.be.bignumber.equal(initialMinimumFederationStake);
+          event.args.approvals.should.be.bignumber.equal(initialMinimumFederationStake);
+        });
+
+        it("resolves ballot positively if there is quorum", async () => {
+          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
+          await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
+          await this.federation.voteJoinBallot(partner, { from: geodb });
+
+          const { tx, logs } = await this.federation.resolveJoinBallot({ from: partner });
+
+          expectEvent
+            .inLogs(logs, "LogNewMember", { sender: partner })
+            .args.stake.should.be.bignumber.equal(initialMinimumFederationStake);
+
+          expectEvent.inLogs(logs, "LogResolveJoinBallot", { sender: partner }).args.result.should.be.equal(true);
+
+          (await this.federation.isFederated(partner)).should.be.equal(true);
+        });
+
+        it("resolves ballot negatively and retrieves stake if there is no quorum", async () => {
+          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
+          await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
+
+          const { tx, logs } = await this.federation.resolveJoinBallot({ from: partner });
+
+          expectEvent.inLogs(logs, "LogResolveJoinBallot", { sender: partner }).args.result.should.be.equal(false);
+
+          (await this.federation.isFederated(partner)).should.be.equal(false);
+
+          (await this.token.balanceOf(this.federation.address)).should.be.bignumber.equal(
+            initialMinimumFederationStake
+          );
+        });
+      });
+
+      describe("Without sufficient funds", () => {
+        it("rejects ballot creation");
       });
     });
   });
 
   describe("Token - Federation contract interaction", () => {
-    it("allows token minting from federation");
+    it("allows token minting from federation", async () => {
+      const { tx, logs } = await this.federation.releaseReward(accounts[0], "100", { from: geodb });
+    });
   });
 });

@@ -31,11 +31,14 @@ contract GeoToken is Ownable, ERC20Burnable {
     uint256 amount
   );
 
-  function releaseReward(address to, uint256 reward) public onlyOwner() {
+  function releaseReward(address to, uint256 reward) public onlyOwner() returns (bool) {
     if(totalSupply().add(reward) < maxSupply){
-      _mint(to, reward);
       emit LogReward(tx.origin, to, reward);
+      _mint(to, reward);
+      return true;
     }
+
+    return false;
   }
 
 }
