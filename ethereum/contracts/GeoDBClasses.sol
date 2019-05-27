@@ -9,12 +9,10 @@ contract GeoDBClasses {
   }
 
   struct Ballot {
-    address creator;
     uint256 approvals;
     uint256 deadline;
-    uint256 approveThreshold;
-    mapping(address => FederationStake) voters;
     mapping(address => bool) approvers;
+    bool resolved;
   }
 
   struct BlockSummary {

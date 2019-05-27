@@ -39,4 +39,12 @@ contract("GeoFederation", ([_, geodb, presaleHolder, ...accounts]) => {
       federationStake.approved.should.be.equal(true);
     });
   });
+
+  describe("Federation join process", () => {
+    it("allows to request federation join through a new join ballot");
+  });
+
+  describe("Token - Federation contract interaction", () => {
+    it("allows token minting from federation");
+  });
 });

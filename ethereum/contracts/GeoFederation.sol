@@ -26,7 +26,7 @@ contract GeoFederation is GeoDBClasses, Ownable{
 
   mapping(address => FederationStake) public federationStakes;
 
-  mapping(address => Ballot[]) public federationJoinBallots;
+  mapping(address => Ballot) public federationJoinBallots;
 
   // mapping(address => FederationJoinBallot) public federationJoinBallots;
   // FederationStakingBallot[] public federationStakingBallots;
@@ -37,13 +37,49 @@ contract GeoFederation is GeoDBClasses, Ownable{
     federationStakes[msg.sender] = FederationStake(0, true);
   }
 
+  event LogIncreaseStake(
+    address indexed sender,
+    uint256 amount,
+    uint256 total
+  );
+
+  event LogNewJoinBallot(
+    address indexed sender,
+    uint256 stake,
+    uint256 deadline
+  );
+
+  event LogVoteJoinBallot(
+    address indexed sender,
+    address indexed ballot,
+    uint256 voteWeight,
+    uint256 approvals
+  );
+
   modifier callerMustBeApproved(){
     require(isApproved(msg.sender), "Caller must be approved");
     _;
   }
 
-  function isApproved(address addr) public view returns(bool) {
-    return federationStakes[addr].approved;
+  modifier callerMustBeFederated() {
+    require(isFederated(msg.sender), "Caller must be federated");
+    _;
+  }
+
+  modifier ballotMustBeValid(address member) {
+    require(now <= federationJoinBallots[member].deadline, "The deadline has passed");
+    require(federationJoinBallots[member].resolved == false, "This ballot has already been resolved");
+    _;
+  }
+
+  modifier callerCannotBeApproved(){
+    require(isApproved(msg.sender) == false, "Caller cannot be approved");
+    _;
+  }
+
+  modifier callerCannotHaveStake() {
+    require(getStake() == 0, "Caller cannot have stake");
+    _;
   }
 
   function increaseStake(uint256 amount) public callerMustBeApproved() {
@@ -51,8 +87,40 @@ contract GeoFederation is GeoDBClasses, Ownable{
       require(summedStakes >= federationMinimumStake, "Staked amount is not enough");
       totalStake = totalStake.add(amount);
       federationStakes[msg.sender].stake = summedStakes;
+      emit LogIncreaseStake(msg.sender, amount, totalStake);
       require(token.transferFrom(msg.sender, address(this), amount), "Could not retrieve stake from token contract");
   }
+
+  function newJoinBallot(uint256 amount) public callerCannotBeApproved() callerCannotHaveStake() {
+    require(amount > federationMinimumStake, "Not enough stake");
+    require(token.transferFrom(msg.sender, address(this), amount), "Could not retrieve stake from token contract");
+    federationJoinBallots[msg.sender] = Ballot({
+      approvals: 0,
+      deadline: (block.timestamp + 1 days),
+      resolved: false
+    });
+  }
+
+  function voteJoinBallot(address newMember) public callerMustBeFederated() ballotMustBeValid(newMember) {
+    require(federationJoinBallots[newMember].approvers[msg.sender] == false, "Cannot vote twice");
+    federationJoinBallots[newMember].approvals = federationJoinBallots[msg.sender].approvals.add(getStake());
+    federationJoinBallots[newMember].approvers[msg.sender] = true;
+  }
+
+
+  // Getters
+  function isApproved(address addr) public view returns(bool) {
+    return federationStakes[addr].approved;
+  }
+
+  function isFederated(address addr) public view returns (bool) {
+    return federationStakes[addr].approved && federationStakes[addr].stake > federationMinimumStake;
+  }
+
+  function getStake() public view returns(uint256){
+    return federationStakes[msg.sender].stake;
+  }
+
 
 
   // // Stake management
