@@ -2,10 +2,11 @@ const GeoToken = artifacts.require("GeoToken.sol");
 const GeoFederation = artifacts.require("GeoFederation.sol");
 
 const { initialMinimumFederationStake } = require("./helpers/geoconstants");
+const ErrorMsgs = require("./helpers/errorMessages.js");
 
 const { BN, expectEvent, shouldFail } = require("openzeppelin-test-helpers");
 
-contract("GeoFederation", ([_, geodb, presaleHolder, partner, ...accounts]) => {
+contract("GeoFederation", ([_, geodb, presaleHolder, partner, emptyAccount, ...accounts]) => {
   beforeEach("Deploy token contract and federation contract", async () => {
     this.token = await GeoToken.new([presaleHolder], [initialMinimumFederationStake], { from: geodb });
 
@@ -47,11 +48,16 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, ...accounts]) => {
   describe("Federation join process", () => {
     describe("When creating a ballot", () => {
       describe("With sufficient funds", () => {
-        it("allows to make a new join ballot", async () => {
-          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
-          const { tx, logs } = await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
+        let newJoinBallotLogs;
 
-          const event = expectEvent.inLogs(logs, "LogNewJoinBallot", { sender: partner });
+        beforeEach("Approve transfer and create ballot", async () => {
+          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
+          const { logs } = await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
+          newJoinBallotLogs = logs;
+        });
+
+        it("allows to make a new join ballot", async () => {
+          const event = expectEvent.inLogs(newJoinBallotLogs, "LogNewJoinBallot", { sender: partner });
 
           event.args.stake.should.be.bignumber.equal(initialMinimumFederationStake);
 
@@ -61,9 +67,6 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, ...accounts]) => {
         });
 
         it("allows to vote the ballot", async () => {
-          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
-          await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
-
           const { tx, logs } = await this.federation.voteJoinBallot(partner, { from: geodb });
 
           const event = expectEvent.inLogs(logs, "LogVoteJoinBallot", { sender: geodb, ballot: partner });
@@ -73,8 +76,6 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, ...accounts]) => {
         });
 
         it("resolves ballot positively if there is quorum", async () => {
-          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
-          await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
           await this.federation.voteJoinBallot(partner, { from: geodb });
 
           const { tx, logs } = await this.federation.resolveJoinBallot({ from: partner });
@@ -89,9 +90,6 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, ...accounts]) => {
         });
 
         it("resolves ballot negatively and retrieves stake if there is no quorum", async () => {
-          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
-          await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
-
           const { tx, logs } = await this.federation.resolveJoinBallot({ from: partner });
 
           expectEvent.inLogs(logs, "LogResolveJoinBallot", { sender: partner }).args.result.should.be.equal(false);
@@ -102,10 +100,37 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, ...accounts]) => {
             initialMinimumFederationStake
           );
         });
+
+        describe("When the deadline has passed", () => {
+          it("rejects votes", async () => {
+            const delta = 2 * 24 * 3600;
+
+            await web3.currentProvider.send(
+              { jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 123 },
+              (err, result) => {
+                if (err) {
+                  console.error(err);
+                  return;
+                }
+              }
+            );
+
+            await shouldFail.reverting.withMessage(
+              this.federation.voteJoinBallot(partner, { from: geodb }),
+              ErrorMsgs.deadlineHasPassed
+            );
+          });
+        });
       });
 
       describe("Without sufficient funds", () => {
-        it("rejects ballot creation");
+        it("rejects ballot creation"),
+          async () => {
+            await shouldFail.reverting.withMessage(
+              this.federation.newJoinBallot(initialMinimumFederationStake, { from: emptyAccount }),
+              ErrorMsgs.notEnoughStake
+            );
+          };
       });
     });
   });
