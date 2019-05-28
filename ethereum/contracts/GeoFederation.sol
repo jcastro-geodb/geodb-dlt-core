@@ -145,7 +145,7 @@ contract GeoFederation is GeoDBClasses, Ownable{
     ballotCannotBeResolved(federationJoinBallots[newMember]) {
 
     require(federationJoinBallots[newMember].approvers[msg.sender] == false, "Cannot vote twice");
-    federationJoinBallots[newMember].approvals = federationJoinBallots[msg.sender].approvals.add(getStake());
+    federationJoinBallots[newMember].approvals = federationJoinBallots[newMember].approvals.add(getStake());
     federationJoinBallots[newMember].approvers[msg.sender] = true;
     emit LogVoteJoinBallot(msg.sender, newMember, getStake(), federationJoinBallots[newMember].approvals);
 
@@ -168,10 +168,11 @@ contract GeoFederation is GeoDBClasses, Ownable{
 
   function newExitBallot() public callerMustBeFederated() {
     federationExitBallots[msg.sender] = Ballot({
-      approvals: 0,
+      approvals: federationStakes[msg.sender].stake,
       deadline: (block.timestamp + 1 days),
       resolved: false
     });
+    federationExitBallots[msg.sender].approvers[msg.sender] = true;
     emit LogNewExitBallot(msg.sender, federationExitBallots[msg.sender].deadline);
   }
 
@@ -181,7 +182,7 @@ contract GeoFederation is GeoDBClasses, Ownable{
     ballotMustBeWithinDeadline(federationExitBallots[member]) {
 
     require(federationExitBallots[member].approvers[msg.sender] == false, "Cannot vote twice");
-    federationExitBallots[member].approvals = federationExitBallots[msg.sender].approvals.add(getStake());
+    federationExitBallots[member].approvals = federationExitBallots[member].approvals.add(getStake());
     federationExitBallots[member].approvers[msg.sender] = true;
     emit LogVoteExitBallot(msg.sender, member, getStake(), federationExitBallots[member].approvals);
 

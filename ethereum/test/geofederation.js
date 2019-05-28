@@ -3,7 +3,7 @@ const GeoFederation = artifacts.require("GeoFederation.sol");
 
 const { fundPartnersWithGeoTokens, addMembersToFederation } = require("./helpers");
 
-const { initialMinimumFederationStake } = require("./helpers/geoconstants");
+const { initialMinimumFederationStake, initialFundingForPartners } = require("./helpers/geoconstants");
 const ErrorMsgs = require("./helpers/errorMessages.js");
 
 const { BN, expectEvent, shouldFail } = require("openzeppelin-test-helpers");
@@ -70,6 +70,10 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
 
           (await this.token.balanceOf(this.federation.address)).should.be.bignumber.equal(
             initialMinimumFederationStake.mul(new BN("2"))
+          );
+
+          (await this.token.balanceOf(partner)).should.be.bignumber.equal(
+            initialFundingForPartners.sub(initialMinimumFederationStake)
           );
         });
 
@@ -181,24 +185,90 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
 
       it("allows to create the ballot", async () => {
         const event = expectEvent.inLogs(newExitBallotLogs, "LogNewExitBallot", { sender: partner });
+
+        const ballot = await this.federation.federationExitBallots(partner);
+        ballot.approvals.should.be.bignumber.equal(initialMinimumFederationStake);
       });
 
-      // it("allows to create the ballot", async () => {
-      //   const {tx, logs} = await this.federation.newExitBallot({from: partner2});
-      // });
-
       describe("When voting the exit ballot", () => {
-        it("should add votes and stake of federated members");
-        it("should reject votes of non federated members");
-        it("should reject votes if the deadline has passed");
-        it("should reject votes if the ballot has been resolved");
+        it("should add votes and stake of federated members", async () => {
+          const { logs } = await this.federation.voteExitBallot(partner, { from: geodb });
+
+          const event = expectEvent.inLogs(logs, "LogVoteExitBallot", { sender: geodb });
+
+          const ballot = await this.federation.federationExitBallots(partner);
+          ballot.approvals.should.be.bignumber.equal(initialMinimumFederationStake.mul(new BN("2")));
+        });
+        it("should reject votes of non federated members", async () => {
+          await shouldFail.reverting.withMessage(
+            this.federation.voteExitBallot(partner, { from: emptyAccount }),
+            ErrorMsgs.callerMustBeFederated
+          );
+        });
+        it("should reject votes if the deadline has passed", async () => {
+          const delta = 2 * 24 * 3600;
+
+          await web3.currentProvider.send(
+            { jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 123 },
+            (err, result) => {
+              if (err) {
+                console.error(err);
+                return;
+              }
+            }
+          );
+
+          await shouldFail.reverting.withMessage(
+            this.federation.voteExitBallot(partner, { from: geodb }),
+            ErrorMsgs.deadlineHasPassed
+          );
+        });
+        it("should reject votes if the ballot has been resolved", async () => {
+          await this.federation.voteExitBallot(partner, { from: geodb });
+          await this.federation.resolveExitBallot({ from: partner });
+
+          await shouldFail.reverting.withMessage(
+            this.federation.voteExitBallot(partner, { from: partner2 }),
+            ErrorMsgs.thisBallotHasAlreadyBeenResolved
+          );
+        });
       });
 
       describe("When resolving the exit ballot", () => {
-        it("should allow to exit and retrieve stake if ballot was resolved positively");
-        it("should end the vote and make no changes if ballot was resolved negatively");
+        it("should allow to exit and retrieve stake if ballot was resolved positively", async () => {
+          await this.federation.voteExitBallot(partner, { from: geodb });
+
+          const { logs } = await this.federation.resolveExitBallot({ from: partner });
+
+          expectEvent.inLogs(logs, "LogResolveExitBallot", { sender: partner }).args.result.should.be.equal(true);
+          expectEvent
+            .inLogs(logs, "LogMemberExit", { sender: partner })
+            .args.stake.should.be.bignumber.equal(initialMinimumFederationStake);
+
+          const partnerFederationStake = await this.federation.federationStakes(partner);
+
+          partnerFederationStake.approved.should.be.equal(false);
+          partnerFederationStake.stake.should.be.bignumber.equal(new BN("0"));
+
+          (await this.token.balanceOf(this.federation.address)).should.be.bignumber.equal(
+            initialMinimumFederationStake.mul(new BN("2"))
+          );
+
+          (await this.token.balanceOf(partner)).should.be.bignumber.equal(initialFundingForPartners);
+
+          (await this.federation.isFederated(partner)).should.be.equal(false);
+        });
+        it("should end the vote and make no changes if ballot was resolved negatively", async () => {
+          const { logs } = await this.federation.resolveExitBallot({ from: partner });
+
+          expectEvent.inLogs(logs, "LogResolveExitBallot", { sender: partner }).args.result.should.be.equal(false);
+        });
         it("should reject trying to resolve the ballot twice");
         it("should reject trying to resolve the ballot when the deadline has passed");
+      });
+
+      describe("After resolving a ballot positively", () => {
+        it("should allow to rejoin the federation with a join ballot");
       });
     });
 
