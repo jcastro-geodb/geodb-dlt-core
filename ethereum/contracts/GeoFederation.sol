@@ -27,8 +27,8 @@ contract GeoFederation is GeoDBClasses, Ownable{
   mapping(address => FederationStake) public federationStakes;
 
   mapping(address => Ballot) public federationJoinBallots;
+  mapping(address => Ballot) public federationExitBallots;
 
-  // mapping(address => FederationJoinBallot) public federationJoinBallots;
   // FederationStakingBallot[] public federationStakingBallots;
 
   constructor(address tokenContract) public {
@@ -62,6 +62,28 @@ contract GeoFederation is GeoDBClasses, Ownable{
   );
 
   event LogNewMember(
+    address indexed sender,
+    uint256 stake
+  );
+
+  event LogNewExitBallot(
+    address indexed sender,
+    uint256 deadline
+  );
+
+  event LogVoteExitBallot(
+    address indexed sender,
+    address indexed ballot,
+    uint256 voteWeight,
+    uint256 approvals
+  );
+
+  event LogResolveExitBallot(
+    address indexed sender,
+    bool result
+  );
+
+  event LogMemberExit(
     address indexed sender,
     uint256 stake
   );
@@ -102,7 +124,7 @@ contract GeoFederation is GeoDBClasses, Ownable{
       totalStake = totalStake.add(amount);
       federationStakes[msg.sender].stake = summedStakes;
       emit LogIncreaseStake(msg.sender, amount, totalStake);
-      require(token.transferFrom(msg.sender, address(this), amount), "Could not retrieve stake from token contract");
+      require(token.transferFrom(msg.sender, address(this), amount));
   }
 
   function newJoinBallot(uint256 amount) public callerCannotBeApproved() callerCannotHaveStake() {
@@ -114,7 +136,7 @@ contract GeoFederation is GeoDBClasses, Ownable{
     });
     federationStakes[msg.sender].stake = amount;
     emit LogNewJoinBallot(msg.sender, amount, federationJoinBallots[msg.sender].deadline);
-    require(token.transferFrom(msg.sender, address(this), amount), "Could not retrieve stake from token contract");
+    require(token.transferFrom(msg.sender, address(this), amount));
   }
 
   function voteJoinBallot(address newMember) public
@@ -144,10 +166,53 @@ contract GeoFederation is GeoDBClasses, Ownable{
     }
   }
 
+  function newExitBallot() public callerMustBeFederated() {
+    federationExitBallots[msg.sender] = Ballot({
+      approvals: 0,
+      deadline: (block.timestamp + 1 days),
+      resolved: false
+    });
+    emit LogNewExitBallot(msg.sender, federationExitBallots[msg.sender].deadline);
+  }
+
+  function voteExitBallot(address member) public
+    callerMustBeFederated()
+    ballotCannotBeResolved(federationExitBallots[member])
+    ballotMustBeWithinDeadline(federationExitBallots[member]) {
+
+    require(federationExitBallots[member].approvers[msg.sender] == false, "Cannot vote twice");
+    federationExitBallots[member].approvals = federationExitBallots[msg.sender].approvals.add(getStake());
+    federationExitBallots[member].approvers[msg.sender] = true;
+    emit LogVoteExitBallot(msg.sender, member, getStake(), federationExitBallots[member].approvals);
+
+  }
+
+  function resolveExitBallot() public
+    callerMustBeFederated()
+    ballotCannotBeResolved(federationExitBallots[msg.sender])
+    ballotMustBeWithinDeadline(federationExitBallots[msg.sender]) {
+
+    federationExitBallots[msg.sender].resolved = true;
+
+    bool result = federationExitBallots[msg.sender].approvals >= totalStake.div(2);
+    emit LogResolveExitBallot(msg.sender, result);
+
+    if(result){
+      uint256 stake = federationStakes[msg.sender].stake;
+      federationStakes[msg.sender].approved = false;
+      federationStakes[msg.sender].stake = 0;
+      totalStake = totalStake.sub(stake);
+      emit LogMemberExit(msg.sender, stake);
+      require(token.transfer(msg.sender, stake), "Could not return back stake");
+    }
+  }
+
+
+
   function releaseReward(address to, uint256 reward) public callerMustBeFederated() {
     require(token.releaseReward(to, reward), "Could not release reward");
   }
-  
+
   // Getters
   function isApproved(address addr) public view returns(bool) {
     return federationStakes[addr].approved;

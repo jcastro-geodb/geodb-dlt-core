@@ -6,7 +6,7 @@ const ErrorMsgs = require("./helpers/errorMessages.js");
 
 const { BN, expectEvent, shouldFail } = require("openzeppelin-test-helpers");
 
-contract("GeoFederation", ([_, geodb, presaleHolder, partner, emptyAccount, ...accounts]) => {
+contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAccount, ...accounts]) => {
   beforeEach("Deploy token contract and federation contract", async () => {
     this.token = await GeoToken.new([presaleHolder], [initialMinimumFederationStake], { from: geodb });
 
@@ -121,17 +121,58 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, emptyAccount, ...a
             );
           });
         });
+
+        describe("When double voting", () => {
+          it("rejects votes", async () => {
+            await this.federation.voteJoinBallot(partner, { from: geodb });
+            await shouldFail.reverting.withMessage(
+              this.federation.voteJoinBallot(partner, { from: geodb }),
+              ErrorMsgs.cannotVoteTwice
+            );
+          });
+        });
+
+        describe("When double resolving", () => {
+          it("rejects transaction", async () => {
+            await this.federation.voteJoinBallot(partner, { from: geodb });
+            await this.federation.resolveJoinBallot({ from: partner });
+            await shouldFail.reverting.withMessage(
+              this.federation.resolveJoinBallot({ from: partner }),
+              ErrorMsgs.thisBallotHasAlreadyBeenResolved
+            );
+          });
+        });
       });
 
       describe("Without sufficient funds", () => {
-        it("rejects ballot creation"),
-          async () => {
-            await shouldFail.reverting.withMessage(
-              this.federation.newJoinBallot(initialMinimumFederationStake, { from: emptyAccount }),
-              ErrorMsgs.notEnoughStake
-            );
-          };
+        it("rejects ballot creation", async () => {
+          await shouldFail.reverting.withMessage(
+            this.federation.newJoinBallot(initialMinimumFederationStake, { from: emptyAccount }),
+            ErrorMsgs.safeMathSubstractionOverflow
+          );
+        });
       });
+    });
+  });
+
+  describe("Federation exit process", () => {
+    describe("When caller is federated", () => {
+      beforeEach("Add partners to federation", async () => {});
+
+      it("allows to create the ballot");
+
+      describe("When voting the exit ballot", () => {
+        it("should add votes and stake of federated members");
+      });
+
+      describe("When resolving the exit ballot", () => {
+        it("should allow to exit and retrieve stake if ballot was resolved positively");
+        it("should end the vote and make no changes if ballot was resolved negatively");
+      });
+    });
+
+    describe("When caller is not federated", () => {
+      it("rejects creating ballot");
     });
   });
 
