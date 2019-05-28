@@ -1,6 +1,8 @@
 const GeoToken = artifacts.require("GeoToken.sol");
 const GeoFederation = artifacts.require("GeoFederation.sol");
 
+const { fundPartnersWithGeoTokens, addMembersToFederation } = require("./helpers");
+
 const { initialMinimumFederationStake } = require("./helpers/geoconstants");
 const ErrorMsgs = require("./helpers/errorMessages.js");
 
@@ -24,7 +26,12 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
       from: geodb
     });
 
-    await this.token.transfer(partner, initialMinimumFederationStake.mul(new BN("10")), { from: geodb });
+    await fundPartnersWithGeoTokens(
+      initialMinimumFederationStake.mul(new BN("10")),
+      geodb,
+      [partner, partner2],
+      this.token
+    );
   });
 
   describe("Contract initialization", () => {
@@ -157,17 +164,41 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
 
   describe("Federation exit process", () => {
     describe("When caller is federated", () => {
-      beforeEach("Add partners to federation", async () => {});
+      let newExitBallotLogs;
 
-      it("allows to create the ballot");
+      beforeEach("Add partners to federation and create ballot", async () => {
+        const voters = await addMembersToFederation(
+          [geodb],
+          [partner, partner2],
+          initialMinimumFederationStake,
+          this.token,
+          this.federation
+        );
+
+        const { logs } = await this.federation.newExitBallot({ from: partner });
+        newExitBallotLogs = logs;
+      });
+
+      it("allows to create the ballot", async () => {
+        const event = expectEvent.inLogs(newExitBallotLogs, "LogNewExitBallot", { sender: partner });
+      });
+
+      // it("allows to create the ballot", async () => {
+      //   const {tx, logs} = await this.federation.newExitBallot({from: partner2});
+      // });
 
       describe("When voting the exit ballot", () => {
         it("should add votes and stake of federated members");
+        it("should reject votes of non federated members");
+        it("should reject votes if the deadline has passed");
+        it("should reject votes if the ballot has been resolved");
       });
 
       describe("When resolving the exit ballot", () => {
         it("should allow to exit and retrieve stake if ballot was resolved positively");
         it("should end the vote and make no changes if ballot was resolved negatively");
+        it("should reject trying to resolve the ballot twice");
+        it("should reject trying to resolve the ballot when the deadline has passed");
       });
     });
 
