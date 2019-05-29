@@ -242,6 +242,19 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
             ErrorMsgs.thisBallotHasAlreadyBeenResolved
           );
         });
+
+        it("should reject double voting", async () => {
+          await this.federation.voteExitBallot(partner, { from: geodb });
+
+          shouldFail.reverting.withMessage(
+            this.federation.voteExitBallot(partner, { from: geodb }),
+            ErrorMsgs.cannotVoteTwice
+          );
+          shouldFail.reverting.withMessage(
+            this.federation.voteExitBallot(partner, { from: partner }),
+            ErrorMsgs.cannotVoteTwice
+          );
+        });
       });
 
       describe("When resolving the exit ballot", () => {
@@ -303,8 +316,6 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
             ErrorMsgs.deadlineHasPassed
           );
         });
-
-        it("should reject double voting");
       });
 
       describe("After resolving a ballot positively", () => {
@@ -351,8 +362,18 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
     });
 
     describe("When no previous ballot was created", () => {
-      it("rejects voting");
-      it("rejects resolving");
+      it("rejects voting", async () => {
+        await shouldFail.reverting.withMessage(
+          this.federation.voteExitBallot(partner, { from: geodb }),
+          ErrorMsgs.deadlineHasPassed
+        );
+      });
+      it("rejects resolving", async () => {
+        await shouldFail.reverting.withMessage(
+          this.federation.resolveExitBallot({ from: geodb }),
+          ErrorMsgs.deadlineHasPassed
+        );
+      });
     });
   });
 
@@ -368,6 +389,8 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
     });
 
     describe("When caller is federated", () => {
+      let newStakeProposal = initialMinimumFederationStake.mul(new BN("2"));
+
       it("rejects ballot if proposal is 0", async () => {
         await shouldFail.reverting.withMessage(
           this.federation.newStakeRequirementBallot(new BN("0"), { from: geodb }),
@@ -376,19 +399,16 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
       });
 
       it("allows to create the ballot", async () => {
-        const { logs } = await this.federation.newStakeRequirementBallot(
-          initialMinimumFederationStake.mul(new BN("2")),
-          { from: geodb }
-        );
+        const { logs } = await this.federation.newStakeRequirementBallot(newStakeProposal, { from: geodb });
 
         expectEvent
           .inLogs(logs, "LogNewStakeRequirementBallot", { sender: geodb })
-          .args.stakeProposal.should.be.bignumber.equal(initialMinimumFederationStake.mul(new BN("2")));
+          .args.stakeProposal.should.be.bignumber.equal(newStakeProposal);
       });
 
       describe("When voting the ballot", () => {
         beforeEach("create the ballot", async () => {
-          await this.federation.newStakeRequirementBallot(initialMinimumFederationStake.mul(new BN("2")), {
+          await this.federation.newStakeRequirementBallot(newStakeProposal, {
             from: geodb
           });
         });
@@ -398,7 +418,7 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
 
           const event = expectEvent.inLogs(logs, "LogVoteStakeRequirementBallot", { sender: partner, ballot: geodb });
 
-          event.args.approvals.should.be.bignumber.equal(initialMinimumFederationStake.mul(new BN("2")));
+          event.args.approvals.should.be.bignumber.equal(newStakeProposal);
           event.args.voteWeight.should.be.bignumber.equal(initialMinimumFederationStake);
         });
 
@@ -444,38 +464,102 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
             this.federation.voteStakeRequirementBallot(geodb, { from: partner }),
             ErrorMsgs.cannotVoteTwice
           );
+
+          await shouldFail.reverting.withMessage(
+            this.federation.voteStakeRequirementBallot(geodb, { from: geodb }),
+            ErrorMsgs.cannotVoteTwice
+          );
         });
       });
 
       describe("When resolving the ballot", () => {
-        // it("changes the stake requirement if the resolution is positive", async () => {
-        //   await this.federation.voteStakeRequirementBallot(geodb, { from: partner });
-        //
-        //   const { logs } = await this.federation.resolveStakeRequirementBallot({ from: geodb });
-        //
-        //   expectEvent
-        //     .inLogs(logs, "LogResolveStakeRequirementBallot", { sender: geodb })
-        //     .args.result.should.be.equal(true);
-        //   expectEvent
-        //     .inLogs(logs, "LogFederationStakeRequirementChange", { sender: geodb })
-        //     .args.newStakeRequirement.should.be.bignumber(initialMinimumFederationStake.mul(new BN("2")));
-        // });
+        beforeEach("create the ballot", async () => {
+          await this.federation.newStakeRequirementBallot(newStakeProposal, {
+            from: geodb
+          });
+        });
 
-        it("closes the ballot if the resolution is negative, does not modify stake");
+        it("changes the stake requirement if the resolution is positive", async () => {
+          await this.federation.voteStakeRequirementBallot(geodb, { from: partner });
 
-        it("rejects resolving if the member is not federated");
+          const { logs } = await this.federation.resolveStakeRequirementBallot({ from: geodb });
 
-        it("rejects resolving if the deadline has passed");
+          expectEvent
+            .inLogs(logs, "LogResolveStakeRequirementBallot", { sender: geodb })
+            .args.result.should.be.equal(true);
+          expectEvent
+            .inLogs(logs, "LogFederationStakeRequirementChange", { sender: geodb })
+            .args.newStakeRequirement.should.be.bignumber.equal(newStakeProposal);
+
+          (await this.federation.federationMinimumStake()).should.be.bignumber.equal(newStakeProposal);
+
+          (await this.federation.stakeRequirementBallots(geodb)).resolved.should.be.equal(true);
+        });
+
+        it("closes the ballot if the resolution is negative, does not modify stake", async () => {
+          const { logs } = await this.federation.resolveStakeRequirementBallot({ from: geodb });
+
+          expectEvent
+            .inLogs(logs, "LogResolveStakeRequirementBallot", { sender: geodb })
+            .args.result.should.be.equal(false);
+
+          (await this.federation.federationMinimumStake()).should.be.bignumber.equal(initialMinimumFederationStake);
+
+          (await this.federation.stakeRequirementBallots(geodb)).resolved.should.be.equal(true);
+        });
+
+        it("rejects resolving if the member is not federated", async () => {
+          await exitFederation([partner, partner2], geodb, this.federation);
+
+          await shouldFail.reverting.withMessage(
+            this.federation.resolveStakeRequirementBallot({ from: geodb }),
+            ErrorMsgs.callerMustBeFederated
+          );
+        });
+
+        it("rejects resolving if the deadline has passed", async () => {
+          const delta = 2 * 24 * 3600;
+
+          await web3.currentProvider.send(
+            { jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 123 },
+            (err, result) => {
+              if (err) {
+                console.error(err);
+                return;
+              }
+            }
+          );
+
+          await shouldFail.reverting.withMessage(
+            this.federation.resolveStakeRequirementBallot({ from: geodb }),
+            ErrorMsgs.deadlineHasPassed
+          );
+        });
       });
     });
 
     describe("When no previous ballot was created", () => {
-      it("rejects voting");
-      it("rejects resolving");
+      it("rejects voting", async () => {
+        await shouldFail.reverting.withMessage(
+          this.federation.voteStakeRequirementBallot(geodb, { from: partner }),
+          ErrorMsgs.deadlineHasPassed
+        );
+      });
+      it("rejects resolving", async () => {
+        await shouldFail.reverting.withMessage(
+          this.federation.resolveStakeRequirementBallot({ from: geodb }),
+          ErrorMsgs.deadlineHasPassed
+        );
+      });
     });
 
     describe("When caller is not federated", () => {
-      it("rejects creating ballot");
+      it("rejects creating ballot", async () => {
+        await shouldFail.reverting.withMessage(
+          this.federation.newStakeRequirementBallot(new BN("1"), { from: emptyAccount }),
+          ErrorMsgs.callerMustBeFederated
+        );
+      });
     });
   });
 
