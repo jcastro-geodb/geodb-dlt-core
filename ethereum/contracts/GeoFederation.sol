@@ -28,6 +28,8 @@ contract GeoFederation is GeoDBClasses, Ownable{
 
   mapping(address => Ballot) public federationJoinBallots;
   mapping(address => Ballot) public federationExitBallots;
+  mapping(address => Ballot) public stakeRequirementBallots;
+  mapping(address => uint256) public stakeProposals;
 
   // FederationStakingBallot[] public federationStakingBallots;
 
@@ -88,6 +90,29 @@ contract GeoFederation is GeoDBClasses, Ownable{
     uint256 stake
   );
 
+  event LogNewStakeRequirementBallot(
+    address indexed sender,
+    uint256 indexed stakeProposal,
+    uint256 deadline
+  );
+
+  event LogVoteStakeRequirementBallot(
+    address indexed sender,
+    address indexed ballot,
+    uint256 voteWeight,
+    uint256 approvals
+  );
+
+  event LogResolveStakeRequirementBallot(
+    address indexed sender,
+    bool result
+  );
+
+  event LogFederationStakeRequirementChange(
+    address indexed sender,
+    uint256 newStakeRequirement
+  );
+
   modifier callerMustBeApproved(){
     require(isApproved(msg.sender), "Caller must be approved");
     _;
@@ -105,6 +130,11 @@ contract GeoFederation is GeoDBClasses, Ownable{
 
   modifier ballotCannotBeResolved(Ballot storage ballot){
     require(ballot.resolved == false, "This ballot has already been resolved");
+    _;
+  }
+
+  modifier stakeProposalCannotBeZero(uint256 stakeProposal){
+    require(stakeProposal > 0, "Stake proposal cannot be 0");
     _;
   }
 
@@ -144,10 +174,10 @@ contract GeoFederation is GeoDBClasses, Ownable{
     ballotMustBeWithinDeadline(federationJoinBallots[newMember])
     ballotCannotBeResolved(federationJoinBallots[newMember]) {
 
-    require(federationJoinBallots[newMember].approvers[msg.sender] == false, "Cannot vote twice");
-    federationJoinBallots[newMember].approvals = federationJoinBallots[newMember].approvals.add(getStake());
-    federationJoinBallots[newMember].approvers[msg.sender] = true;
-    emit LogVoteJoinBallot(msg.sender, newMember, getStake(), federationJoinBallots[newMember].approvals);
+      require(federationJoinBallots[newMember].approvers[msg.sender] == false, "Cannot vote twice");
+      federationJoinBallots[newMember].approvals = federationJoinBallots[newMember].approvals.add(getStake());
+      federationJoinBallots[newMember].approvers[msg.sender] = true;
+      emit LogVoteJoinBallot(msg.sender, newMember, getStake(), federationJoinBallots[newMember].approvals);
 
   }
 
@@ -181,10 +211,10 @@ contract GeoFederation is GeoDBClasses, Ownable{
     ballotCannotBeResolved(federationExitBallots[member])
     ballotMustBeWithinDeadline(federationExitBallots[member]) {
 
-    require(federationExitBallots[member].approvers[msg.sender] == false, "Cannot vote twice");
-    federationExitBallots[member].approvals = federationExitBallots[member].approvals.add(getStake());
-    federationExitBallots[member].approvers[msg.sender] = true;
-    emit LogVoteExitBallot(msg.sender, member, getStake(), federationExitBallots[member].approvals);
+      require(federationExitBallots[member].approvers[msg.sender] == false, "Cannot vote twice");
+      federationExitBallots[member].approvals = federationExitBallots[member].approvals.add(getStake());
+      federationExitBallots[member].approvers[msg.sender] = true;
+      emit LogVoteExitBallot(msg.sender, member, getStake(), federationExitBallots[member].approvals);
 
   }
 
@@ -208,6 +238,50 @@ contract GeoFederation is GeoDBClasses, Ownable{
     }
   }
 
+  function newStakeRequirementBallot(uint256 stakeProposal) public
+    callerMustBeFederated()
+    stakeProposalCannotBeZero(stakeProposal) {
+
+      stakeRequirementBallots[msg.sender] = Ballot({
+        approvals: federationStakes[msg.sender].stake,
+        deadline: (block.timestamp + 1 days),
+        resolved: false
+      });
+      stakeRequirementBallots[msg.sender].approvers[msg.sender] = true;
+      stakeProposals[msg.sender] = stakeProposal;
+      emit LogNewStakeRequirementBallot(msg.sender, stakeProposal, (block.timestamp + 1 days));
+
+  }
+
+  function voteStakeRequirementBallot(address member) public
+    callerMustBeFederated()
+    ballotCannotBeResolved(stakeRequirementBallots[msg.sender])
+    ballotMustBeWithinDeadline(stakeRequirementBallots[msg.sender]) {
+
+      require(stakeRequirementBallots[member].approvers[msg.sender] == false, "Cannot vote twice");
+      stakeRequirementBallots[member].approvals = stakeRequirementBallots[member].approvals.add(getStake());
+      stakeRequirementBallots[member].approvers[msg.sender] = true;
+      emit LogVoteStakeRequirementBallot(msg.sender, member, getStake(), stakeRequirementBallots[member].approvals);
+
+  }
+
+  function resolveStakeRequirementBallot() public
+      callerMustBeFederated()
+      ballotCannotBeResolved(stakeRequirementBallots[msg.sender])
+      ballotMustBeWithinDeadline(stakeRequirementBallots[msg.sender])
+      stakeProposalCannotBeZero(stakeProposals[msg.sender]) {
+
+      stakeRequirementBallots[msg.sender].resolved = true;
+
+      bool result = stakeRequirementBallots[msg.sender].approvals >= totalStake.div(2);
+      emit LogResolveStakeRequirementBallot(msg.sender, result);
+
+      if(result){
+        federationMinimumStake = stakeProposals[msg.sender];
+        emit LogFederationStakeRequirementChange(msg.sender, federationMinimumStake);
+      }
+  }
+
 
 
   function releaseReward(address to, uint256 reward) public callerMustBeFederated() {
@@ -228,110 +302,6 @@ contract GeoFederation is GeoDBClasses, Ownable{
   }
 
 
-  // // Stake management
-  //
-  // function getStake() public view returns(uint256){
-  //   return federationStakes[msg.sender].stake;
-  // }
-  //
-  // function increaseStake(uint256 amount) public callerMustBeApproved() {
-  //   uint256 summedStakes = federationStakes[msg.sender].stake.add(amount);
-  //   require(summedStakes >= federationMinimumStake, "Staked amount is not enough");
-  //   transfer(address(this), amount);
-  //   totalStake = totalStake.add(amount);
-  //   federationStakes[msg.sender].stake = summedStakes;
-  // }
-  //
-  // function withdrawStake() public callerMustHaveStake() {
-  //
-  //   // if(federationStakes[msg.sender].approved == false){
-  //   //   _withdrawStake(msg.sender);
-  //   //   return;
-  //   // }else if(federationStakes[msg.sender].approved && federationStakes[msg.sender].stake < federationMinimumStake){
-  //   //   totalStake = totalStake.sub(federationStakes[msg.sender].stake);
-  //   //   _withdrawStake(msg.sender);
-  //   //   return;
-  //   // }
-  //
-  //   require(federationStakes[msg.sender].releaseRequestIndex > 0, "Request stake withdrawal first");
-  //   require(
-  //      federationStakes[msg.sender].withdrawApprovals[federationStakes[msg.sender].releaseRequestIndex]
-  //      + federationStakes[msg.sender].stake
-  //      >= totalStake.div(2), "Voting stake is not enough"
-  //    );
-  //
-  //   totalStake = totalStake.sub(federationStakes[msg.sender].stake);
-  //   _withdrawStake(msg.sender);
-  // }
-  //
-  // // Internal helper function for withdrawkStake()
-  // function _withdrawStake(address addr) internal {
-  //   uint256 stake = federationStakes[addr].stake;
-  //   federationStakes[addr].stake = 0;
-  //   federationStakes[addr].approved = false;
-  //   GeoDB selfReference = GeoDB(address(this));
-  //   selfReference.transfer(addr, stake);
-  // }
-  //
-  // function requestStakeWithdrawal() public callerMustHaveStake() {
-  //   federationStakes[msg.sender].releaseRequestIndex = federationStakes[msg.sender].releaseRequestIndex.add(1);
-  // }
-  //
-  // function voteStakeWithdrawalRequest(address addr, uint256 index) public callerMustBeFederated() {
-  //   require(addr != msg.sender, "Your votes will be automatically added when you call federationStakeWithdraw()");
-  //   require(index > 0, "Index must be greater than 0");
-  //   require(federationStakes[addr].releaseRequestIndex == index, "Index must be equal to current request");
-  //   bytes32 withdrawApprover = keccak256(abi.encode(index, msg.sender));
-  //   require(federationStakes[addr].withdrawApprovers[withdrawApprover] == false, "You cannot vote twice");
-  //
-  //   federationStakes[addr].withdrawApprovals[index] = federationStakes[addr].withdrawApprovals[index].add(federationStakes[msg.sender].stake);
-  //   federationStakes[addr].withdrawApprovers[withdrawApprover] = true;
-  // }
-  //
-  // // TODO: add deadline
-  // function purgeMember(address addr) public callerMustBeFederated(){
-  //   require(federationStakes[addr].stake < federationMinimumStake && federationStakes[addr].approved, "Member cannot be purged");
-  //   uint256 stake = federationStakes[addr].stake;
-  //   federationStakes[addr].stake = 0;
-  //   federationStakes[addr].approved = false;
-  //   totalStake = totalStake.sub(stake);
-  //   GeoDB selfReference = GeoDB(address(this));
-  //   selfReference.burn(stake);
-  // }
-  //
-  // // Federation join / approve member process
-  //
-  // function requestFederationJoin() public callerCannotBeFederated() callerCannotHaveStake() {
-  //   transfer(address(this), federationMinimumStake);
-  //   federationJoinBallots[msg.sender].requestIndex = federationJoinBallots[msg.sender].requestIndex.add(1);
-  //   federationStakes[msg.sender].stake = federationMinimumStake;
-  // }
-  //
-  // function voteFederationJoin(address addr) public callerMustBeFederated(){
-  //   require(federationJoinBallots[addr].requestIndex > 0, "Index must be greater than 0");
-  //   uint256 index = federationJoinBallots[addr].requestIndex;
-  //   require(federationJoinBallots[addr].used[index] == false, "This join request has already been resolved");
-  //   bytes32 approver = keccak256(abi.encode(index, msg.sender));
-  //   require(federationJoinBallots[addr].approvers[approver] == false, "You cannot vote twice");
-  //
-  //   federationJoinBallots[addr].approvers[approver] = true;
-  //   federationJoinBallots[addr].approvals[index] = federationJoinBallots[addr].approvals[index].add(federationStakes[msg.sender].stake);
-  // }
-  //
-  // function resolveFederationJoin(bool commit) public callerMustHaveStake() callerCannotBeFederated() {
-  //   uint256 index = federationJoinBallots[msg.sender].requestIndex;
-  //   require(index > 0, "Index must be greater than 0");
-  //   require(federationJoinBallots[msg.sender].used[index] == false, "This join request has already been resolved");
-  //
-  //   federationJoinBallots[msg.sender].used[index] = true;
-  //   if(commit){
-  //     require(federationJoinBallots[msg.sender].approvals[index] > totalStake.div(2), "Voting stake is not enough"); // Untested
-  //     federationStakes[msg.sender].approved = true;
-  //     totalStake = totalStake.add(federationStakes[msg.sender].stake);
-  //   }else{
-  //     _withdrawStake(msg.sender);
-  //   }
-  // }
   //
   // // Federation minimum stake modification process
   //
