@@ -13,6 +13,7 @@ contract GeoDBClasses {
     uint256 deadline;
     mapping(address => bool) approvers;
     bool resolved;
+    bool open;
   }
 
   struct BlockSummary {
