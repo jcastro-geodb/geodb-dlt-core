@@ -1,8 +1,8 @@
 # TODOs:
 
-- [] Testing for staking change
-- [] Refactor of smart contract: ballots unification, gas cost optimization
+- [x] Testing for staking change
+- [x] Refactor of smart contract: ballots unification, gas cost optimization
 - [] Implement justice voting
 - [] Implement block summary upload
-- [] Implement testing with truffle suite and openzeppelin-test-helpers. This includes implementing best practices for contract testing (e.g. using beforeEach to reset the contract and test complete workflows)
-- [] Implement contract events and their testing
+- [x] Implement testing with truffle suite and openzeppelin-test-helpers. This includes implementing best practices for contract testing (e.g. using beforeEach to reset the contract and test complete workflows)
+- [x] Implement contract events and their testing

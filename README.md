@@ -12,6 +12,10 @@ Contains all Ethereum smart contract materials.
 
 Contains all Hyperledger Fabric materials.
 
+## Setup
+
+Script for Ubuntu 16.04 LTS setup
+
 ## Security vulnerabilities
 
 On hold:
