@@ -1,7 +1,7 @@
 const GeoToken = artifacts.require("GeoToken.sol");
 const GeoFederation = artifacts.require("GeoFederation.sol");
 
-const { fundPartnersWithGeoTokens, addMembersToFederation } = require("./helpers");
+const { fundPartnersWithGeoTokens, addMembersToFederation, exitFederation } = require("./helpers");
 
 const { initialMinimumFederationStake, initialFundingForPartners } = require("./helpers/geoconstants");
 const ErrorMsgs = require("./helpers/errorMessages.js");
@@ -75,6 +75,16 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
           (await this.token.balanceOf(partner)).should.be.bignumber.equal(
             initialFundingForPartners.sub(initialMinimumFederationStake)
           );
+
+          const ballot = await this.federation.federationJoinBallots(partner);
+
+          ballot.approvals.should.be.bignumber.equal(new BN("0"));
+          ballot.resolved.should.be.equal(false);
+
+          const federationStake = await this.federation.federationStakes(partner);
+
+          federationStake.stake.should.be.bignumber.equal(initialMinimumFederationStake);
+          federationStake.approved.should.be.equal(false);
         });
 
         it("allows to vote the ballot", async () => {
@@ -263,17 +273,79 @@ contract("GeoFederation", ([_, geodb, presaleHolder, partner, partner2, emptyAcc
 
           expectEvent.inLogs(logs, "LogResolveExitBallot", { sender: partner }).args.result.should.be.equal(false);
         });
-        it("should reject trying to resolve the ballot twice");
-        it("should reject trying to resolve the ballot when the deadline has passed");
+
+        it("should reject trying to resolve the ballot twice", async () => {
+          await this.federation.voteExitBallot(partner, { from: geodb });
+          await this.federation.resolveExitBallot({ from: partner });
+
+          shouldFail.reverting.withMessage(
+            this.federation.resolveExitBallot({ from: partner }),
+            ErrorMsgs.callerMustBeFederated
+          );
+        });
+        it("should reject trying to resolve the ballot when the deadline has passed", async () => {
+          await this.federation.voteExitBallot(partner, { from: geodb });
+
+          const delta = 2 * 24 * 3600;
+
+          await web3.currentProvider.send(
+            { jsonrpc: "2.0", method: "evm_increaseTime", params: [delta], id: 123 },
+            (err, result) => {
+              if (err) {
+                console.error(err);
+                return;
+              }
+            }
+          );
+
+          await shouldFail.reverting.withMessage(
+            this.federation.resolveExitBallot({ from: partner }),
+            ErrorMsgs.deadlineHasPassed
+          );
+        });
       });
 
       describe("After resolving a ballot positively", () => {
-        it("should allow to rejoin the federation with a join ballot");
+        beforeEach("exit the federation", async () => {
+          await exitFederation([geodb, partner2], partner, this.federation);
+        });
+
+        it("should allow to create a new join ballot", async () => {
+          await this.token.approve(this.federation.address, initialMinimumFederationStake, { from: partner });
+          const { logs } = await this.federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
+
+          expectEvent
+            .inLogs(logs, "LogNewJoinBallot", { sender: partner })
+            .args.stake.should.be.bignumber.equal(initialMinimumFederationStake);
+
+          (await this.token.balanceOf(this.federation.address)).should.be.bignumber.equal(
+            initialMinimumFederationStake.mul(new BN("3"))
+          );
+
+          (await this.token.balanceOf(partner)).should.be.bignumber.equal(
+            initialFundingForPartners.sub(initialMinimumFederationStake)
+          );
+
+          const ballot = await this.federation.federationJoinBallots(partner);
+
+          ballot.approvals.should.be.bignumber.equal(new BN("0"));
+          ballot.resolved.should.be.equal(false);
+
+          const federationStake = await this.federation.federationStakes(partner);
+
+          federationStake.stake.should.be.bignumber.equal(initialMinimumFederationStake);
+          federationStake.approved.should.be.equal(false);
+        });
       });
     });
 
     describe("When caller is not federated", () => {
-      it("rejects creating ballot");
+      it("rejects creating ballot", async () => {
+        await shouldFail.reverting.withMessage(
+          this.federation.newExitBallot({ from: emptyAccount }),
+          ErrorMsgs.callerMustBeFederated
+        );
+      });
     });
   });
 
