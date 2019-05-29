@@ -50,31 +50,33 @@ installGo(){
   echo "========================================================="
   echo
 
-  pwd
+  if [ -d "$HOME/go" ]; then
+    echo "Removing $HOME/go"
+    rm -rf $HOME/go
+  fi
 
-  echo $HOME
-  echo $USER
-  # wget https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz -O golang.tar.gz
-  # tar -xvf golang.tar.gz
-  #
-  # if [ -d "$HOME/go" ]; then
-  #   echo "Removing $HOME/go"
-  #   rm -rf $HOME/go
-  # fi
-  #
-  # mv go $HOME
+  wget https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz -O /tmp/golang.tar.gz
+  tar -xvf /tmp/golang.tar.gz --directory $HOME
 
+}
 
+checkEnvironment(){
 
+  echo
+  echo "========================================================="
+  echo "Checking and setting ENV"
+  echo "========================================================="
+  echo
 
-  # export GOROOT=$HOME/go
-  # export GOPATH=$HOME/go-lib
-  # export BINARIESFABRICVERSION=1.2.0
-  # export FABRICSAMPLEBINARIES=$HOME/hyperledger/fabric-samples-$BINARIESFABRICVERSION/bin
-  # #export FABRICSAMPLEBINARIES=$HOME/personal/b9lab/hyperledger-fabric/lesson3-first/fabric-samples/bin
-  # PATH=$PATH:$GOROOT/bin
-  # PATH=$PATH:$GOPATH/bin
-  # PATH=$PATH:$FABRICSAMPLEBINARIES
+  while IFS="" read -r checkVar || [ -n "$p" ]
+  do
+    if grep -Fxq "$checkVar" $HOME/.profile
+    then
+        echo "$checkVar IS SET"
+    else
+        echo $checkVar >> $HOME/.profile
+    fi
+  done < fabric-environment
 }
 
 
@@ -83,10 +85,9 @@ if [ `id -u` != "0" ]; then
   exit 1
 fi
 
-
-
-# checkCURL
-# checkDocker
-# checkDockerCompose
+checkCURL
+checkDocker
+checkDockerCompose
 checkGo
-# curl -sSL http://bit.ly/2ysbOFE | bash -s -- 1.4.1 1.4.1 0.4.15
+checkEnvironment
+curl -sSL http://bit.ly/2ysbOFE | bash -s -- 1.4.1 1.4.1 0.4.15
