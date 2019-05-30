@@ -10,6 +10,9 @@ installCURL(){
   echo "Now installing CURL"
   echo "========================================================="
   echo
+
+  sleep 1s
+
   apt-get install curl -y
 }
 
@@ -23,6 +26,9 @@ installDocker(){
   echo "Now installing docker"
   echo "========================================================="
   echo
+
+  sleep 1s
+
   apt-get install docker.io -y
 }
 
@@ -36,6 +42,9 @@ installDockerCompose(){
   echo "Now installing docker-compose"
   echo "========================================================="
   echo
+
+  sleep 1s
+
   apt-get install docker-compose -y
 }
 
@@ -49,6 +58,8 @@ installGo(){
   echo "Now installing go"
   echo "========================================================="
   echo
+
+  sleep 1s
 
   if [ -d "$HOME/go" ]; then
     echo "Removing $HOME/go"
@@ -68,6 +79,8 @@ checkEnvironment(){
   echo "========================================================="
   echo
 
+  sleep 1s
+
   while IFS="" read -r checkVar || [ -n "$p" ]
   do
     if grep -Fxq "$checkVar" $HOME/.profile
@@ -79,6 +92,45 @@ checkEnvironment(){
   done < fabric-environment
 }
 
+installFabric(){
+
+  echo
+  echo "========================================================="
+  echo "Now installing Hyperledger Fabric"
+  echo "========================================================="
+  echo
+
+  sleep 1s
+
+  currDir=`pwd`
+
+  if [ ! -d "$HOME/hyperledger" ]; then
+    echo "Creating $HOME/hyperledger"
+    mkdir $HOME/hyperledger
+  fi
+
+  cd $HOME/hyperledger
+
+  curl -sSL http://bit.ly/2ysbOFE | bash -s -- 1.4.1 1.4.1 0.4.15
+
+  mv fabric-samples fabric-samples-1.4.1
+
+  cd $currDir
+}
+
+installGeodb(){
+
+  echo
+  echo "========================================================="
+  echo "Now installing GeoDB bootstrap scripts"
+  echo "========================================================="
+  echo
+
+  sleep 1s
+
+  git clone https://github.com/GeoDB-Limited/geodb-federation-fabric-prototype $HOME/geodb
+}
+
 
 if [ `id -u` != "0" ]; then
   echo "Please run as root"
@@ -86,8 +138,21 @@ if [ `id -u` != "0" ]; then
 fi
 
 checkCURL
+
 checkDocker
+
 checkDockerCompose
+
 checkGo
+
 checkEnvironment
-curl -sSL http://bit.ly/2ysbOFE | bash -s -- 1.4.1 1.4.1 0.4.15
+
+installFabric
+
+installGeodb
+
+echo
+echo "========================================================="
+echo "It is required to reboot the system for ENV to update"
+echo "========================================================="
+echo
