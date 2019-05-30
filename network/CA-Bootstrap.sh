@@ -25,8 +25,8 @@ INTERMEDIATE_CA=false
 # If true, recreate crypto if it already exists
 RECREATE=true
 
-# Path to fabric CA executables
-FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca-1.4.1
+# Path to fabric CA executables - Remember to configure it correctly for each fabric version
+FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
 SERVER=$FCAHOME/bin/fabric-ca-server
 CLIENT=$FCAHOME/bin/fabric-ca-client
 

@@ -9,6 +9,7 @@ fi
 
 # Bring up the network
 docker-compose -f docker-compose.yaml up -d
+sleep 3s
 
 # Create the channel on the peer from the genesis block
 docker exec clipeer0.geodb.com bash -c 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.geodb.com:7050'

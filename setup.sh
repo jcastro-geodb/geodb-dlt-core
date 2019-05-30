@@ -116,6 +116,21 @@ installFabric(){
   mv fabric-samples fabric-samples-1.4.1
 
   cd $currDir
+
+  apt-get install libtool libltdl-dev -y
+
+  if [ ! -d "$HOME/go-lib" ]; then
+    echo "Creating $HOME/go-lib"
+    mkdir $HOME/go-lib
+  fi
+
+  echo
+  echo "========================================================="
+  echo "Setting up FABRIC-CA"
+  echo "========================================================="
+  echo
+
+  GOPATH=$HOME/go-lib $HOME/go/bin/go get -u github.com/hyperledger/fabric-ca/cmd/...
 }
 
 installGeodb(){
@@ -133,7 +148,7 @@ installGeodb(){
 
 
 if [ `id -u` != "0" ]; then
-  echo "Please run as root"
+  echo "Please, run as root"
   exit 1
 fi
 
