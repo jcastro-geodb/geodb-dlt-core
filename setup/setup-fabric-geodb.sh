@@ -1,51 +1,9 @@
 # !/bin/bash
 
-checkCURL(){
-  command -v curl >/dev/null 2>&1 || { installCURL; }
-}
-
-installCURL(){
-  echo
-  echo "========================================================="
-  echo "Now installing CURL"
-  echo "========================================================="
-  echo
-
-  sleep 1s
-
-  apt-get install curl -y
-}
-
-checkDocker(){
-  command -v docker >/dev/null 2>&1 || { installDocker; }
-}
-
-installDocker(){
-  echo
-  echo "========================================================="
-  echo "Now installing docker"
-  echo "========================================================="
-  echo
-
-  sleep 1s
-
-  apt-get install docker.io -y
-}
-
-checkDockerCompose(){
-  command -v docker-compose >/dev/null 2>&1 || { installDockerCompose; }
-}
-
-installDockerCompose(){
-  echo
-  echo "========================================================="
-  echo "Now installing docker-compose"
-  echo "========================================================="
-  echo
-
-  sleep 1s
-
-  apt-get install docker-compose -y
+checkDependencies(){
+  command -v curl >/dev/null 2>&1 || { echo "cURL not found. Please, run install-dependencies.sh as root"; exit 1; }
+  command -v docker >/dev/null 2>&1 || { echo "docker not found. Please, run install-dependencies.sh as root"; exit 1; }
+  command -v docker-compose >/dev/null 2>&1 || { echo "docker-compose not found. Please, run install-dependencies.sh as root"; exit 1; }
 }
 
 checkGo(){
@@ -117,8 +75,6 @@ installFabric(){
 
   cd $currDir
 
-  apt-get install libtool libltdl-dev -y
-
   if [ ! -d "$HOME/go-lib" ]; then
     echo "Creating $HOME/go-lib"
     mkdir $HOME/go-lib
@@ -146,17 +102,7 @@ installGeodb(){
   git clone https://github.com/GeoDB-Limited/geodb-federation-fabric-prototype $HOME/geodb
 }
 
-
-if [ `id -u` != "0" ]; then
-  echo "Please, run as root"
-  exit 1
-fi
-
-checkCURL
-
-checkDocker
-
-checkDockerCompose
+checkDependencies
 
 checkGo
 
@@ -168,6 +114,6 @@ installGeodb
 
 echo
 echo "========================================================="
-echo "It is required to reboot the system for ENV to update"
+echo "Setup is now complete. Please reboot the system."
 echo "========================================================="
 echo

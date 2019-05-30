@@ -2,7 +2,12 @@
 
 ## TODOs
 
-- Add installation script for Fabric prerequisites: docker, docker-compose, docker images...
+- [x] Add installation script for Fabric prerequisites: docker, docker-compose, docker images.
+- [ ] Enable TLS
+- [ ] Implement tests
+- [ ] Customize node names. Implement script for generic node deployment and network peer join.
+- [ ] Implement business logic for smart contract interaction
+- [ ] Implement business logic for datasets addition, purchase, etc.
 
 ## Setup
 

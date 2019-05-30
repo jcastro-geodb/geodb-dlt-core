@@ -14,7 +14,7 @@ Contains all Hyperledger Fabric materials.
 
 ## Setup
 
-Script for Ubuntu 16.04 LTS setup
+Script for Ubuntu 16.04 / 18.04 LTS setup
 
 ## Security vulnerabilities
 
