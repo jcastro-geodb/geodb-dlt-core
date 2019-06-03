@@ -9,6 +9,8 @@ const shim = require("fabric-shim");
 const util = require("util");
 const Members = require("./schemas/member");
 
+const tokenAddress = require("./ethereum/deploy/data.json").ropsten.address;
+
 let Validator = require("jsonschema").Validator;
 
 const walletAddress = "0xDCF7bAECE1802D21a8226C013f7be99dB5941bEa";
@@ -16,7 +18,7 @@ const walletAddress = "0xDCF7bAECE1802D21a8226C013f7be99dB5941bEa";
 let Chaincode = class {
   // Stub interface => Init()
   async Init(stub) {
-    console.info("=========== Instantiated fabcar chaincode ===========");
+    console.info("=========== Instantiated chaincode ===========");
     try {
       const cid = new shim.ClientIdentity(stub);
       const mspId = cid.mspId;
@@ -32,10 +34,7 @@ let Chaincode = class {
       await stub.putState("MEMBERS", Buffer.from(JSON.stringify(members)));
 
       // Smart contract address
-      await stub.putState(
-        "GEODB_SC_ADDRESS",
-        Buffer.from("0xE745897C64c8DA0A15E11B000834F570eC7eA7Ad")
-      );
+      await stub.putState("GEODB_TOKEN_ADDRESS", Buffer.from(tokenAddress));
     } catch (e) {
       console.error(e);
     }
@@ -119,10 +118,7 @@ let Chaincode = class {
     let member = null;
 
     for (let i = 0; i < members.length; i++) {
-      if (
-        members[i].mspId === mspId &&
-        members[i].status === Members.STATUS_VALID
-      ) {
+      if (members[i].mspId === mspId && members[i].status === Members.STATUS_VALID) {
         member = members[i];
         break;
       }
@@ -133,23 +129,17 @@ let Chaincode = class {
     const ethAddress = args[0];
     const amount = args[1];
 
-    let claimableBalances = JSON.parse(
-      Buffer.from(await stub.getState(ethAddress))
-    );
+    let claimableBalances = JSON.parse(Buffer.from(await stub.getState(ethAddress)));
     claimableBalances.push({ amount, mspId, timestamp: Date.now() });
 
-    await stub.putState(
-      ethAddress,
-      Buffer.from(JSON.stringify(claimableBalances))
-    );
+    await stub.putState(ethAddress, Buffer.from(JSON.stringify(claimableBalances)));
     console.info("======== END : addClaimableBalanceToAddress ========");
   }
 
   async getClaimableBalance(stub, args) {
     console.info("======== START : getClaimableBalance ========");
 
-    if (args.length != 1)
-      throw new Error("Incorrect number of arguments. Expecting 1");
+    if (args.length != 1) throw new Error("Incorrect number of arguments. Expecting 1");
 
     const ethAddress = args[0];
 
@@ -161,8 +151,8 @@ let Chaincode = class {
 
   async transferClaimableBalance(stub, args) {}
 
-  async querySmartContractAddress(stub, args) {
-    return await stub.getState("GEODB_SC_ADDRESS");
+  async queryTokenAddress(stub, args) {
+    return await stub.getState("GEODB_TOKEN_ADDRESS");
   }
 
   async queryFederationMembers(stub, args) {

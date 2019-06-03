@@ -5,12 +5,12 @@ let GeoToken = artifacts.require("./GeoToken.sol");
 
 const fabricEthChaincodePath = path.resolve(
   __dirname,
-  "./../../network/chaincode/github.com/geodb/ethereum/deploy/data.json"
+  "./../../network/chaincode/github.com/geodb/javascript-low-level/deploy/data.json"
 );
 
 const presaleHoldersPath = path.resolve(__dirname, "./../.presale_holders.json");
 
-module.exports = function(deployer) {
+module.exports = function(deployer, network) {
   const presaleHolders = fs.readJsonSync(presaleHoldersPath);
 
   let holders = [];
@@ -33,8 +33,19 @@ module.exports = function(deployer) {
 
       console.log(`At address: ${instance.address}`);
 
-      const data = { address: instance.address };
+      if (network.includes("fork") === false) {
+        let data = {};
 
-      fs.outputJsonSync(fabricEthChaincodePath, data);
+        try {
+          let data = fs.readJsonSync(fabricEthChaincodePath);
+          data = JSON.parse(data);
+        } catch (e) {
+          console.log(`__ Could not read ${fabricEthChaincodePath}, creating file`);
+        }
+
+        data[network] = { address: instance.address };
+
+        fs.outputJsonSync(fabricEthChaincodePath, data);
+      }
     });
 };
