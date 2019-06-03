@@ -18,12 +18,6 @@
  *
  */
 
-// const HDWalletProvider = require('truffle-hdwallet-provider');
-// const infuraKey = "fj4jll3k.....";
-//
-// const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
-
 const fs = require("fs-extra");
 require("chai/register-should");
 
@@ -31,26 +25,16 @@ const HDWalletProvider = require("truffle-hdwallet-provider");
 
 const secrets = fs.readJsonSync(".secrets.json", { throws: false });
 
-if (!secrets || !secrets.mnemonic || !secrets.infuraIO_endpoint) {
+if (!secrets || !secrets.mnemonic || !secrets.endpoints) {
   console.error(
-    "Error when reading .secrets.json. Either the file does not exist, or lacks mnemonic, or lacks infuraIO_endpoint keys"
+    "Error when reading .secrets.json. Either the file does not exist, or lacks mnemonic, or lacks endpoints"
   );
 }
 
-const infuraIO_Endpoint = secrets.infuraIO_endpoint;
+const endpoints = secrets.endpoints;
 const mnemonic = secrets.mnemonic.trim();
 
 module.exports = {
-  /**
-   * Networks define how you connect to your ethereum client and let you set the
-   * defaults web3 uses to send transactions. If you don't specify one truffle
-   * will spin up a development blockchain for you on port 9545 when you
-   * run `develop` or `test`. You can ask a truffle command to use a specific
-   * network from the command line, e.g
-   *
-   * $ truffle test --network <network-name>
-   */
-
   networks: {
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.
@@ -94,6 +78,16 @@ module.exports = {
     //   confirmations: 2,
     //   network_id: "*" // Match any network id
     // }
+    rinkeby: {
+      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.rinkeby),
+      confirmations: 2,
+      network_id: "1" // Match any network id
+    },
+    ropsten: {
+      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten),
+      confirmations: 2,
+      network_id: "3" // Match any network id
+    }
   },
 
   // Set default mocha options here, use special reporters etc.
@@ -104,15 +98,11 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.5.2" // Fetch exact version from solc-bin (default: truffle's version)
-      // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
-      // settings: {          // See the solidity docs for advice about optimization and evmVersion
-      //  optimizer: {
-      //    enabled: false,
-      //    runs: 200
-      //  },
-      //  evmVersion: "byzantium"
-      // }
+      version: "0.5.7", // Fetch exact version from solc-bin (default: truffle's version)
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
     }
   }
 };

@@ -20,10 +20,17 @@ gulp.task("watch", async cb => {
 
 const compileContractsAndRunTest = () => {
   console.log("\n===============\nCompiling and testing\n===============\n");
-  exec("rm -rf ./build; truffle compile; truffle test", function(err, stdout, stderr) {
-    console.error(stderr);
-    console.log(stdout);
-  });
+  exec(
+    `rm -rf ./build;
+    truffle compile;
+    cp ./build/contracts/GeoToken.json ../network/chaincode/github.com/geodb/ethereum/abi/GeoToken.json;
+    cp ./build/contracts/GeoFederation.json ../network/chaincode/github.com/geodb/ethereum/abi/GeoFederation.json;
+    truffle test`,
+    function(err, stdout, stderr) {
+      console.error(stderr);
+      console.log(stdout);
+    }
+  );
 };
 
 const runTest = () => {

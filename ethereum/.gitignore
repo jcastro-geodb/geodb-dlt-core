@@ -3,6 +3,9 @@
 # artifacts
 build/
 
+# presale
+.presale_holders.json
+
 # dependencies
 .secrets.json
 node_modules/
