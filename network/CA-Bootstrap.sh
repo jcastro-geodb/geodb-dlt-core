@@ -13,14 +13,13 @@
 #set -e
 
 # Organization info where each line is of the form:
-#    <type>:<orgName>:<rootCAPort>:<intermediateCAPort>:<numOrderersOrPeers>
 #    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:<intermediateCAPort>
 ORGS="\
    geodb.com:1:1:7100:7101 \
 "
 
 # If true, uses both a root and intermediate CA
-INTERMEDIATE_CA=false
+INTERMEDIATE_CA=true
 
 # If true, recreate crypto if it already exists
 RECREATE=true
