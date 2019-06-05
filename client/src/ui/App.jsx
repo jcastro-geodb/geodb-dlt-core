@@ -10,6 +10,7 @@ import Container from "react-bootstrap/Container";
 */
 
 import Menu from "./components/Menu.jsx";
+import Loading from "./components/Loading.jsx";
 
 import Breadcrumbs from "@trendmicro/react-breadcrumbs";
 import ensureArray from "ensure-array";
@@ -23,6 +24,12 @@ import { withRouter } from "react-router-dom";
 
 import "react-notifications/lib/notifications.css";
 import { NotificationContainer } from "react-notifications";
+
+/*
+ =============== DATABASE
+*/
+
+const Datastore = require("nedb");
 
 /*
  =============== APP RENDER
@@ -39,7 +46,9 @@ const Main = styled.main`
 class App extends React.PureComponent {
   state = {
     selected: "home",
-    expanded: false
+    expanded: false,
+    loading: true,
+    db: null
   };
 
   onSelect = selected => {
@@ -112,11 +121,19 @@ class App extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.onSelect("ethereum");
+    this.onSelect("federation");
+    const db = new Datastore({ filename: "~/geodb-store" });
+    db.loadDatabase(err => {
+      this.setState({ loading: false, db });
+    });
   }
 
   render() {
-    const { expanded, selected } = this.state;
+    const { expanded, selected, loading } = this.state;
+
+    if (loading) {
+      return <Loading />;
+    }
 
     return (
       <Container fluid>

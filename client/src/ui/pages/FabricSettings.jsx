@@ -8,7 +8,7 @@ class FabricSettings extends React.Component {
   render() {
     return (
       <div>
-        <Alert fluid dismissible variant="danger">
+        <Alert dismissible variant="danger">
           <Alert.Heading>Fat fingers out of here!</Alert.Heading>
           <hr />
 
@@ -22,7 +22,7 @@ class FabricSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-share-alt fa-3x" />
+                <i className="fas fa-share-alt fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Peers</h5>
@@ -35,7 +35,7 @@ class FabricSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-database fa-3x" />
+                <i className="fas fa-database fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Databases</h5>
@@ -48,7 +48,7 @@ class FabricSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-anchor fa-3x" />
+                <i className="fas fa-anchor fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Anchors</h5>
@@ -61,7 +61,7 @@ class FabricSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-exclamation-circle fa-3x" />
+                <i className="fas fa-exclamation-circle fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Issues</h5>

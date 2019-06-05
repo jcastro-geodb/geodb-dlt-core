@@ -16,7 +16,7 @@ class EthereumSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-coins fa-3x" />
+                <i className="fas fa-coins fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Stake</h5>
@@ -29,7 +29,7 @@ class EthereumSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-balance-scale fa-3x" />
+                <i className="fas fa-balance-scale fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Vote weight</h5>
@@ -42,7 +42,7 @@ class EthereumSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-university fa-3x" />
+                <i className="fas fa-university fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Status</h5>
@@ -55,7 +55,7 @@ class EthereumSettings extends React.Component {
           <Col xs={2}>
             <Card bg="light" className={cardClass}>
               <div className="card-header border-0">
-                <i class="fas fa-cube fa-3x" />
+                <i className="fas fa-cube fa-3x" />
               </div>
               <div className="card-block px-2">
                 <h5 className="card-title">Next block</h5>
@@ -68,7 +68,7 @@ class EthereumSettings extends React.Component {
         </Row>
         <Row>
           <Col xs={12}>
-            <div class="d-inline p-2 text-secondary">
+            <div className="d-inline p-2 text-secondary">
               <h5>
                 Contract:{" "}
                 <small>
@@ -97,12 +97,12 @@ class EthereumSettings extends React.Component {
                 <Row>
                   <Col xs={6}>
                     <Button variant="primary" size="lg" block>
-                      <i class="fas fa-paper-plane" /> Send
+                      <i className="fas fa-paper-plane" /> Send
                     </Button>
                   </Col>
                   <Col xs={6}>
                     <Button variant="primary" size="lg" block>
-                      <i class="fas fa-qrcode" /> Receive
+                      <i className="fas fa-qrcode" /> Receive
                     </Button>
                   </Col>
                 </Row>
@@ -110,12 +110,12 @@ class EthereumSettings extends React.Component {
                 <Row>
                   <Col xs={6}>
                     <Button variant="outline-primary" size="lg" block>
-                      <i class="fas fa-key" /> Set private key
+                      <i className="fas fa-key" /> Set private key
                     </Button>
                   </Col>
                   <Col xs={6}>
                     <Button variant="outline-primary" size="lg" block>
-                      <i class="fas fa-at" /> Set ENS address
+                      <i className="fas fa-at" /> Set ENS address
                     </Button>
                   </Col>
                 </Row>
@@ -134,12 +134,12 @@ class EthereumSettings extends React.Component {
                 <Row>
                   <Col xs={6}>
                     <Button variant="primary" size="lg" block>
-                      <i class="fas fa-paper-plane" /> Send
+                      <i className="fas fa-paper-plane" /> Send
                     </Button>
                   </Col>
                   <Col xs={6}>
                     <Button variant="primary" size="lg" block>
-                      <i class="fas fa-qrcode" /> Receive
+                      <i className="fas fa-qrcode" /> Receive
                     </Button>
                   </Col>
                 </Row>
@@ -147,12 +147,12 @@ class EthereumSettings extends React.Component {
                 <Row>
                   <Col xs={6}>
                     <Button variant="outline-primary" size="lg" block>
-                      <i class="far fa-handshake" /> Exchange
+                      <i className="far fa-handshake" /> Exchange
                     </Button>
                   </Col>
                   <Col xs={6}>
                     <Button variant="outline-primary" size="lg" block>
-                      <i class="fas fa-hand-holding-usd" /> Earn
+                      <i className="fas fa-hand-holding-usd" /> Earn
                     </Button>
                   </Col>
                 </Row>
