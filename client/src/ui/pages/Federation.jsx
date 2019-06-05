@@ -1,6 +1,6 @@
 import React from "react";
 import Button from "react-bootstrap/Button";
-import fs from "fs-extra";
+// import fs from "fs-extra";
 import path from "path";
 
 import { NotificationManager } from "react-notifications";
@@ -27,7 +27,7 @@ class Federation extends React.Component {
 
     db.find({ _id: "msp-path" })
       .then(result => {
-        if (result.length == 0) {
+        if (result.length === 0) {
           throw errors.noCertificatePathFound;
           // => Trigger CA setup
         }
@@ -70,10 +70,7 @@ class Federation extends React.Component {
       <div>
         <Button onClick={this.insert}>Insert</Button>
         <Button onClick={this.log}>Log</Button>
-        <SetupOrgModal
-          show={showSetupOrgModal}
-          onHide={this.closeSetupOrgModal}
-        />
+        <SetupOrgModal show={showSetupOrgModal} onHide={this.closeSetupOrgModal} />
       </div>
     );
   }

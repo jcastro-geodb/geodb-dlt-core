@@ -32,6 +32,7 @@
     "electron-context-menu": "^0.12.1",
     "electron-is-dev": "^1.1.0",
     "ensure-array": "^1.0.0",
+    "formik": "^1.5.7",
     "fs-extra": "^7.0.1",
     "jquery": "^3.4.0",
     "js-yaml": "^3.13.1",
@@ -50,7 +51,8 @@
     "react-scripts": "3.0.0",
     "shelljs": "0.7.5",
     "styled-components": "^4.2.0",
-    "tslint": "^4.0.0"
+    "tslint": "^4.0.0",
+    "yup": "^0.27.0"
   },
   "main": "public/electron.js",
   "homepage": "./",
@@ -88,5 +90,8 @@
     "electron-builder": "^20.39.0",
     "typescript": "^3.4.5",
     "wait-on": "^3.2.0"
+  },
+  "prettier": {
+    "printWidth": 120
   }
 }
