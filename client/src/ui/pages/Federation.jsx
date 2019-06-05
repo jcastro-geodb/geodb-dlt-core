@@ -1,51 +1,79 @@
 import React from "react";
 import Button from "react-bootstrap/Button";
+import fs from "fs-extra";
+import path from "path";
+
+import { NotificationManager } from "react-notifications";
+
+import Loading from "../components/Loading.jsx";
+import SetupOrgModal from "../components/SetupOrgModal.jsx";
+
+const errors = {
+  noCertificatePathFound: "No certificate path found"
+};
 
 class Federation extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { db: props.db };
+    this.state = {
+      db: props.db,
+      loadingUserConfig: true,
+      showSetupOrgModal: false
+    };
   }
 
-  insert = () => {
+  checkCertificates = () => {
     const { db } = this.state;
 
-    var doc = {
-      hello: "world",
-      n: 5,
-      today: new Date(),
-      nedbIsAwesome: true,
-      notthere: null,
-      notToBeSaved: undefined, // Will not be saved
-      fruits: ["apple", "orange", "pear"],
-      infos: { name: "nedb" }
-    };
+    db.find({ _id: "msp-path" })
+      .then(result => {
+        if (result.length == 0) {
+          throw errors.noCertificatePathFound;
+          // => Trigger CA setup
+        }
 
-    db.insert(doc, function(err, newDoc) {
-      // Callback is optional
-      if (err) console.error(err);
-      else console.log("ok");
-    });
+        const mspPath = result[0];
+
+        path.resolve(__dirname, mspPath);
+      })
+      .then()
+      .catch(err => {
+        switch (err) {
+          case errors.noCertificatePathFound:
+            this.setState({ showSetupOrgModal: true });
+            break;
+          default:
+            NotificationManager.error(`${err}`, "Failed to run command");
+            console.error(err);
+        }
+      })
+      .finally(() => {
+        this.setState({ loadingUserConfig: false });
+        console.log("Finished");
+      });
   };
 
-  log = () => {
-    const { db } = this.state;
-
-    console.log(db);
-
-    db.find({ hello: "world" }, (err, docs) => {
-      if (err) console.error(err);
-      else console.log(docs);
-    });
+  closeSetupOrgModal = () => {
+    this.setState({ showSetupOrgModal: false });
   };
 
-  componentDidMount() {}
+  componentDidMount() {
+    this.checkCertificates();
+  }
 
   render() {
+    const { loadingUserConfig, showSetupOrgModal } = this.state;
+
+    if (loadingUserConfig) return <Loading />;
+
     return (
       <div>
         <Button onClick={this.insert}>Insert</Button>
         <Button onClick={this.log}>Log</Button>
+        <SetupOrgModal
+          show={showSetupOrgModal}
+          onHide={this.closeSetupOrgModal}
+        />
       </div>
     );
   }

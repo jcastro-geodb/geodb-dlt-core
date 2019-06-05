@@ -29,7 +29,7 @@ import { NotificationContainer } from "react-notifications";
  =============== DATABASE
 */
 
-const Datastore = require("nedb");
+const Datastore = require("nedb-promises");
 
 /*
  =============== APP RENDER
@@ -124,10 +124,18 @@ class App extends React.PureComponent {
 
   componentDidMount() {
     this.onSelect("federation");
-    const db = new Datastore({ filename: "~/geodb-store" });
-    db.loadDatabase(err => {
-      this.setState({ loading: false, db });
-    });
+    let db = Datastore.create("geodb-store");
+
+    db.load()
+      .then(() => {
+        this.setState({ db });
+      })
+      .catch(err => {
+        console.error(err);
+      })
+      .finally(() => {
+        this.setState({ loading: false });
+      });
   }
 
   render() {
