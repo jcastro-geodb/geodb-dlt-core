@@ -95,6 +95,8 @@ class App extends React.PureComponent {
   }
 
   renderRouter() {
+    const props = { db: this.state.db };
+
     return (
       <Switch>
         {routes.map(prop => {
@@ -103,7 +105,7 @@ class App extends React.PureComponent {
               <Route
                 exact
                 path={prop.path}
-                render={() => React.createElement(prop.page, null)}
+                render={() => React.createElement(prop.page, props)}
                 key={prop.key}
               />
             );
@@ -111,7 +113,7 @@ class App extends React.PureComponent {
             return (
               <Route
                 path={prop.path}
-                render={() => React.createElement(prop.page, null)}
+                render={() => React.createElement(prop.page, props)}
                 key={prop.key}
               />
             );
