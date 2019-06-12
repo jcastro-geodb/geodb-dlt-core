@@ -19,11 +19,13 @@
  */
 
 const fs = require("fs-extra");
+const path = require("path");
 require("chai/register-should");
 
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
-const secrets = fs.readJsonSync(".secrets.json", { throws: false });
+const secretsPath = path.resolve(__dirname, ".secrets.json");
+const secrets = fs.readJsonSync(secretsPath, { throws: false });
 
 if (!secrets || !secrets.mnemonic || !secrets.endpoints) {
   console.error(
