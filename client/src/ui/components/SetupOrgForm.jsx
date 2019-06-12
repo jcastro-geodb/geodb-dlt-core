@@ -5,28 +5,14 @@ import * as Yup from "yup";
 
 import LoadingButton from "./LoadingButton.jsx";
 
-import setupCertificates from "./../../setups/certificates.jsx";
-
 const SetupOrgForm = props => {
-  const { handleCancel } = props;
+  const { handleCancel, startSetup } = props;
 
   return (
     <Formik
       initialValues={{ domain: "" }}
       onSubmit={(values, { setSubmitting }) => {
-        setupCertificates(
-          values.domain,
-          data => {
-            console.log(`${data}`);
-          },
-          data => {
-            console.error(`${data}`);
-          },
-          code => {
-            setSubmitting(false);
-            console.log(`child process exited with code ${code}`);
-          }
-        );
+        startSetup(values.domain);
       }}
       validationSchema={Yup.object().shape({
         domain: Yup.string()
@@ -55,12 +41,12 @@ const SetupOrgForm = props => {
 
             <Row>
               <Col xs={6}>
-                <LoadingButton block type="submit" loading={isSubmitting}>
+                <LoadingButton block type="submit">
                   Start setup
                 </LoadingButton>
               </Col>
               <Col xs={6}>
-                <Button block variant="outline-danger" onClick={handleCancel} disabled={isSubmitting}>
+                <Button block variant="outline-danger" onClick={handleCancel}>
                   Cancel
                 </Button>
               </Col>

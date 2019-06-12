@@ -25,7 +25,7 @@ if [ -z "$ORGS" ]; then
 fi
 
 # If true, uses both a root and intermediate CA
-INTERMEDIATE_CA=false
+INTERMEDIATE_CA=true
 
 # If true, recreate crypto if it already exists
 RECREATE=true
