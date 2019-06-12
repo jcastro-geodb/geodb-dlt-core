@@ -16,6 +16,7 @@
 #    <type>:<orgName>:<rootCAPort>:<intermediateCAPort>:<numOrderersOrPeers>
 #    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:<intermediateCAPort>
 
+ORGS=$1
 
 if [ -z "$ORGS" ]; then
   ORGS="\
@@ -23,10 +24,8 @@ if [ -z "$ORGS" ]; then
   "
 fi
 
-
-
 # If true, uses both a root and intermediate CA
-INTERMEDIATE_CA=true
+INTERMEDIATE_CA=false
 
 # If true, recreate crypto if it already exists
 RECREATE=true

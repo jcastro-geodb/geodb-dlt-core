@@ -5,6 +5,8 @@ import * as Yup from "yup";
 
 import LoadingButton from "./LoadingButton.jsx";
 
+import setupCertificates from "./../../setups/certificates.jsx";
+
 const SetupOrgForm = props => {
   const { handleCancel } = props;
 
@@ -12,10 +14,19 @@ const SetupOrgForm = props => {
     <Formik
       initialValues={{ domain: "" }}
       onSubmit={(values, { setSubmitting }) => {
-        setTimeout(() => {
-          alert(JSON.stringify(values, null, 2));
-          setSubmitting(false);
-        }, 500);
+        setupCertificates(
+          values.domain,
+          data => {
+            console.log(`${data}`);
+          },
+          data => {
+            console.error(`${data}`);
+          },
+          code => {
+            setSubmitting(false);
+            console.log(`child process exited with code ${code}`);
+          }
+        );
       }}
       validationSchema={Yup.object().shape({
         domain: Yup.string()
@@ -24,7 +35,7 @@ const SetupOrgForm = props => {
       })}
     >
       {props => {
-        const { values, errors, handleChange, handleSubmit } = props;
+        const { values, errors, handleChange, handleSubmit, isSubmitting } = props;
         return (
           <Form onSubmit={handleSubmit}>
             <Form.Row>
@@ -44,12 +55,12 @@ const SetupOrgForm = props => {
 
             <Row>
               <Col xs={6}>
-                <LoadingButton block type="submit">
+                <LoadingButton block type="submit" loading={isSubmitting}>
                   Start setup
                 </LoadingButton>
               </Col>
               <Col xs={6}>
-                <Button block variant="outline-danger" onClick={handleCancel}>
+                <Button block variant="outline-danger" onClick={handleCancel} disabled={isSubmitting}>
                   Cancel
                 </Button>
               </Col>

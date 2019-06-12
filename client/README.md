@@ -1,8 +1,7 @@
 # TODOs
 
-- [] Implement encrypted and safe keystore for ether wallet.
-- [] Implement smart contract call-backs
-- [] Implement 2nd layer solution gateway to hyperledger
+- [ ] Implement encrypted and safe keystore for ether wallet.
+- [ ] Implement smart contract call-backs
 
 # Create-React-App Electron README
 

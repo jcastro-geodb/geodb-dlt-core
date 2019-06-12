@@ -49,7 +49,6 @@ class Federation extends React.Component {
       })
       .finally(() => {
         this.setState({ loadingUserConfig: false });
-        console.log("Finished");
       });
   };
 
