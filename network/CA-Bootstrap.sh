@@ -58,9 +58,11 @@ function main {
    #    echo "#################################################################"
    #    exit 0
    # fi
+   echo
    echo "#################################################################"
    echo "#######    Generating crypto material using Fabric CA  ##########"
    echo "#################################################################"
+   echo
    echo "Checking executables ..."
    mydir=`pwd`
    checkExecutables

@@ -13,12 +13,12 @@ class SetupOrgModal extends React.Component {
     setupSuccess: false
   };
 
-  startSetup = organization => {
+  startSetup = params => {
     this.setState({ setupStarted: true });
     const { db } = this.props;
 
     setupCertificates(
-      organization,
+      params,
       data => {
         console.log(`${data}`);
       },
@@ -28,10 +28,10 @@ class SetupOrgModal extends React.Component {
       code => {
         console.log(`child process exited with code ${code}`);
 
-        const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/${organization}`);
+        const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/${params.domain}`);
 
         if (code === 0 && fs.pathExistsSync(mspPath) === true) {
-          db.insert({ _id: "msp-path", mspPath })
+          db.update({ _id: "msp-path" }, { _id: "msp-path", mspPath }, { upsert: true })
             .then(result => {
               this.setState({ setupSuccess: true });
             })
@@ -52,6 +52,7 @@ class SetupOrgModal extends React.Component {
   render() {
     const { setupStarted, setupFinished, setupSuccess } = this.state;
     const { onHide } = this.props;
+
     return (
       <Modal {...this.props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered backdrop="static">
         <Modal.Header>
@@ -64,7 +65,7 @@ class SetupOrgModal extends React.Component {
           {setupStarted === true && setupFinished === false ? this.renderSetupProcess() : null}
           {setupStarted === true && setupFinished === true ? this.renderSetupFinished() : null}
           {setupFinished === true && (
-            <Button block variant="outline-primary" onClick={() => this.props.onHide(setupSuccess)}>
+            <Button block variant="outline-primary" onClick={() => onHide(setupSuccess)}>
               Close
             </Button>
           )}

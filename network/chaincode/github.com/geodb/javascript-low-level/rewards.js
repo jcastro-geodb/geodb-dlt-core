@@ -155,6 +155,13 @@ let Chaincode = class {
     return await stub.getState("GEODB_TOKEN_ADDRESS");
   }
 
+  async getMSP(stub, args) {
+    const cid = new shim.ClientIdentity(stub);
+    const mspId = cid.mspId;
+
+    return JSON.stringify(mspId);
+  }
+
   async queryFederationMembers(stub, args) {
     return JSON.stringify(await stub.getState("MEMBERS"));
     // const startKey = "MEMBER0";
