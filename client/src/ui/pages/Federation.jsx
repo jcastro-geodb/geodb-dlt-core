@@ -33,8 +33,9 @@ class Federation extends React.Component {
         }
 
         const mspPath = result[0];
+        console.log(mspPath);
 
-        path.resolve(__dirname, mspPath);
+        // console.log(path.resolve(process.cwd(), mspPath));
       })
       .then()
       .catch(err => {
@@ -52,8 +53,20 @@ class Federation extends React.Component {
       });
   };
 
-  closeSetupOrgModal = () => {
+  closeSetupOrgModal = success => {
     this.setState({ showSetupOrgModal: false });
+
+    if (success) this.checkCertificates();
+  };
+
+  delete = () => {
+    const { db } = this.state;
+
+    db.remove({ _id: "msp-path" })
+      .then(result => {
+        console.log("Success");
+      })
+      .catch(error => console.log);
   };
 
   componentDidMount() {
@@ -61,15 +74,15 @@ class Federation extends React.Component {
   }
 
   render() {
-    const { loadingUserConfig, showSetupOrgModal } = this.state;
+    const { db, loadingUserConfig, showSetupOrgModal } = this.state;
 
     if (loadingUserConfig) return <Loading />;
 
     return (
       <div>
-        <Button onClick={this.insert}>Insert</Button>
+        <Button onClick={this.delete}>Delete</Button>
         <Button onClick={this.log}>Log</Button>
-        <SetupOrgModal show={showSetupOrgModal} onHide={this.closeSetupOrgModal} />
+        <SetupOrgModal show={showSetupOrgModal} onHide={this.closeSetupOrgModal} db={db} />
       </div>
     );
   }

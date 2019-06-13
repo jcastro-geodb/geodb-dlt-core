@@ -17,6 +17,8 @@
 #    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:<intermediateCAPort>
 
 ORGS=$1
+RECREATE=$2
+INTERMEDIATE_CA=$3
 
 if [ -z "$ORGS" ]; then
   ORGS="\
@@ -24,11 +26,18 @@ if [ -z "$ORGS" ]; then
   "
 fi
 
-# If true, uses both a root and intermediate CA
-INTERMEDIATE_CA=true
+if [ -z "$RECREATE" ]; then
+  # If true, recreate crypto if it already exists
+  echo "Setting RECREATE=false"
+  RECREATE=false
+fi
 
-# If true, recreate crypto if it already exists
-RECREATE=true
+if [ -z "$INTERMEDIATE_CA" ]; then
+  # If true, uses both a root and intermediate CA
+  echo "Setting INTERMEDIATE_CA=true"
+  INTERMEDIATE_CA=true
+fi
+
 
 # Path to fabric CA executables - Remember to configure it correctly for each fabric version
 FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
@@ -43,12 +52,12 @@ DEBUG=-d
 
 # Main fabric CA crypto config function
 function main {
-   if [ -d $CDIR -a "$RECREATE" = false ]; then
-      echo "#################################################################"
-      echo "#######    Crypto material already exists   #####################"
-      echo "#################################################################"
-      exit 0
-   fi
+   # if [ -d $CDIR -a "$RECREATE" = false ]; then
+   #    echo "#################################################################"
+   #    echo "#######    Crypto material already exists   #####################"
+   #    echo "#################################################################"
+   #    exit 0
+   # fi
    echo "#################################################################"
    echo "#######    Generating crypto material using Fabric CA  ##########"
    echo "#################################################################"
@@ -57,9 +66,9 @@ function main {
    checkExecutables
    cd $mydir
    if [ -d $CDIR ]; then
-      echo "Cleaning up ..."
+      echo "Cleaning up CAs ..."
       stopAllCAs
-      rm -rf $CDIR
+      # rm -rf $CDIR
    fi
    echo "Setting up organizations ..."
    setupOrgs
@@ -108,6 +117,19 @@ function setupOrg {
       fatal "setupOrg: bad org spec: $1"
    fi
    orgName=${args[0]}
+
+   orgDir=$CDIR/$orgName
+
+   if [ -d $orgDir -a "$RECREATE" = false ]; then
+      echo "$orgName already exists, skipping"
+      return 0
+   fi
+
+   if [ -d $orgDir -a "$RECREATE" = true ]; then
+     echo "Removing ${orgName} certificates and recreating"
+     rm -rf $orgDir
+   fi
+
    numPeers=${args[1]}
    numOrderers=${args[2]}
 

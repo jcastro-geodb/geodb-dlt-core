@@ -1,4 +1,6 @@
 import React from "react";
+import path from "path";
+import fs from "fs-extra";
 import { Modal, Spinner, Button } from "react-bootstrap";
 import SetupOrgForm from "./SetupOrgForm.jsx";
 
@@ -13,6 +15,7 @@ class SetupOrgModal extends React.Component {
 
   startSetup = organization => {
     this.setState({ setupStarted: true });
+    const { db } = this.props;
 
     setupCertificates(
       organization,
@@ -24,15 +27,31 @@ class SetupOrgModal extends React.Component {
       },
       code => {
         console.log(`child process exited with code ${code}`);
-        this.setState({ setupFinished: true });
-        if (code === 0) this.setState({ setupSuccess: true });
+
+        const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/${organization}`);
+
+        if (code === 0 && fs.pathExistsSync(mspPath) === true) {
+          db.insert({ _id: "msp-path", mspPath })
+            .then(result => {
+              this.setState({ setupSuccess: true });
+            })
+            .catch(error => {
+              console.error(error);
+              this.setState({ setupSuccess: false });
+            })
+            .finally(() => {
+              this.setState({ setupFinished: true });
+            });
+        } else {
+          this.setState({ setupFinished: true });
+        }
       }
     );
   };
 
   render() {
-    const { setupStarted, setupFinished } = this.state;
-
+    const { setupStarted, setupFinished, setupSuccess } = this.state;
+    const { onHide } = this.props;
     return (
       <Modal {...this.props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered backdrop="static">
         <Modal.Header>
@@ -45,7 +64,7 @@ class SetupOrgModal extends React.Component {
           {setupStarted === true && setupFinished === false ? this.renderSetupProcess() : null}
           {setupStarted === true && setupFinished === true ? this.renderSetupFinished() : null}
           {setupFinished === true && (
-            <Button block variant="outline-primary" onClick={this.props.onHide}>
+            <Button block variant="outline-primary" onClick={() => this.props.onHide(setupSuccess)}>
               Close
             </Button>
           )}

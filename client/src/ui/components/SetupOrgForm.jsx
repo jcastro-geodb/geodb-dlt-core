@@ -11,7 +11,7 @@ const SetupOrgForm = props => {
   return (
     <Formik
       initialValues={{ domain: "" }}
-      onSubmit={(values, { setSubmitting }) => {
+      onSubmit={values => {
         startSetup(values.domain);
       }}
       validationSchema={Yup.object().shape({
@@ -21,7 +21,7 @@ const SetupOrgForm = props => {
       })}
     >
       {props => {
-        const { values, errors, handleChange, handleSubmit, isSubmitting } = props;
+        const { values, errors, handleChange, handleSubmit } = props;
         return (
           <Form onSubmit={handleSubmit}>
             <Form.Row>
