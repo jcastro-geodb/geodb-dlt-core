@@ -29,7 +29,7 @@ const secrets = fs.readJsonSync(secretsPath, { throws: false });
 
 if (!secrets || !secrets.mnemonic || !secrets.endpoints) {
   console.error(
-    "Error when reading .secrets.json. Either the file does not exist, or lacks mnemonic, or lacks endpoints"
+    "Error when reading /ethereum/.secrets.json. Either the file does not exist, or lacks mnemonic field, or lacks endpoints field"
   );
 }
 
@@ -80,6 +80,13 @@ module.exports = {
     //   confirmations: 2,
     //   network_id: "*" // Match any network id
     // }
+    advanced: {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*",
+      gas: 5500000,
+      websockets: true
+    },
     rinkeby: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.rinkeby),
       confirmations: 2,
@@ -88,6 +95,7 @@ module.exports = {
     ropsten: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten),
       confirmations: 2,
+      gas: 5500000,
       network_id: "3" // Match any network id
     }
   },

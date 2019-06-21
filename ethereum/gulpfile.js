@@ -1,42 +1,93 @@
 const gulp = require("gulp");
 const watch = require("gulp-watch");
-const exec = require("child_process").exec;
+const { exec, spawn } = require("child_process");
+const path = require("path");
+const fs = require("fs-extra");
 
 gulp.task("default", async () => {
   console.log("Options: ", "test");
 });
 
 gulp.task("watch", async cb => {
-  runTest();
+  compileContractsAndRunTest();
 
-  watch(["./contracts/**/*.sol"], () => {
-    compileContractsAndRunTest();
+  watch(["./contracts/**/*.sol"], cb => {
+    compileContractsAndRunTest(cb);
   });
 
-  watch(["./test/**/*.js"], () => {
-    runTest();
+  watch(["./test/**/*.js"], cb => {
+    test(cb);
   });
 });
 
-const compileContractsAndRunTest = () => {
-  console.log("\n===============\nCompiling and testing\n===============\n");
-  exec(
-    `rm -rf ./build;
-    truffle compile;
-    cp ./build/contracts/GeoToken.json ../network/chaincode/github.com/geodb/ethereum/abi/GeoToken.json;
-    cp ./build/contracts/GeoFederation.json ../network/chaincode/github.com/geodb/ethereum/abi/GeoFederation.json;
-    truffle test`,
-    function(err, stdout, stderr) {
-      console.error(stderr);
-      console.log(stdout);
+const compileContractsAndRunTest = cb => {
+  console.log("\n===============\nCompiling\n===============\n");
+
+  exec(`truffle compile`, function(err, stdout, stderr) {
+    console.log(stdout);
+
+    if (err) {
+      console.log("Error running UNIX commands");
+      console.error(err);
     }
-  );
+
+    if (stderr) {
+      console.error(stderr);
+    }
+
+    if (!err & !stderr) {
+      test(cb);
+    }
+  });
 };
 
-const runTest = () => {
+const test = cb => {
   console.log("\n===============\nTesting\n===============\n");
-  exec("truffle test", function(err, stdout, stderr) {
-    console.error(stderr);
-    console.log(stdout);
+
+  if (cb && cb.history && cb.history[0]) {
+    const contracts = fs.readdirSync("./contracts");
+
+    for (let i = 0; i < contracts.length; i++) {
+      contracts[i] = contracts[i].replace(".sol", "");
+    }
+
+    let fileName = path
+      .basename(cb.history[0])
+      .replace(".sol", "")
+      .replace(".js", "");
+
+    if (contracts.includes(fileName)) {
+      runOneTest(`${fileName}`);
+    } else {
+      runAllTests();
+    }
+  } else {
+    runAllTests();
+  }
+};
+
+const runAllTests = () => {
+  const cmd = spawn("truffle", ["test"]).on("error", error => {
+    console.log("Error running UNIX command");
+    console.error(error);
   });
+
+  cmd.stdout.on("data", data => process.stdout.write(`${data}`));
+
+  cmd.stderr.on("data", data => console.error(`${data}`));
+
+  cmd.on("close", () => console.log("\n===============\nFinished\n===============\n"));
+};
+
+const runOneTest = test => {
+  const cmd = spawn("truffle", ["test", `./test/${test}.js`]).on("error", error => {
+    console.log("Error running UNIX command");
+    console.error(error);
+  });
+
+  cmd.stdout.on("data", data => process.stdout.write(`${data}`));
+
+  cmd.stderr.on("data", data => console.error(`${data}`));
+
+  cmd.on("close", () => console.log("\n===============\nFinished\n===============\n"));
 };

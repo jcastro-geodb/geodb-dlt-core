@@ -20,6 +20,10 @@ const clientEthContractsDirectory = path.resolve(__dirname, "./../../client/src/
 const presaleHoldersPath = path.resolve(__dirname, "./../.presale_holders.json");
 
 module.exports = function(deployer, network) {
+  if (network.includes("test") || network.includes("development"))
+    // do not deploy, each test should deploy by itself
+    return;
+
   const presaleHolders = fs.readJsonSync(presaleHoldersPath);
 
   let holders = [];

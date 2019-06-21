@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "../drafts/ERC777/ERC777.sol";
+import "../token/ERC777/ERC777.sol";
 
 contract ERC777Mock is ERC777 {
     constructor(
@@ -8,9 +8,8 @@ contract ERC777Mock is ERC777 {
         uint256 initialBalance,
         string memory name,
         string memory symbol,
-        uint256 granularity,
         address[] memory defaultOperators
-    ) public ERC777(name, symbol, granularity, defaultOperators) {
+    ) public ERC777(name, symbol, defaultOperators) {
         _mint(msg.sender, initialHolder, initialBalance, "", "");
     }
 
