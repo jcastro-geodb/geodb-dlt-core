@@ -4,14 +4,15 @@ pragma solidity >= 0.5.0 <6.0.0;
 import "../externals/openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../externals/openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "../externals/openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import "../externals/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract GeoTokenLock is IERC20{
+contract GeoTokenLock is IERC20, Ownable{
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
   uint32 constant public decimals = 18;
-  string constant public name = "GeoToken Time Lock";
-  string public symbol = "GTL";
+  string constant public name = "Locked Geo Tokens";
+  string public symbol = "GEO";
 
   // ERC20 basic token contract being held
   IERC20 private _token;
@@ -28,12 +29,26 @@ contract GeoTokenLock is IERC20{
   uint256 private _withdrawnAmount;
 
 
+  event LogBalanceLocked(
+    address indexed sender,
+    uint256 lockedAmount
+  );
+
+  event LogBalanceUnlocked(
+    address indexed sender,
+    uint256 unlockedAmount
+  );
 
   constructor(IERC20 token, address beneficiary, uint256 releaseDate) public {
     _token = token;
     _beneficiary = beneficiary;
     _deliveryTime = now;
     _lockTime = releaseDate.sub(now); // Will fail if releaseDate is in the past
+  }
+
+  modifier onlyOwnerOrBeneficiary {
+    require(msg.sender == _beneficiary || msg.sender == owner(), "You must be the owner or beneficiary");
+    _;
   }
 
   /**
@@ -72,38 +87,38 @@ contract GeoTokenLock is IERC20{
     return _withdrawnAmount;
   }
 
-  function setLockedBalance() public returns (bool){
+  function setLockedBalance() public onlyOwner returns (bool) {
     uint256 balance =  _token.balanceOf(address(this));
     require(balance > 0);
     require(_lockedAmount == 0);
+    emit LogBalanceLocked(msg.sender, balance);
     _lockedAmount = balance;
+
   }
 
-  /**
-   * @notice Transfers tokens held by timelock to beneficiary.
-   */
-  function unlock(uint256 withdrawAmount) public returns (uint256) {
+  function unlock(uint256 withdrawAmount) public onlyOwnerOrBeneficiary returns (uint256) {
       uint256 currentLockedBalance = _token.balanceOf(address(this));
       require(withdrawAmount <= currentLockedBalance,
         "GeoTokenLock: You are trying to withdraw more tokens than what is locked in the contract");
       require(currentLockedBalance > 0, "GeoTokenLock: no tokens to release");
+
+      uint256 assignedAmount = _lockedAmount;
+      require(assignedAmount > 0, "GeoTokenLock: no tokens locked yet");
 
       uint256 elapsedTime = now.sub(_deliveryTime);
       uint256 lockedTime = _lockTime;
 
       uint256 allowancePercentage = elapsedTime > lockedTime ? 100 : (elapsedTime.mul(100)).div(lockedTime); // 0 - 100
 
-      uint256 assignedAmount = _lockedAmount;
-
-      // Ataque: enviar tokens a este contrato y provocar un underflow assignedAmount.sub(currentLockedBalance)
-      // uint256 withdrawnBalance = (assignedAmount.sub(currentLockedBalance)).add(withdrawAmount);
       uint256 withdrawnBalance = _withdrawnAmount;
       uint256 usedAllowancePercentage = withdrawnBalance >= assignedAmount ? 100 : (withdrawnBalance.mul(100)).div(assignedAmount);
 
       require(usedAllowancePercentage <= allowancePercentage,
         "GeoTokenLock: You are trying to unlock more funds than what you are allowed right now");
 
-        _withdrawnAmount = _withdrawnAmount.add(withdrawAmount);
+      _withdrawnAmount = _withdrawnAmount.add(withdrawAmount);
+
+      emit LogBalanceUnlocked(msg.sender, withdrawAmount);
       _token.safeTransfer(_beneficiary, withdrawAmount);
   }
 
@@ -120,7 +135,7 @@ contract GeoTokenLock is IERC20{
   }
 
   function allowance(address owner, address spender) external view returns (uint256) {
-    revert("This contract does not allow allowance(). Use unlock() to use your available funds");
+    return 0;
   }
 
   function approve(address spender, uint256 amount) external returns (bool) {
