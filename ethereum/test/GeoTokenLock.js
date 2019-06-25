@@ -1,6 +1,6 @@
 const GeoToken = artifacts.require("GeoToken.sol");
 const GeoTokenLock = artifacts.require("./GeoTokenLock.sol");
-const { BN, expectEvent } = require("openzeppelin-test-helpers");
+const { BN, expectEvent, shouldFail } = require("openzeppelin-test-helpers");
 const { toWei } = require("web3-utils");
 const moment = require("moment");
 const { timeMachine } = require("./helpers");
@@ -11,33 +11,14 @@ contract("GeoTokenLock", ([geodb, beneficiary, ...accounts]) => {
   const amountToLock = new BN(toWei("1", "shannon"));
 
   const daysLocked = 180;
-  let releaseTime;
 
   beforeEach("Deploy GeoToken and a GeoTokenLock", async () => {
     tokenContract = await GeoToken.new({ from: geodb });
 
     const lastBlock = await web3.eth.getBlockNumber();
     const now = (await web3.eth.getBlock(lastBlock)).timestamp;
-    releaseTime = moment(now * 1000) // millis
-      .add(daysLocked, "days");
 
-    // console.log("Web3 time: " + moment(now * 1000).format("DD/MM/YYYY HH:mm"));
-    // console.log("Release time: " + releaseTime.format("DD/MM/YYYY HH:mm"));
-    // // console.log(releaseTime);
-    //
-    // console.log("Lock time duration local: " + moment.duration((releaseTime.unix() - now) * 1000).asDays());
-    //
-    // try {
-    //   const time = (await tokenContract.returnBlockTime()).mul(new BN("1000")).toNumber();
-    //   console.log("EVM time: " + moment(time).format("DD/MM/YYYY HH:mm"));
-    //   const test = await tokenContract.calculateLockTime(releaseTime.unix());
-    //   console.log("Calculated lock time: " + test.toString());
-    // } catch (e) {
-    //   console.log("Peta");
-    //   console.error(e);
-    // }
-
-    lockContract = await GeoTokenLock.new(tokenContract.address, beneficiary, releaseTime.unix(), {
+    lockContract = await GeoTokenLock.new(tokenContract.address, beneficiary, `${daysLocked}`, {
       from: geodb
     });
 
@@ -52,13 +33,11 @@ contract("GeoTokenLock", ([geodb, beneficiary, ...accounts]) => {
     // Beneficiary
     (await lockContract.beneficiary()).should.be.equal(beneficiary);
 
-    // Duration of the lock: it depends of the EVM timestamp.
-    (await lockContract.lockTime()).should.be.bignumber.gte(
-      new BN(`${moment.duration({ days: daysLocked - 1, hours: 23 }).asSeconds()}`)
-    );
+    const lockTime = await lockContract.lockTime();
+    const oneDayInSeconds = await lockContract.oneDayInSeconds();
 
-    (await lockContract.lockTime()).should.be.bignumber.lte(
-      new BN(`${moment.duration({ days: daysLocked, hours: 1 }).asSeconds()}`)
+    (await lockContract.lockTime()).should.be.bignumber.equal(
+      new BN(`${moment.duration(daysLocked, "days").asSeconds()}`)
     );
   });
 
@@ -74,32 +53,95 @@ contract("GeoTokenLock", ([geodb, beneficiary, ...accounts]) => {
         event.args.lockedAmount.should.be.bignumber.equal(amountToLock);
       });
 
-      describe("Unlock", () => {
+      describe("claimBack()", () => {});
+
+      describe("computeAllowance()", () => {});
+
+      describe("getElapsedTime()", () => {});
+
+      describe("unlock()", () => {
         it("Allows unlocking the full balance after the lock time", async () => {
-          await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 2 }).asSeconds(), web3);
+          await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
 
           const { logs } = await lockContract.unlock(amountToLock.toString(), { from: beneficiary });
 
           (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
+
+          const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
+
+          event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
         });
 
-        it("Allows unlocking an allowance each day", async () => {
-          const allowance = amountToLock.div(new BN(daysLocked.toString()));
+        it("allows to retrieve additional locked balance after the lock time", async () => {
+          await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
+          await lockContract.unlock(amountToLock);
 
-          for (let i = 1; i < daysLocked; i++) {
-            await timeMachine.advanceTime(moment.duration(1, "days").asSeconds(), web3);
+          tokenContract.transfer(lockContract.address, amountToLock);
 
-            const { logs } = await lockContract.unlock(allowance.toString(), {
+          const { logs } = await lockContract.unlock(amountToLock, { from: beneficiary });
+
+          (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock.mul(new BN("2")));
+
+          const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
+
+          event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
+        });
+
+        it("rejects unlocking more than it is allowed", async () => {
+          const allowance = (await lockContract.computeAllowance()).add(new BN("1"));
+
+          await shouldFail.reverting.withMessage(
+            lockContract.unlock(allowance, { from: beneficiary }),
+            "GeoTokenLock: You are trying to unlock more funds than what you are allowed right now"
+          );
+        });
+
+        it("allows unlocking allowances in arbitrary - compliant steps and then the remainder after the lock time", async () => {
+          const lockTime = await lockContract.lockTime();
+          const ethereumDaysLocked = moment.duration(lockTime.toNumber(), "seconds").asDays();
+
+          const halfOfLockTimeInDays = parseInt(ethereumDaysLocked / 2);
+
+          for (let i = 1; i <= halfOfLockTimeInDays; i++) {
+            const delta = moment.duration(1, "days").asSeconds();
+
+            await timeMachine.advanceTime(delta, web3);
+
+            const allowance = await lockContract.computeAllowance();
+
+            const oldBeneficiaryBalance = await tokenContract.balanceOf(beneficiary);
+            const oldLockContractBalance = await tokenContract.balanceOf(lockContract.address);
+
+            const withdrawAmount = allowance.sub(oldBeneficiaryBalance);
+
+            const { logs } = await lockContract.unlock(withdrawAmount.toString(), {
               from: beneficiary
             });
 
-            (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(allowance.mul(new BN(`${i}`)));
-            // lockContract balance check
+            const newBeneficiaryBalance = await tokenContract.balanceOf(beneficiary);
+            const newLockContractBalance = await tokenContract.balanceOf(lockContract.address);
+            const elapsedTime = await lockContract.getElapsedTime();
+
+            newBeneficiaryBalance.sub(oldBeneficiaryBalance).should.be.bignumber.equal(withdrawAmount);
+            oldLockContractBalance.sub(newLockContractBalance).should.be.bignumber.equal(withdrawAmount);
 
             const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
 
-            event.args.unlockedAmount.should.be.bignumber.equal(allowance);
+            event.args.unlockedAmount.should.be.bignumber.equal(withdrawAmount);
+
+            newBeneficiaryBalance.should.be.bignumber.lte(amountToLock.mul(elapsedTime).div(lockTime));
           }
+
+          await timeMachine.advanceTime(
+            moment.duration(ethereumDaysLocked - halfOfLockTimeInDays, "days").asSeconds(),
+            web3
+          );
+
+          const remainder = await tokenContract.balanceOf(lockContract.address);
+
+          const { logs } = await lockContract.unlock(remainder.toString(), { from: beneficiary });
+
+          (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
         });
       });
 

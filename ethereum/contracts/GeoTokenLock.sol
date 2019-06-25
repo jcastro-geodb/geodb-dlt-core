@@ -10,23 +10,23 @@ contract GeoTokenLock is IERC20, Ownable{
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  uint32 constant public decimals = 18;
-  string constant public name = "Locked Geo Tokens";
-  string public symbol = "GEO";
+  uint256 public constant UINT256_MAX = ~uint256(0); // Max value for uint256
+  uint256 public constant oneDayInSeconds = 1 days; // seconds within 1 day
 
-  // ERC20 basic token contract being held
-  IERC20 private _token;
+  uint32 constant public decimals = 18; // decimals for the lock contract, should be the same as GEO
+  string constant public name = "Locked Geo Tokens"; // Indication that this contract is a lock
+  string public symbol = "GEO"; // Should be the same as GEO
 
-  // beneficiary of tokens after they are released
-  address private _beneficiary;
+  IERC20 private _token; // ERC20 basic token contract being held
 
+  address private _beneficiary; // beneficiary of tokens after they are released
 
   uint256 private _deliveryTime; // time when this contract was instantiated
   uint256 private _lockTime; // lock duration
 
-  // amount of tokens held
-  uint256 private _lockedAmount;
-  uint256 private _withdrawnAmount;
+
+  uint256 private _lockedAmount; // amount of tokens that are going to be locked
+  uint256 private _withdrawnAmount; // amount of tokens that have been withdrawn
 
 
   event LogBalanceLocked(
@@ -39,11 +39,14 @@ contract GeoTokenLock is IERC20, Ownable{
     uint256 unlockedAmount
   );
 
-  constructor(IERC20 token, address beneficiary, uint256 releaseDate) public {
+  /*
+    Note that the period of lock time must be specified in DAYS
+  */
+  constructor(IERC20 token, address beneficiary, uint256 lockTimeInDays) public {
     _token = token;
     _beneficiary = beneficiary;
     _deliveryTime = now;
-    _lockTime = releaseDate.sub(now); // Will fail if releaseDate is in the past
+    _lockTime = lockTimeInDays.mul(oneDayInSeconds);
   }
 
   modifier onlyOwnerOrBeneficiary {
@@ -89,11 +92,10 @@ contract GeoTokenLock is IERC20, Ownable{
 
   function setLockedBalance() public onlyOwner returns (bool) {
     uint256 balance =  _token.balanceOf(address(this));
-    require(balance > 0);
+    require(balance > 0); // require(balance > _lockTime) ? para evitar bloqueo de fondos
     require(_lockedAmount == 0);
     emit LogBalanceLocked(msg.sender, balance);
     _lockedAmount = balance;
-
   }
 
   function unlock(uint256 withdrawAmount) public onlyOwnerOrBeneficiary returns (uint256) {
@@ -105,21 +107,34 @@ contract GeoTokenLock is IERC20, Ownable{
       uint256 assignedAmount = _lockedAmount;
       require(assignedAmount > 0, "GeoTokenLock: no tokens locked yet");
 
-      uint256 elapsedTime = now.sub(_deliveryTime);
-      uint256 lockedTime = _lockTime;
+      uint256 allowance = computeAllowance();
 
-      uint256 allowancePercentage = elapsedTime > lockedTime ? 100 : (elapsedTime.mul(100)).div(lockedTime); // 0 - 100
+      uint256 withdrawnBalance = _withdrawnAmount.add(withdrawAmount);
+      uint256 usedAllowance = withdrawnBalance >= assignedAmount ? UINT256_MAX : withdrawnBalance;
 
-      uint256 withdrawnBalance = _withdrawnAmount;
-      uint256 usedAllowancePercentage = withdrawnBalance >= assignedAmount ? 100 : (withdrawnBalance.mul(100)).div(assignedAmount);
-
-      require(usedAllowancePercentage <= allowancePercentage,
+      require(usedAllowance <= allowance && allowance > 0,
         "GeoTokenLock: You are trying to unlock more funds than what you are allowed right now");
 
-      _withdrawnAmount = _withdrawnAmount.add(withdrawAmount);
+      _withdrawnAmount = withdrawnBalance;
 
       emit LogBalanceUnlocked(msg.sender, withdrawAmount);
       _token.safeTransfer(_beneficiary, withdrawAmount);
+  }
+
+  function claimBack() public onlyOwner {
+    require(_lockedAmount == 0, "Balance was already locked");
+    _token.safeTransfer(msg.sender, _token.balanceOf(address(this)));
+  }
+
+  function getElapsedTime() public view returns (uint256) {
+    return now.sub(_deliveryTime);
+  }
+
+  function computeAllowance() public view returns (uint256) {
+    uint256 elapsedTime = getElapsedTime();
+    uint256 lockedTime = _lockTime;
+
+    return elapsedTime > lockedTime ? UINT256_MAX : (_lockedAmount.mul(elapsedTime)).div(lockedTime);
   }
 
   function totalSupply() external view returns (uint256) {
