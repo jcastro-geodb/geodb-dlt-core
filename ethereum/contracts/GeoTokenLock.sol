@@ -39,6 +39,11 @@ contract GeoTokenLock is IERC20, Ownable{
     uint256 unlockedAmount
   );
 
+  event LogClaimBack(
+    address indexed sender,
+    uint256 balance
+  );
+
   /*
     Note that the period of lock time must be specified in DAYS
   */
@@ -90,10 +95,10 @@ contract GeoTokenLock is IERC20, Ownable{
     return _withdrawnAmount;
   }
 
-  function setLockedBalance() public onlyOwner returns (bool) {
+  function lockBalance() public onlyOwner returns (bool) {
     uint256 balance =  _token.balanceOf(address(this));
-    require(balance > 0); // require(balance > _lockTime) ? para evitar bloqueo de fondos
-    require(_lockedAmount == 0);
+    require(balance > 0, "Not enough balance locked"); // require(balance > _lockTime) ? para evitar bloqueo de fondos
+    require(_lockedAmount == 0, "Lock has been set already");
     emit LogBalanceLocked(msg.sender, balance);
     _lockedAmount = balance;
   }
@@ -123,7 +128,10 @@ contract GeoTokenLock is IERC20, Ownable{
 
   function claimBack() public onlyOwner {
     require(_lockedAmount == 0, "Balance was already locked");
-    _token.safeTransfer(msg.sender, _token.balanceOf(address(this)));
+    uint256 balance = _token.balanceOf(address(this));
+    require(balance > 0, "GeoTokenLock: This contract has no funds");
+    emit LogClaimBack(msg.sender, balance);
+    _token.safeTransfer(msg.sender, balance);
   }
 
   function getElapsedTime() public view returns (uint256) {
