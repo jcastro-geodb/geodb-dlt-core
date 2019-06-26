@@ -10,61 +10,25 @@
 # en entornos de producción
 ##############################################################################
 
-
-##############
-# Arg parser #
-##############
-
-POSITIONAL=()
-while [[ $# -gt 0 ]]
-do
-key="$1"
-
-case $key in
-    -o|--orgs)
-    ORGS="$2"
-    shift
-    shift
-    ;;
-    -r|--recreate)
-    RECREATE="$2"
-    shift
-    shift
-    ;;
-    *)
-    POSITIONAL+=("$1")
-    shift
-    ;;
-esac
-done
-set -- "${POSITIONAL[@]}" # restore positional parameters
+#set -e
 
 # Organization info where each line is of the form:
-#    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:rootCAUser:rootCAPass:<intermediateCAPort>
-if [ -z "$ORGS" ]; then
-  fatal "--ORGS not found"
-fi
+#    <type>:<orgName>:<rootCAPort>:<intermediateCAPort>:<numOrderersOrPeers>
+#    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:<intermediateCAPort>
+ORGS="\
+   geodb.com:1:1:7100:7101 \
+"
 
-if [ -z "$RECREATE" ]; then
-  # If true, recreate crypto if it already exists
-  echo "Setting RECREATE=false"
-  RECREATE=false
-fi
+# If true, uses both a root and intermediate CA
+INTERMEDIATE_CA=false
 
-# if [ -z "$INTERMEDIATE_CA" ]; then
-#   # If true, uses both a root and intermediate CA
-#   echo "Setting INTERMEDIATE_CA=true"
-#   INTERMEDIATE_CA=true
-# fi
-
-echo "Running script with args:"
-echo "ORGS: ${ORGS}"
-echo "RECREATE: ${RECREATE}"
+# If true, recreate crypto if it already exists
+RECREATE=true
 
 # Path to fabric CA executables - Remember to configure it correctly for each fabric version
 FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
-CLIENT=$FCAHOME/bin/fabric-ca-client
 SERVER=$FCAHOME/bin/fabric-ca-server
+CLIENT=$FCAHOME/bin/fabric-ca-client
 
 # Crypto-config directory
 CDIR="crypto-config"
@@ -74,25 +38,23 @@ DEBUG=-d
 
 # Main fabric CA crypto config function
 function main {
-   # if [ -d $CDIR -a "$RECREATE" = false ]; then
-   #    echo "#################################################################"
-   #    echo "#######    Crypto material already exists   #####################"
-   #    echo "#################################################################"
-   #    exit 0
-   # fi
-   echo
+   if [ -d $CDIR -a "$RECREATE" = false ]; then
+      echo "#################################################################"
+      echo "#######    Crypto material already exists   #####################"
+      echo "#################################################################"
+      exit 0
+   fi
    echo "#################################################################"
    echo "#######    Generating crypto material using Fabric CA  ##########"
    echo "#################################################################"
-   echo
    echo "Checking executables ..."
    mydir=`pwd`
    checkExecutables
    cd $mydir
    if [ -d $CDIR ]; then
-      echo "Cleaning up CAs ..."
+      echo "Cleaning up ..."
       stopAllCAs
-      # rm -rf $CDIR
+      rm -rf $CDIR
    fi
    echo "Setting up organizations ..."
    setupOrgs
@@ -106,27 +68,22 @@ function checkExecutables {
    if [ ! -d $FCAHOME ]; then
       fatal "Directory does not exist: $FCAHOME"
    fi
-
    if [ ! -x $SERVER ]; then
+      dir=`pwd`
       cd $FCAHOME
       make fabric-ca-server
       if [ $? -ne 0 ]; then
          fatal "Failed to build $SERVER"
       fi
    fi
-
    if [ ! -x $CLIENT ]; then
+      dir=`pwd`
       cd $FCAHOME
       make fabric-ca-client
       if [ $? -ne 0 ]; then
          fatal "Failed to build $CLIENT"
       fi
    fi
-}
-
-function checkRootCA {
-  cd ./CA
-  ./startRootCA
 }
 
 # Setup orderer and peer organizations
@@ -146,46 +103,32 @@ function setupOrg {
       fatal "setupOrg: bad org spec: $1"
    fi
    orgName=${args[0]}
-
-   orgDir=$CDIR/$orgName
-
-   if [ -d $orgDir -a "$RECREATE" = false ]; then
-      echo "$orgName already exists, skipping"
-      return 0
-   fi
-
-   if [ -d $orgDir -a "$RECREATE" = true ]; then
-     echo "Removing ${orgName} certificates and recreating"
-     rm -rf $orgDir
-   fi
-
    numPeers=${args[1]}
    numOrderers=${args[2]}
 
    echo "Org ${orgName} has ${numPeers} peer nodes and ${numOrderers} orderer nodes"
    orgDir=${CDIR}/${orgName}
-   rootCAUser=${args[3]}
-   rootCAPass=${args[4]}
-   rootCAPort=${args[5]}
-   intermediateCAPort=${args[6]}
-
+   rootCAPort=${args[3]}
+   intermediateCAPort=${args[4]}
+   # numNodes=${args[4]}
    IFS=$IFSBU
-
-   # # Start the root CA server
-   # startCA $orgDir/ca/root $rootCAPort $orgName
-   # # Enroll an admin user with the root CA
-   # usersDir=$orgDir/users
-   # adminHome=$usersDir/rootAdmin
-   # enroll $adminHome http://admin:adminpw@localhost:$rootCAPort $orgName
-
-   # Start the intermediate CA server
-   startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://${rootCAUser}:${rootCAPort}@localhost:$rootCAPort
-   # Enroll an admin user with the intermediate CA
-   adminHome=$usersDir/intermediateAdmin
-   intermediateCAURL=http://admin:adminpw@localhost:$intermediateCAPort
-   enroll $adminHome $intermediateCAURL $orgName
-
-
+   # Start the root CA server
+   startCA $orgDir/ca/root $rootCAPort $orgName
+   # Enroll an admin user with the root CA
+   usersDir=$orgDir/users
+   adminHome=$usersDir/rootAdmin
+   enroll $adminHome http://admin:adminpw@localhost:$rootCAPort $orgName
+   if [ "$INTERMEDIATE_CA" == "true" ]; then
+      # Start the intermediate CA server
+      startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://admin:adminpw@localhost:$rootCAPort
+      # Enroll an admin user with the intermediate CA
+      adminHome=$usersDir/intermediateAdmin
+      intermediateCAURL=http://admin:adminpw@localhost:$intermediateCAPort
+      enroll $adminHome $intermediateCAURL $orgName
+   else
+      intermediateCAPort=$rootCAPort
+      intermediateCAURL=http://admin:adminpw@localhost:$rootCAPort
+   fi
    # Register and enroll admin with the intermediate CA
    adminUserHome=$usersDir/Admin@${orgName}
    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName nodeAdmin
