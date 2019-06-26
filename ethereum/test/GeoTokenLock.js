@@ -121,114 +121,136 @@ contract("GeoTokenLock", ([geodb, beneficiary, ...accounts]) => {
       });
 
       describe("unlock()", () => {
-        beforeEach("Lock Geo tokens", async () => {
-          await tokenContract.transfer(lockContract.address, amountToLock.toString(), { from: geodb });
-          await lockContract.lockBalance({ from: geodb });
+        describe("When no funds have been transferred", () => {
+          it("rejects unlocking", async () => {
+            await shouldFail.reverting.withMessage(
+              lockContract.unlock(amountToLock, { from: beneficiary }),
+              "GeoTokenLock: You are trying to withdraw more tokens than what is locked in the contract"
+            );
+          });
         });
 
-        it("allows unlocking the full balance after the lock time", async () => {
-          await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
+        describe("When funds have not been locked", () => {
+          beforeEach("transfer tokens", async () => {
+            await tokenContract.transfer(lockContract.address, amountToLock.toString(), { from: geodb });
+          });
 
-          const { logs } = await lockContract.unlock(amountToLock.toString(), { from: beneficiary });
-
-          (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
-
-          const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
-
-          event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
+          it("rejects unlocking if balance has not been locked", async () => {
+            await shouldFail.reverting.withMessage(
+              lockContract.unlock(amountToLock, { from: beneficiary }),
+              "GeoTokenLock: no tokens locked yet"
+            );
+          });
         });
 
-        it("allows to retrieve additional locked balance after the lock time", async () => {
-          await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
-          await lockContract.unlock(amountToLock, { from: beneficiary });
+        describe("When funds have been locked", () => {
+          beforeEach("Lock Geo tokens", async () => {
+            await tokenContract.transfer(lockContract.address, amountToLock.toString(), { from: geodb });
+            await lockContract.lockBalance({ from: geodb });
+          });
 
-          tokenContract.transfer(lockContract.address, amountToLock, { from: geodb });
+          it("allows unlocking the full balance after the lock time", async () => {
+            await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
 
-          const { logs } = await lockContract.unlock(amountToLock, { from: beneficiary });
+            const { logs } = await lockContract.unlock(amountToLock.toString(), { from: beneficiary });
 
-          (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock.mul(new BN("2")));
-
-          const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
-
-          event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
-        });
-
-        it("allows the contract owner to send the funds on behalf of the beneficiary", async () => {
-          await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
-
-          const { logs } = await lockContract.unlock(amountToLock, { from: geodb });
-
-          (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
-
-          const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: geodb });
-
-          event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
-        });
-
-        it("rejects unlocking more than it is allowed", async () => {
-          const allowance = (await lockContract.computeAllowance()).add(new BN("100"));
-
-          await shouldFail.reverting.withMessage(
-            lockContract.unlock(allowance, { from: beneficiary }),
-            "GeoTokenLock: You are trying to unlock more funds than what you are allowed right now"
-          );
-        });
-
-        it("rejects call from all accounts except owner and beneficiary", async () => {
-          await shouldFail.reverting.withMessage(
-            lockContract.unlock(amountToLock, { from: accounts[0] }),
-            "You must be the owner or beneficiary"
-          );
-        });
-
-        it("rejects unlocking if blanace has not been locked");
-
-        it("allows unlocking allowances in arbitrary - compliant steps and then the remainder after the lock time", async () => {
-          const lockTime = await lockContract.lockTime();
-          const ethereumDaysLocked = moment.duration(lockTime.toNumber(), "seconds").asDays();
-
-          const halfOfLockTimeInDays = parseInt(ethereumDaysLocked / 2);
-
-          for (let i = 1; i <= halfOfLockTimeInDays; i++) {
-            const delta = moment.duration(1, "days").asSeconds();
-
-            await timeMachine.advanceTime(delta, web3);
-
-            const allowance = await lockContract.computeAllowance();
-
-            const oldBeneficiaryBalance = await tokenContract.balanceOf(beneficiary);
-            const oldLockContractBalance = await tokenContract.balanceOf(lockContract.address);
-
-            const withdrawAmount = allowance.sub(oldBeneficiaryBalance);
-
-            const { logs } = await lockContract.unlock(withdrawAmount.toString(), {
-              from: beneficiary
-            });
-
-            const newBeneficiaryBalance = await tokenContract.balanceOf(beneficiary);
-            const newLockContractBalance = await tokenContract.balanceOf(lockContract.address);
-            const elapsedTime = await lockContract.getElapsedTime();
-
-            newBeneficiaryBalance.sub(oldBeneficiaryBalance).should.be.bignumber.equal(withdrawAmount);
-            oldLockContractBalance.sub(newLockContractBalance).should.be.bignumber.equal(withdrawAmount);
+            (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
 
             const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
 
-            event.args.unlockedAmount.should.be.bignumber.equal(withdrawAmount);
+            event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
+          });
 
-            newBeneficiaryBalance.should.be.bignumber.lte(amountToLock.mul(elapsedTime).div(lockTime));
-          }
+          it("allows to retrieve additional locked balance after the lock time", async () => {
+            await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
+            await lockContract.unlock(amountToLock, { from: beneficiary });
 
-          await timeMachine.advanceTime(
-            moment.duration(ethereumDaysLocked - halfOfLockTimeInDays, "days").asSeconds(),
-            web3
-          );
+            tokenContract.transfer(lockContract.address, amountToLock, { from: geodb });
 
-          const remainder = await tokenContract.balanceOf(lockContract.address);
+            const { logs } = await lockContract.unlock(amountToLock, { from: beneficiary });
 
-          const { logs } = await lockContract.unlock(remainder.toString(), { from: beneficiary });
+            (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock.mul(new BN("2")));
 
-          (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
+            const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
+
+            event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
+          });
+
+          it("allows the contract owner to send the funds on behalf of the beneficiary", async () => {
+            await timeMachine.advanceTime(moment.duration({ days: daysLocked, hours: 1 }).asSeconds(), web3);
+
+            const { logs } = await lockContract.unlock(amountToLock, { from: geodb });
+
+            (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
+
+            const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: geodb });
+
+            event.args.unlockedAmount.should.be.bignumber.equal(amountToLock);
+          });
+
+          it("rejects unlocking more than it is allowed", async () => {
+            const allowance = (await lockContract.computeAllowance()).add(new BN("100"));
+
+            await shouldFail.reverting.withMessage(
+              lockContract.unlock(allowance, { from: beneficiary }),
+              "GeoTokenLock: You are trying to unlock more funds than what you are allowed right now"
+            );
+          });
+
+          it("rejects call from all accounts except owner and beneficiary", async () => {
+            await shouldFail.reverting.withMessage(
+              lockContract.unlock(amountToLock, { from: accounts[0] }),
+              "You must be the owner or beneficiary"
+            );
+          });
+
+          it("allows unlocking allowances in arbitrary - compliant steps and then the remainder after the lock time", async () => {
+            const lockTime = await lockContract.lockTime();
+            const ethereumDaysLocked = moment.duration(lockTime.toNumber(), "seconds").asDays();
+
+            const halfOfLockTimeInDays = parseInt(ethereumDaysLocked / 2);
+
+            for (let i = 1; i <= halfOfLockTimeInDays; i++) {
+              const delta = moment.duration(1, "days").asSeconds();
+
+              await timeMachine.advanceTime(delta, web3);
+
+              const allowance = await lockContract.computeAllowance();
+
+              const oldBeneficiaryBalance = await tokenContract.balanceOf(beneficiary);
+              const oldLockContractBalance = await tokenContract.balanceOf(lockContract.address);
+
+              const withdrawAmount = allowance.sub(oldBeneficiaryBalance);
+
+              const { logs } = await lockContract.unlock(withdrawAmount.toString(), {
+                from: beneficiary
+              });
+
+              const newBeneficiaryBalance = await tokenContract.balanceOf(beneficiary);
+              const newLockContractBalance = await tokenContract.balanceOf(lockContract.address);
+              const elapsedTime = await lockContract.getElapsedTime();
+
+              newBeneficiaryBalance.sub(oldBeneficiaryBalance).should.be.bignumber.equal(withdrawAmount);
+              oldLockContractBalance.sub(newLockContractBalance).should.be.bignumber.equal(withdrawAmount);
+
+              const event = expectEvent.inLogs(logs, "LogBalanceUnlocked", { sender: beneficiary });
+
+              event.args.unlockedAmount.should.be.bignumber.equal(withdrawAmount);
+
+              newBeneficiaryBalance.should.be.bignumber.lte(amountToLock.mul(elapsedTime).div(lockTime));
+            }
+
+            await timeMachine.advanceTime(
+              moment.duration(ethereumDaysLocked - halfOfLockTimeInDays, "days").asSeconds(),
+              web3
+            );
+
+            const remainder = await tokenContract.balanceOf(lockContract.address);
+
+            const { logs } = await lockContract.unlock(remainder.toString(), { from: beneficiary });
+
+            (await tokenContract.balanceOf(beneficiary)).should.be.bignumber.equal(amountToLock);
+          });
         });
       });
 

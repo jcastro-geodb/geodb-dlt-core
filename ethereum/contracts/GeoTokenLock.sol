@@ -55,7 +55,7 @@ contract GeoTokenLock is IERC20, Ownable{
   }
 
   modifier onlyOwnerOrBeneficiary {
-    require(msg.sender == _beneficiary || msg.sender == owner(), "You must be the owner or beneficiary");
+    require(msg.sender == _beneficiary || msg.sender == owner(), "GeoTokenLock: You must be the owner or beneficiary");
     _;
   }
 
@@ -97,8 +97,8 @@ contract GeoTokenLock is IERC20, Ownable{
 
   function lockBalance() public onlyOwner returns (bool) {
     uint256 balance =  _token.balanceOf(address(this));
-    require(balance > 0, "Not enough balance locked"); // require(balance > _lockTime) ? para evitar bloqueo de fondos
-    require(_lockedAmount == 0, "Lock has been set already");
+    require(balance > 0, "GeoTokenLock: Not enough balance locked"); // require(balance > _lockTime) ? para evitar bloqueo de fondos
+    require(_lockedAmount == 0, "GeoTokenLock: Lock has been set already");
     emit LogBalanceLocked(msg.sender, balance);
     _lockedAmount = balance;
   }
@@ -127,7 +127,7 @@ contract GeoTokenLock is IERC20, Ownable{
   }
 
   function claimBack() public onlyOwner {
-    require(_lockedAmount == 0, "Balance was already locked");
+    require(_lockedAmount == 0, "GeoTokenLock: Balance was already locked");
     uint256 balance = _token.balanceOf(address(this));
     require(balance > 0, "GeoTokenLock: This contract has no funds");
     emit LogClaimBack(msg.sender, balance);
@@ -154,7 +154,7 @@ contract GeoTokenLock is IERC20, Ownable{
   }
 
   function transfer(address recipient, uint256 amount) external returns (bool) {
-    revert("This contract does not allow transfer(). Use unlock() to use your available funds");
+    revert("GeoTokenLock: This contract does not allow transfer(). Use unlock() to use your available funds");
   }
 
   function allowance(address owner, address spender) external view returns (uint256) {
@@ -162,11 +162,11 @@ contract GeoTokenLock is IERC20, Ownable{
   }
 
   function approve(address spender, uint256 amount) external returns (bool) {
-    revert("This contract does not allow approve(). Use unlock() to use your available funds");
+    revert("GeoTokenLock: This contract does not allow approve(). Use unlock() to use your available funds");
   }
 
   function transferFrom(address sender, address recipient, uint256 amount) external returns (bool) {
-    revert("This contract does not allow transferFrom(). Use unlock() to use your available funds");
+    revert("GeoTokenLock: This contract does not allow transferFrom(). Use unlock() to use your available funds");
   }
 
 }
