@@ -59,6 +59,8 @@ echo "RECREATE: ${RECREATE}"
 FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
 CLIENT=$FCAHOME/bin/fabric-ca-client
 SERVER=$FCAHOME/bin/fabric-ca-server
+TLSROOTCERT=$(realpath "./CA/fabric-ca-server/tls-cert.pem")
+
 
 # Crypto-config directory
 CDIR="crypto-config"
@@ -172,9 +174,8 @@ function setupOrg {
    rootCAPass=${args[5]}
    intermediateCAPort=${args[6]}
 
-   IFS=$IFSBU
 
-   echo "===================================="
+   IFS=$IFSBU
 
    # # Start the root CA server
    # startCA $orgDir/ca/root $rootCAPort $orgName
@@ -186,18 +187,11 @@ function setupOrg {
    # Start the intermediate CA server
    # startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://admin:adminpw@localhost:$rootCAPort
 
-   echo $orgDir
-   echo $intermediateCAPort
-   echo $orgName
-   echo $rootCAUser
-   echo $rootCAPass
-   echo $rootCAPort
-
-   startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://${rootCAUser}:${rootCAPass}@localhost:$rootCAPort
-   # Enroll an admin user with the intermediate CA
-   adminHome=$usersDir/intermediateAdmin
-   intermediateCAURL=http://admin:adminpw@localhost:$intermediateCAPort
-   enroll $adminHome $intermediateCAURL $orgName
+   startCA $orgDir/ca/intermediate $intermediateCAPort $orgName https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort
+   # # Enroll an admin user with the intermediate CA
+   # adminHome=$usersDir/intermediateAdmin
+   # intermediateCAURL=http://admin:adminpw@localhost:$intermediateCAPort
+   # enroll $adminHome $intermediateCAURL $orgName
 
 
    # # Register and enroll admin with the intermediate CA
@@ -257,7 +251,7 @@ function startCA {
    mkdir -p $homeDir
    export FABRIC_CA_SERVER_HOME=$homeDir
 
-   $SERVER start -p $port -b admin:adminpw -u $1 $DEBUG > $homeDir/server.log 2>&1&
+   $SERVER start -d -p $port -b admin:adminpw -u $1 --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
 
    echo $! > $homeDir/server.pid
    if [ $? -ne 0 ]; then
@@ -270,6 +264,22 @@ function startCA {
    tlsEnroll $homeDir $port $orgName
 }
 
+# Make sure a CA server is running
+#    checkCA <homeDirectory>
+function checkCA {
+   pidFile=$1/server.pid
+   if [ ! -f $pidFile ]; then
+      fatal  "No PID file for CA server at $1"
+   fi
+   pid=`cat $pidFile`
+   if ps -p $pid > /dev/null
+   then
+      echo "CA server is started in $1 and listening on port $2"
+   else
+      fatal "CA server is not running at $1; see logs at $1/server.log"
+   fi
+}
+
 # Enroll to get TLS crypto material
 #    tlsEnroll <homeDir> <serverPort> <orgName>
 function tlsEnroll {
@@ -278,9 +288,10 @@ function tlsEnroll {
    orgName=$3
    host=$(basename $homeDir),$(basename $homeDir | cut -d'.' -f1)
    tlsDir=$homeDir/tls
+   tlsCert=$(realpath $homeDir/ca-cert.pem)
    srcMSP=$tlsDir/msp
    dstMSP=$homeDir/msp
-   enroll $tlsDir http://admin:adminpw@localhost:$port $orgName --csr.hosts $host --enrollment.profile tls
+   enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
    cp $srcMSP/signcerts/* $tlsDir/server.crt
    cp $srcMSP/keystore/* $tlsDir/server.key
    mkdir -p $dstMSP/keystore
@@ -297,20 +308,29 @@ function tlsEnroll {
    rm -rf $srcMSP $homeDir/enroll.log $homeDir/fabric-ca-client-config.yaml
 }
 
-# Make sure a CA server is running
-#    checkCA <homeDirectory>
-function checkCA {
-   pidFile=$1/server.pid
-   if [ ! -f $pidFile ]; then
-      fatal  "No PID file for CA server at $1"
+# Enroll an identity
+#    enroll <homeDir> <serverURL> <orgName> <pathToTLSCert> [<args>]
+function enroll {
+   homeDir=$1; shift
+   url=$1; shift
+   orgName=$1; shift
+   tlsCert=$1; shift
+   mkdir -p $homeDir
+   export FABRIC_CA_CLIENT_HOME=$homeDir
+   logFile=$homeDir/enroll.log
+   echo $url
+   echo $tlsCert
+   echo $*
+
+   # Get an enrollment certificate
+
+   $CLIENT -d enroll -u $url --tls.certfiles $tlsCert $* > $logFile 2>&1
+
+   if [ $? -ne 0 ]; then
+      fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
    fi
-   pid=`cat $pidFile`
-   if ps -p $pid > /dev/null
-   then
-      debug "CA server is started in $1 and listening on port $2"
-   else
-      fatal "CA server is not running at $1; see logs at $1/server.log"
-   fi
+   # Get a TLS certificate
+   echo "Enrolled $homeDir with CA at $url"
 }
 
 function checkRootCA {
