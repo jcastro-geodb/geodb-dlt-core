@@ -74,6 +74,7 @@ function main {
    echo "Checking executables ..."
    mydir=`pwd`
    checkExecutables
+   cd $mydir
    checkRootCA
    cd $mydir
    if [ -d $CDIR ]; then
@@ -120,13 +121,13 @@ function stopAllCAs {
       fi
       pid=`cat $pidFile`
       dir=$(dirname $pidFile)
-      debug "Stopping CA server in $dir with PID $pid ..."
+      echo "Stopping CA server in $dir with PID $pid ..."
       if ps -p $pid > /dev/null
       then
          kill -9 $pid
          wait $pid 2>/dev/null
          rm -f $pidFile
-         debug "Stopped CA server in $dir with PID $pid"
+         echo "Stopped CA server in $dir with PID $pid"
       fi
    done
 }
@@ -173,14 +174,14 @@ function setupOrg {
    rootCAUser=${args[4]}
    rootCAPass=${args[5]}
    intermediateCAPort=${args[6]}
-
+   usersDir=$orgDir/users
 
    IFS=$IFSBU
 
    # # Start the root CA server
    # startCA $orgDir/ca/root $rootCAPort $orgName
    # # Enroll an admin user with the root CA
-   # usersDir=$orgDir/users
+
    # adminHome=$usersDir/rootAdmin
    # enroll $adminHome http://admin:adminpw@localhost:$rootCAPort $orgName
 
@@ -188,19 +189,21 @@ function setupOrg {
    # startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://admin:adminpw@localhost:$rootCAPort
 
    startCA $orgDir/ca/intermediate $intermediateCAPort $orgName https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort
-   # # Enroll an admin user with the intermediate CA
-   # adminHome=$usersDir/intermediateAdmin
-   # intermediateCAURL=http://admin:adminpw@localhost:$intermediateCAPort
-   # enroll $adminHome $intermediateCAURL $orgName
+
+   # Enroll an admin user with the intermediate CA
+   adminHome=$usersDir/intermediateAdmin
+   intermediateCAURL=https://admin:adminpw@localhost:$intermediateCAPort
+   tlsCert=$(realpath $orgDir/ca/intermediate/tls-cert.pem)
+   enroll $adminHome $intermediateCAURL $orgName $tlsCert
 
 
-   # # Register and enroll admin with the intermediate CA
-   # adminUserHome=$usersDir/Admin@${orgName}
-   # registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName nodeAdmin
+   # Register and enroll admin with the intermediate CA
+   adminUserHome=$usersDir/Admin@${orgName}
+   registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName $tlsCert nodeAdmin
    # # Register and enroll user1 with the intermediate CA
    # user1UserHome=$usersDir/User1@${orgName}
    # registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName
-   #
+
    # # Create peer nodes
    # peerCount=0
    # while [ $peerCount -lt $numPeers ]; do
@@ -251,7 +254,7 @@ function startCA {
    mkdir -p $homeDir
    export FABRIC_CA_SERVER_HOME=$homeDir
 
-   $SERVER start -d -p $port -b admin:adminpw -u $1 --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
+   $SERVER start -d -p $port -b admin:adminpw -u $1 --tls.enabled --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
 
    echo $! > $homeDir/server.pid
    if [ $? -ne 0 ]; then
@@ -288,28 +291,49 @@ function tlsEnroll {
    orgName=$3
    host=$(basename $homeDir),$(basename $homeDir | cut -d'.' -f1)
    tlsDir=$homeDir/tls
-   tlsCert=$(realpath $homeDir/ca-cert.pem)
+   # caCert=$(realpath $homeDir/ca-cert.pem)
+   tlsCert=$(realpath $homeDir/tls-cert.pem)
    srcMSP=$tlsDir/msp
    dstMSP=$homeDir/msp
    enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
    cp $srcMSP/signcerts/* $tlsDir/server.crt
    cp $srcMSP/keystore/* $tlsDir/server.key
    mkdir -p $dstMSP/keystore
+
    cp $srcMSP/keystore/* $dstMSP/keystore
-   mkdir -p $dstMSP/tlscacerts
-   cp $srcMSP/tlscacerts/* $dstMSP/tlscacerts/tlsca.${orgName}-cert.pem
-   if [ -d $srcMSP/tlsintermediatecerts ]; then
-      cp $srcMSP/tlsintermediatecerts/* $tlsDir/ca.crt
-      mkdir -p $dstMSP/tlsintermediatecerts
-      cp $srcMSP/tlsintermediatecerts/* $dstMSP/tlsintermediatecerts
+   mkdir -p $dstMSP/cacerts
+   cp $srcMSP/cacerts/* $dstMSP/cacerts/tlsca.${orgName}-cert.pem
+   if [ -d $srcMSP/intermediatecerts ]; then
+      cp $srcMSP/intermediatecerts/* $tlsDir/ca.crt
+      mkdir -p $dstMSP/intermediatecerts
+      cp $srcMSP/intermediatecerts/* $dstMSP/intermediatecerts
    else
-      cp $srcMSP/tlscacerts/* $tlsDir/ca.crt
+      cp $srcMSP/cacerts/* $tlsDir/ca.crt
    fi
    rm -rf $srcMSP $homeDir/enroll.log $homeDir/fabric-ca-client-config.yaml
 }
 
+# Register and enroll a new user
+#    registerAndEnroll <registrarHomeDir> <registreeHomeDir> <caPort> <orgName> <tlsCert> [<userName>]
+function registerAndEnroll {
+
+  registrarHomeDir=$1; shift
+  registreeHomeDir=$1; shift
+  caPort=$1; shift
+  orgName=$1; shift
+  tlsCert=$1; shift
+  userName=$1; shift
+
+  if [ "$userName" = "" ]; then
+    userName=$(basename $registreeHomeDir)
+  fi
+
+  register $userName "secret" $registrarHomeDir $tlsCert
+  enroll $registreeHomeDir https://${userName}:secret@localhost:$caPort $orgName $tlsCert
+}
+
 # Enroll an identity
-#    enroll <homeDir> <serverURL> <orgName> <pathToTLSCert> [<args>]
+#    enroll <homeDir> <serverURL> <orgName> <tlsCert> [<args>]
 function enroll {
    homeDir=$1; shift
    url=$1; shift
@@ -318,19 +342,35 @@ function enroll {
    mkdir -p $homeDir
    export FABRIC_CA_CLIENT_HOME=$homeDir
    logFile=$homeDir/enroll.log
-   echo $url
+
    echo $tlsCert
-   echo $*
-
    # Get an enrollment certificate
-
-   $CLIENT -d enroll -u $url --tls.certfiles $tlsCert $* > $logFile 2>&1
+   $CLIENT enroll -d -u $url --tls.certfiles $tlsCert > $logFile 2>&1
 
    if [ $? -ne 0 ]; then
       fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
    fi
    # Get a TLS certificate
    echo "Enrolled $homeDir with CA at $url"
+}
+
+# Register a new user
+#    register <user> <password> <registrarHomeDir> <tlsCert>
+function register {
+
+  userName=$1; shift
+  password=$1; shift
+  homeDir=$1; shift
+  tlsCert=$1; shift
+
+  export FABRIC_CA_CLIENT_HOME=$homeDir
+  mkdir -p $homeDir
+  logFile=$homeDir/register.log
+  $CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d > $logFile 2>&1
+  if [ $? -ne 0 ]; then
+    fatal "Failed to register $userName with CA as $homeDir; see $logFile"
+  fi
+  echo "Registered user $userName with intermediate CA as $homeDir"
 }
 
 function checkRootCA {
