@@ -25,6 +25,10 @@ case $key in
     shift
     shift
     ;;
+    -d|--delete)
+    DELETE=true
+    shift
+    ;;
     *)
     POSITIONAL+=("$1")
     shift
@@ -45,6 +49,10 @@ if [ -z "$RECREATE" ]; then
   RECREATE=false
 fi
 
+if [ -z "$DELETE" ]; then
+  DELETE=false
+fi
+
 # if [ -z "$INTERMEDIATE_CA" ]; then
 #   # If true, uses both a root and intermediate CA
 #   echo "Setting INTERMEDIATE_CA=true"
@@ -61,32 +69,36 @@ CLIENT=$FCAHOME/bin/fabric-ca-client
 SERVER=$FCAHOME/bin/fabric-ca-server
 TLSROOTCERT=$(realpath "./CA/fabric-ca-server/tls-cert.pem")
 
-
 # Crypto-config directory
 CDIR="crypto-config"
 
 function main {
-   echo
-   echo "#################################################################"
-   echo "#######    Generating crypto material using Fabric CA  ##########"
-   echo "#################################################################"
-   echo
-   echo "Checking executables ..."
-   mydir=`pwd`
-   checkExecutables
-   cd $mydir
-   checkRootCA
-   cd $mydir
-   if [ -d $CDIR ]; then
-      echo "Cleaning up CAs ..."
-      stopAllCAs
-      # rm -rf $CDIR
-   fi
-   echo "Setting up organizations ..."
-   setupOrgs
-   # echo "Finishing ..."
-   # stopAllCAs
-   # echo "Complete"
+
+  if [ $DELETE == true ]; then
+    wipeout
+  fi
+
+  echo
+  echo "#################################################################"
+  echo "#######    Generating crypto material using Fabric CA  ##########"
+  echo "#################################################################"
+  echo
+  echo "Checking executables ..."
+  mydir=`pwd`
+  checkExecutables
+  cd $mydir
+  checkRootCA
+  cd $mydir
+  if [ -d $CDIR ]; then
+    echo "Cleaning up CAs ..."
+    stopAllCAs
+    # rm -rf $CDIR
+  fi
+  echo "Setting up organizations ..."
+  setupOrgs
+  # echo "Finishing ..."
+  # stopAllCAs
+  # echo "Complete"
 }
 
 # Check and build executables as needed
@@ -193,54 +205,54 @@ function setupOrg {
    # Enroll an admin user with the intermediate CA
    adminHome=$usersDir/intermediateAdmin
    intermediateCAURL=https://admin:adminpw@localhost:$intermediateCAPort
-   tlsCert=$(realpath $orgDir/ca/intermediate/tls-cert.pem)
-   enroll $adminHome $intermediateCAURL $orgName $tlsCert
+   intermediateCATlsCert=$(realpath $orgDir/ca/intermediate/tls-cert.pem)
+   enroll $adminHome $intermediateCAURL $orgName $intermediateCATlsCert
 
 
    # Register and enroll admin with the intermediate CA
    adminUserHome=$usersDir/Admin@${orgName}
-   registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName $tlsCert nodeAdmin
-   # # Register and enroll user1 with the intermediate CA
-   # user1UserHome=$usersDir/User1@${orgName}
-   # registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName
+   registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName $intermediateCATlsCert nodeAdmin
+   # Register and enroll user1 with the intermediate CA
+   user1UserHome=$usersDir/User1@${orgName}
+   registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName $intermediateCATlsCert
+   # Create peer nodes
+   peerCount=0
+   while [ $peerCount -lt $numPeers ]; do
 
-   # # Create peer nodes
-   # peerCount=0
-   # while [ $peerCount -lt $numPeers ]; do
-   #
-   #    nodeDir=$orgDir/peers/peer${peerCount}.${orgName}
-   #
-   #    mkdir -p $nodeDir
-   #    # Get TLS crypto for this node
-   #    tlsEnroll $nodeDir $rootCAPort $orgName
-   #    # Register and enroll this node's identity
-   #    registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName
-   #    normalizeMSP $nodeDir $orgName $adminUserHome
-   #    peerCount=$(expr $peerCount + 1)
-   # done
-   #
-   # # Create orderer nodes
-   # ordererCount=0
-   # while [ $ordererCount -lt $numOrderers ]; do
-   #
-   #    nodeDir=$orgDir/orderers/orderer${ordererCount}.${orgName}
-   #
-   #    mkdir -p $nodeDir
-   #    # Get TLS crypto for this node
-   #    tlsEnroll $nodeDir $rootCAPort $orgName
-   #    # Register and enroll this node's identity
-   #    registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName
-   #    normalizeMSP $nodeDir $orgName $adminUserHome
-   #    ordererCount=$(expr $ordererCount + 1)
-   # done
-   #
+      nodeDir=$orgDir/peers/peer${peerCount}.${orgName}
+
+      mkdir -p $nodeDir
+      # Get TLS crypto for this node
+      tlsEnroll $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
+      # Register and enroll this node's identity
+      registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
+      normalizeMSP $nodeDir $orgName $adminUserHome
+      peerCount=$(expr $peerCount + 1)
+   done
+
+   # Create orderer nodes
+   ordererCount=0
+   while [ $ordererCount -lt $numOrderers ]; do
+
+      nodeDir=$orgDir/orderers/orderer${ordererCount}.${orgName}
+
+      mkdir -p $nodeDir
+      # Get TLS crypto for this node
+      tlsEnroll $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
+      # Register and enroll this node's identity
+      registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
+      normalizeMSP $nodeDir $orgName $adminUserHome
+      ordererCount=$(expr $ordererCount + 1)
+   done
+
+
    # # Get CA certs from intermediate CA
-   # getcacerts $orgDir $intermediateCAURL
-   # # Rename MSP files to names expected by end-to-end
-   # normalizeMSP $orgDir $orgName $adminUserHome
-   # normalizeMSP $adminHome $orgName
-   # normalizeMSP $adminUserHome $orgName
-   # normalizeMSP $user1UserHome $orgName
+   getcacerts $orgDir $intermediateCAURL $intermediateCATlsCert
+   # Rename MSP files to names expected by end-to-end
+   normalizeMSP $orgDir $orgName $adminUserHome
+   normalizeMSP $adminHome $orgName
+   normalizeMSP $adminUserHome $orgName
+   normalizeMSP $user1UserHome $orgName
 }
 
 # Start a root CA server:
@@ -251,10 +263,12 @@ function startCA {
    homeDir=$1; shift
    port=$1; shift
    orgName=$1; shift
+   parentCAurl=$1; shift
+
    mkdir -p $homeDir
    export FABRIC_CA_SERVER_HOME=$homeDir
 
-   $SERVER start -d -p $port -b admin:adminpw -u $1 --tls.enabled --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
+   $SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --tls.enabled --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
 
    echo $! > $homeDir/server.pid
    if [ $? -ne 0 ]; then
@@ -286,13 +300,18 @@ function checkCA {
 # Enroll to get TLS crypto material
 #    tlsEnroll <homeDir> <serverPort> <orgName>
 function tlsEnroll {
-   homeDir=$1
-   port=$2
-   orgName=$3
+   homeDir=$1; shift
+   port=$1; shift
+   orgName=$1; shift
+   tlsCert=$1; shift;
+
    host=$(basename $homeDir),$(basename $homeDir | cut -d'.' -f1)
    tlsDir=$homeDir/tls
-   # caCert=$(realpath $homeDir/ca-cert.pem)
-   tlsCert=$(realpath $homeDir/tls-cert.pem)
+
+   if [ "$tlsCert" = "" ]; then
+     tlsCert=$(realpath $homeDir/tls-cert.pem)
+   fi
+
    srcMSP=$tlsDir/msp
    dstMSP=$homeDir/msp
    enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
@@ -343,7 +362,6 @@ function enroll {
    export FABRIC_CA_CLIENT_HOME=$homeDir
    logFile=$homeDir/enroll.log
 
-   echo $tlsCert
    # Get an enrollment certificate
    $CLIENT enroll -d -u $url --tls.certfiles $tlsCert > $logFile 2>&1
 
@@ -366,6 +384,7 @@ function register {
   export FABRIC_CA_CLIENT_HOME=$homeDir
   mkdir -p $homeDir
   logFile=$homeDir/register.log
+
   $CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d > $logFile 2>&1
   if [ $? -ne 0 ]; then
     fatal "Failed to register $userName with CA as $homeDir; see $logFile"
@@ -373,9 +392,88 @@ function register {
   echo "Registered user $userName with intermediate CA as $homeDir"
 }
 
+# Rename MSP files as is expected by the e2e example
+#    normalizeMSP <home> <orgName> <adminHome>
+function normalizeMSP {
+   userName=$(basename $1)
+   mspDir=$1/msp
+   orgName=$2
+   admincerts=$mspDir/admincerts
+   cacerts=$mspDir/cacerts
+   intcerts=$mspDir/intermediatecerts
+   signcerts=$mspDir/signcerts
+   cacertsfname=$cacerts/tlsca.${orgName}-cert.pem
+   if [ ! -f $cacertsfname ]; then
+      mv $cacerts/* $cacertsfname
+   fi
+   intcertsfname=$intcerts/ca.${orgName}-cert.pem
+   if [ ! -f $intcertsfname ]; then
+      if [ -d $intcerts ]; then
+         mv $intcerts/* $intcertsfname
+      fi
+   fi
+   signcertsfname=$signcerts/${userName}-cert.pem
+   if [ ! -f $signcertsfname ]; then
+      fname=`ls $signcerts 2> /dev/null`
+      if [ "$fname" = "" ]; then
+         mkdir -p $signcerts
+         cp $cacertsfname $signcertsfname
+      else
+         mv $signcerts/* $signcertsfname
+      fi
+   fi
+
+   # Copy the admin cert, which would need to be done out-of-band in the real world
+   mkdir -p $admincerts
+   if [ $# -gt 2 ]; then
+      src=`ls $3/msp/signcerts/*`
+      dst=$admincerts/Admin@${orgName}-cert.pem
+   else
+      src=`ls $signcerts/*`
+      dst=$admincerts
+   fi
+   if [ ! -f $src ]; then
+      fatal "admin certificate file not found at $src"
+   fi
+   cp $src $dst
+}
+
+# Get the CA certificates and place in MSP directory in <dir>
+#    getcacerts <dir> <serverURL>
+function getcacerts {
+  dir=$1; shift
+  caUrl=$1; shift
+  tlsCert=$1; shift
+  mkdir -p $dir
+  export FABRIC_CA_CLIENT_HOME=$dir
+  logFile=$dir/getcacert.out
+  $CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert > $logFile 2>&1
+  if [ $? -ne 0 ]; then
+    fatal "Failed to get CA certificates $dir with CA at $caUrl; see $logFile"
+  fi
+  mkdir $dir/msp/tlscacerts
+  cp $dir/msp/cacerts/* $dir/msp/tlscacerts
+  echo "Loaded CA certificates into $dir from CA at $caUrl"
+}
+
 function checkRootCA {
   cd ./CA
   ./startRootCA.sh
+}
+
+function wipeout {
+  echo
+  echo "#################################################################"
+  echo "#######                 Cleaning up                    ##########"
+  echo "#################################################################"
+  echo
+
+  if [ -d $CDIR ]; then
+    stopAllCAs
+    rm -rf $CDIR
+  fi
+  
+  exit 0
 }
 
 # Print a fatal error message and exit

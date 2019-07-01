@@ -8,7 +8,7 @@ services:
     image: hyperledger/fabric-ca:1.4.1
     container_name: ca-root.geodb.com
     ports:
-      - 7054:7054
+      - 7500:7054
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
     volumes:

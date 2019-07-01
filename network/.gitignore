@@ -8,6 +8,7 @@ chaincode/github.com/hyperledger/
 
 # secrets
 crypto-config/
+crypto-config.bak/
 CA/ca-bootstrap-command.yaml
 CA/fabric-ca-server/msp
 
