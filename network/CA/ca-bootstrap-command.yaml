@@ -1,0 +1,7 @@
+# Secret for enrollment
+# Important: never publish this file and change the password for live environments
+version: "2"
+
+services:
+  ca-command:
+    command: sh -c 'fabric-ca-server start -b geodb:password --tls.enabled --csr.hosts ca-root.geodb.com'

@@ -2,8 +2,14 @@
 
 export COMPOSE_PROJECT_NAME=geodb
 
+DOCKER_FILE=$1
+
+if [ -z "$DOCKER_FILE" ]; then
+  DOCKER_FILE=./build-local-tesetnet/docker-compose.yaml
+fi
+
 # Bring down the network
-docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down
+docker-compose -f $DOCKER_FILE kill && docker-compose -f $DOCKER_FILE down
 sleep 1s
 # Delete EVERYTHING related to chaincode in docker
 docker rmi --force $(docker images -q dev-peer*)

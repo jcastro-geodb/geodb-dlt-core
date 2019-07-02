@@ -2,8 +2,8 @@ Organizations:
   - &GeoDB
     Name: GeoDB
     ID: geodbMSP
-    # MSPDir: crypto-config/ordererOrganizations/geodb.com/msp
-    MSPDir: crypto-config/geodb.com/msp
+    # MSPDir: crypto-config/ordererOrganizations/operations.geodb.com/msp
+    MSPDir: ../crypto-config/operations.geodb.com/msp
     Policies:
       Readers:
         Type: Signature
@@ -39,7 +39,7 @@ Application: &ApplicationDefaults
 Orderer: &OrdererDefaults
   OrdererType: solo
   Addresses:
-    - orderer0.geodb.com:7050
+    - orderer0.operations.geodb.com:7050
   BatchTimeout: 2s
   BatchSize:
     MaxMessageCount: 500

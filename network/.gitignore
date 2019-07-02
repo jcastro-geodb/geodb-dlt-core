@@ -9,8 +9,7 @@ chaincode/github.com/hyperledger/
 # secrets
 crypto-config/
 crypto-config.bak/
-CA/ca-bootstrap-command.yaml
-CA/fabric-ca-server/msp
+CA/fabric-ca-server
 
 # misc
 .DS_Store

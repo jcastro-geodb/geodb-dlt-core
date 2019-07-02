@@ -5,78 +5,7 @@
 ##############################################################################
 
 
-##############
-# Arg parser #
-##############
-
-POSITIONAL=()
-while [[ $# -gt 0 ]]
-do
-key="$1"
-
-case $key in
-    -o|--orgs)
-    ORGS="$2"
-    shift
-    shift
-    ;;
-    -r|--recreate)
-    RECREATE="$2"
-    shift
-    shift
-    ;;
-    -d|--delete)
-    DELETE=true
-    shift
-    ;;
-    *)
-    POSITIONAL+=("$1")
-    shift
-    ;;
-esac
-done
-set -- "${POSITIONAL[@]}" # restore positional parameters
-
-# Organization info where each line is of the form:
-#    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:rootCAUser:rootCAPass:<intermediateCAPort>
-if [ -z "$ORGS" ]; then
-  fatal "--ORGS not found"
-fi
-
-if [ -z "$RECREATE" ]; then
-  # If true, recreate crypto if it already exists
-  echo "Setting RECREATE=false"
-  RECREATE=false
-fi
-
-if [ -z "$DELETE" ]; then
-  DELETE=false
-fi
-
-# if [ -z "$INTERMEDIATE_CA" ]; then
-#   # If true, uses both a root and intermediate CA
-#   echo "Setting INTERMEDIATE_CA=true"
-#   INTERMEDIATE_CA=true
-# fi
-
-echo "Running script with args:"
-echo "ORGS: ${ORGS}"
-echo "RECREATE: ${RECREATE}"
-
-# Path to fabric CA executables - Remember to configure it correctly for each fabric version
-FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
-CLIENT=$FCAHOME/bin/fabric-ca-client
-SERVER=$FCAHOME/bin/fabric-ca-server
-TLSROOTCERT=$(realpath "./CA/fabric-ca-server/tls-cert.pem")
-
-# Crypto-config directory
-CDIR="crypto-config"
-
 function main {
-
-  if [ $DELETE == true ]; then
-    wipeout
-  fi
 
   echo
   echo "#################################################################"
@@ -457,8 +386,12 @@ function getcacerts {
 }
 
 function checkRootCA {
-  cd ./CA
-  ./startRootCA.sh
+  if [ ! "$(docker ps -q -f name=ca-root.geodb.com)" ]; then
+    fatal "Root CA container is not running"
+  else
+    echo "Root CA is running"
+  fi
+
 }
 
 function wipeout {
@@ -472,7 +405,7 @@ function wipeout {
     stopAllCAs
     rm -rf $CDIR
   fi
-  
+
   exit 0
 }
 
@@ -481,5 +414,82 @@ function fatal {
    echo "FATAL: $*"
    exit 1
 }
+
+
+##############
+# Constants  #
+##############
+
+# Path to fabric CA executables - Remember to configure it correctly for each fabric version
+FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
+CLIENT=$FCAHOME/bin/fabric-ca-client
+SERVER=$FCAHOME/bin/fabric-ca-server
+TLSROOTCERT=$(realpath "./CA/fabric-ca-server/tls-cert.pem")
+
+# Crypto-config directory
+CDIR="crypto-config"
+
+
+##############
+# Arg parser #
+##############
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    -o|--orgs)
+    ORGS="$2"
+    shift
+    shift
+    ;;
+    -r|--recreate)
+    RECREATE="$2"
+    shift
+    shift
+    ;;
+    -d|--delete)
+    DELETE=true
+    shift
+    ;;
+    *)
+    POSITIONAL+=("$1")
+    shift
+    ;;
+esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+if [ -z "$DELETE" ]; then
+  DELETE=false
+fi
+
+if [ $DELETE == true ]; then
+  wipeout
+fi
+
+# Organization info where each line is of the form:
+#    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:rootCAUser:rootCAPass:<intermediateCAPort>
+if [ -z "$ORGS" ]; then
+  fatal "--ORGS not found"
+fi
+
+if [ -z "$RECREATE" ]; then
+  # If true, recreate crypto if it already exists
+  echo "Setting RECREATE=false"
+  RECREATE=false
+fi
+
+# if [ -z "$INTERMEDIATE_CA" ]; then
+#   # If true, uses both a root and intermediate CA
+#   echo "Setting INTERMEDIATE_CA=true"
+#   INTERMEDIATE_CA=true
+# fi
+
+echo "Running script with args:"
+echo "ORGS: ${ORGS}"
+echo "RECREATE: ${RECREATE}"
 
 main

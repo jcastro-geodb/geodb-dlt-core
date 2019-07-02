@@ -130,7 +130,7 @@ registry:
   # Contains identity information which is used when LDAP is disabled
   identities:
      - name: geodb
-       pass: Vy6pjkqn5hdsuBe7N8D
+       pass: shouldChangeThisPass1234
        type: client
        affiliation: ""
        attrs:
@@ -318,7 +318,7 @@ csr:
         O: Hyperledger
         OU: Fabric
    hosts:
-     - 28e16a83ad79
+     - 919bc4ec6591
      - localhost
    ca:
       expiry: 131400h

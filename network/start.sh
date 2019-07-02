@@ -7,8 +7,14 @@ if [ "$(docker network ls | grep ${COMPOSE_PROJECT_NAME}_geodb)" ]; then
   exit 1
 fi
 
+DOCKER_FILE=$1
+
+if [ -z "$DOCKER_FILE" ]; then
+  DOCKER_FILE=./build-local-tesetnet/docker-compose.yaml
+fi
+
 # Bring up the network
-docker-compose -f docker-compose.yaml up -d
+docker-compose -f $DOCKER_FILE up -d
 sleep 3s
 
 # Create the channel on the peer from the genesis block
