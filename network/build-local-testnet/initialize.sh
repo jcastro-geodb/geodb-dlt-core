@@ -8,8 +8,8 @@ cd ../CA
 # Build certificates
 cd ..
 ./generate-crypto-materials.sh --orgs operations.geodb.com:1:1:7500:geodb:shouldChangeThisPass1234:7501
-./generate-crypto-materials.sh --orgs org1.com:1:1:7500:geodb:shouldChangeThisPass1234:7502
-./generate-crypto-materials.sh --orgs org2.com:1:1:7500:geodb:shouldChangeThisPass1234:7503
+# ./generate-crypto-materials.sh --orgs org1.com:1:1:7500:geodb:shouldChangeThisPass1234:7502
+# ./generate-crypto-materials.sh --orgs org2.com:1:1:7500:geodb:shouldChangeThisPass1234:7503
 
 # Generate genesis block
 
@@ -27,3 +27,13 @@ fi
 
 # Bring up the network
 docker-compose -f docker-compose.yaml up -d
+sleep 3s
+
+# Create the channel on the peer from the genesis block
+docker exec clipeer0.operations.geodb.com bash -c 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations.geodb.com:7050'
+
+# Join the channel
+docker exec clipeer0.operations.geodb.com bash -c 'peer channel join -b rewards.block'
+
+# Update anchor peer
+docker exec clipeer0.operations.geodb.com bash -c 'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'

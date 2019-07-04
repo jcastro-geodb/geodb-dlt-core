@@ -6,7 +6,7 @@ export COMPOSE_PROJECT_NAME=geodb
 DOCKER_FILE=$1
 
 if [ -z "$DOCKER_FILE" ]; then
-  DOCKER_FILE=./build-local-tesetnet/docker-compose.yaml
+  DOCKER_FILE=./build-local-testnet/docker-compose.yaml
 fi
 
 docker-compose -f $DOCKER_FILE kill && docker-compose -f $DOCKER_FILE down
