@@ -2,6 +2,7 @@ version: "2"
 
 services:
   ca-root.geodb.com:
+    restart: always
     extends:
       file: ./ca-bootstrap-command.yaml
       service: ca-command

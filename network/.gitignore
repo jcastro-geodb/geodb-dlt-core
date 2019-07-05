@@ -2,10 +2,11 @@
 
 # artifacts
 node-docker-compose.yaml
-
 orderer/
 channels/
 chaincode/github.com/hyperledger/
+configtxlator-artifacts
+node-artifacts
 
 # secrets
 crypto-config/

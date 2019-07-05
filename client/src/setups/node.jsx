@@ -17,10 +17,15 @@ const setupNode = params => {
     }
   }
 
-  console.log("AQUIIIII");
-  console.log(orgName);
+  const mspDir = `../crypto-config/${domain}/peers/peer0.${domain}/msp`;
 
-  const yamlPath = path.resolve(process.cwd(), "./../network/node-docker-compose.yaml");
+  const nodeArtifactsPath = path.resolve(process.cwd(), "../network/node-artifacts");
+
+  if (fs.existsSync(nodeArtifactsPath) === false) {
+    fs.mkdirSync(nodeArtifactsPath, { recursive: true });
+  }
+
+  const composerPath = path.resolve(process.cwd(), "../network/node-artifacts/node-docker-compose.yaml");
 
   let services = {};
 
@@ -32,14 +37,14 @@ const setupNode = params => {
   environment.push(`CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.${domain}:7051`);
 
   let volumes = [];
-  volumes.push(`./crypto-config/${domain}/peers/peer0.${domain}/msp:/etc/hyperledger/msp/peer`);
+  volumes.push(`${mspDir}:/etc/hyperledger/msp/peer`);
   let ports = [];
   ports.push("8051:7051");
   ports.push("8053:7053");
 
   services[`peer0.${domain}`] = {
     container_name: `peer0.${domain}`,
-    extends: { file: "./bases/peer-base.yaml", service: "peer" },
+    extends: { file: "../bases/peer-base.yaml", service: "peer" },
     environment,
     volumes,
     ports
@@ -52,43 +57,50 @@ const setupNode = params => {
   environment.push(`CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@${domain}/msp`);
 
   volumes = [];
-  volumes.push(`./crypto-config/${domain}:/etc/hyperledger/msp`);
+  volumes.push(`../crypto-config/${domain}:/etc/hyperledger/msp`);
 
   services[`clipeer0.${domain}`] = {
     container_name: `clipeer0.${domain}`,
-    extends: { file: "./bases/cli-base.yaml", service: "cli" },
+    extends: { file: "../bases/cli-base.yaml", service: "cli" },
     depends_on: [`peer0.${domain}`],
     environment,
     volumes
   };
 
-  const json = {
+  const composerJSON = {
     version: "2",
     networks: { default: { external: { name: "geodb_geodb" } } },
     services
   };
 
-  const yamlText = YAML.stringify(json);
+  const composerYaml = YAML.stringify(composerJSON);
 
-  fs.writeFileSync(yamlPath, yamlText);
+  fs.writeFileSync(composerPath, composerYaml);
+
+  const configtxPath = path.resolve(process.cwd(), "../network/node-artifacts/configtx.yaml");
+
+  const anchorPeers = [{ Host: `peer0.${domain}`, Port: 7051 }];
+  const policies = {
+    Readers: { Type: "Signature", Rule: `OR('${orgName}MSP.member')` },
+    Writers: { Type: "Signature", Rule: `OR('${orgName}MSP.member')` },
+    Admins: { Type: "Signature", Rule: `OR('${orgName}MSP.admin')` }
+  };
+
+  let organization = {
+    Name: `${orgName}`,
+    ID: `${orgName}MSP`,
+    MSPDir: `${mspDir}`,
+    AnchorPeers: anchorPeers,
+    Policies: policies
+  };
+
+  const configtxJSON = {
+    Organizations: [organization]
+  };
+
+  const configtxYaml = YAML.stringify(configtxJSON);
+
+  fs.writeFileSync(configtxPath, configtxYaml);
 };
 
 export default setupNode;
-
-//
-//   clipeer0.operations.geodb.com:
-//     extends:
-//       file: ../bases/cli-base.yaml
-//       service: cli
-//     container_name: clipeer0.operations.geodb.com
-//     environment:
-//       - CORE_PEER_ID=clipeer0.operations.geodb.com
-//       - CORE_PEER_ADDRESS=peer0.operations.geodb.com:7051
-//       - CORE_PEER_LOCALMSPID=geodbMSP
-//       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@operations.geodb.com/msp
-//     volumes:
-//       - ../crypto-config/operations.geodb.com:/etc/hyperledger/msp
-//     depends_on:
-//       - peer0.operations.geodb.com
-//     networks:
-//       - geodb
