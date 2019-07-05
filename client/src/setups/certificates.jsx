@@ -45,6 +45,9 @@ class SetupCertificates {
             if (code === 0) resolve(code);
             else reject(code);
           });
+        })
+        .catch(error => {
+          reject(error);
         });
     });
   }

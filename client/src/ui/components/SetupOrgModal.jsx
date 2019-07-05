@@ -30,11 +30,14 @@ class SetupOrgModal extends React.Component {
         return db.update({ _id: "msp-path" }, { _id: "msp-path", mspPath, domain }, { upsert: true });
       })
       .then(dbUpdateResult => {
-        const result = setupNode(params);
+        return setupNode(params)
+          .on("stderr", data => console.error(`${data}`))
+          .run();
+      })
+      .then(nodeSetupResult => {
         this.setState({ setupSuccess: true });
       })
       .catch(error => {
-        console.log("Throws this error");
         console.error(error);
         this.setState({ setupSuccess: false });
       })
