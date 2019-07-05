@@ -2,6 +2,7 @@ version: "2"
 
 services:
   cli:
+    restart: always
     tty: true
     image: hyperledger/fabric-tools:1.4.1
     environment:
