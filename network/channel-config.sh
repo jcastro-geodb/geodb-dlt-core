@@ -1,3 +1,5 @@
+#!/bin/bash +x
+
 if [ ! -d "./orderer" ]; then
   echo "Spawning ./orderer directory"
   mkdir orderer

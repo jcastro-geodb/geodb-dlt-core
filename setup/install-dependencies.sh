@@ -64,6 +64,22 @@ installLibtool(){
   apt-get install libtool libltdl-dev -y
 }
 
+checkCURL(){
+  command -v jq >/dev/null 2>&1 || { installJQ; }
+}
+
+installJQ(){
+  echo
+  echo "========================================================="
+  echo "Now installing JQ"
+  echo "========================================================="
+  echo
+
+  sleep 1s
+
+  apt-get install jq -y
+}
+
 if [ `id -u` != "0" ]; then
   echo "Please, run as root"
   exit 1
@@ -75,6 +91,8 @@ checkCURL
 checkDocker
 
 checkDockerCompose
+
+checkJQ
 
 installLibtool
 
