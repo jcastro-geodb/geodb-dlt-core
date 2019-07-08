@@ -25,7 +25,7 @@ class SetupNode {
           fs.mkdirSync(NODE_ARTIFACTS_PATH, { recursive: true });
         }
 
-        const composerPath = path.resolve(process.cwd(), "../network/node-artifacts/node-docker-compose.yaml");
+        const composerPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_PATH}/node-docker-compose.yaml`);
 
         let services = {};
 
@@ -77,7 +77,7 @@ class SetupNode {
 
         fs.writeFileSync(composerPath, composerYaml);
 
-        const configtxPath = path.resolve(process.cwd(), "../network/node-artifacts/configtx.yaml");
+        const configtxPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_PATH}/configtx.yaml`);
 
         const anchorPeers = [{ Host: `peer0.${domain}`, Port: 7051 }];
         const policies = {
@@ -123,6 +123,8 @@ class SetupNode {
 
       p.stdout.on("data", data => {
         generatedJSON = data;
+        const orgJsonPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_PATH}/${orgName}-print.json`);
+        fs.writeFileSync(orgJsonPath, data);
       });
 
       p.on("close", code => {
