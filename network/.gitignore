@@ -1,15 +1,17 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # artifacts
-
+node-docker-compose.yaml
 orderer/
 channels/
 chaincode/github.com/hyperledger/
+configtxlator-artifacts
+node-artifacts
 
 # secrets
 crypto-config/
-CA/ca-bootstrap-command.yaml
-CA/fabric-ca-server/msp
+crypto-config.bak/
+CA/fabric-ca-server
 
 # misc
 .DS_Store
