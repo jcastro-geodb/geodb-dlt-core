@@ -107,7 +107,7 @@ jq .data.data[0].payload.data.config $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-p
 jq -s ".[0] * {\"channel_group\":{\"groups\":{\"Application\":{\"groups\":{\"$ORG_NAME\":.[1]}}}}}" $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-pre-update-processed.json $ORG_CONFIG_FILE >& $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-appended.json
 curl -X POST --data-binary @$CONFIGTXLATOR_ARTIFACTS_DIR/config_block-appended.json "$CONFIGTXLATOR_URL/protolator/encode/common.Config" > $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-appended.pb
 curl -X POST --data-binary @$CONFIGTXLATOR_ARTIFACTS_DIR/config_block-pre-update-processed.json "$CONFIGTXLATOR_URL/protolator/encode/common.Config" > $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-pre-update-processed.pb
-# cd $CONFIGTXLATOR_ARTIFACTS_DIR
+
 curl -X POST -F channel=$CHANNEL_ID -F "original=@$CONFIGTXLATOR_ARTIFACTS_DIR/config_block-pre-update-processed.pb" -F "updated=@$CONFIGTXLATOR_ARTIFACTS_DIR/config_block-appended.pb" "$CONFIGTXLATOR_URL/configtxlator/compute/update-from-configs" > $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-delta.pb
 curl -X POST --data-binary @$CONFIGTXLATOR_ARTIFACTS_DIR/config_block-delta.pb "$CONFIGTXLATOR_URL/protolator/decode/common.ConfigUpdate" | jq . > $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-delta.json
 
@@ -118,3 +118,4 @@ cp $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-delta-wrapped.pb ./channels/config_
 stopConfigtxlator
 
 docker exec -it $CLI bash -c "peer channel signconfigtx -f ./channels/config_block-delta-wrapped.pb"
+docker exec -it $CLI bash -c "peer channel update -f ./channels/config_block-delta-wrapped.pb -c $CHANNEL_ID -o $ORDERER_URL"

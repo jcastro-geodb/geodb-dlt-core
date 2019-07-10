@@ -1,6 +1,6 @@
 # !/bin/bash
 
-export COMPOSE_PROJECT_NAME=geodb
+export COMPOSE_PROJECT_NAME=node
 
 DOCKER_FILE=$1
 

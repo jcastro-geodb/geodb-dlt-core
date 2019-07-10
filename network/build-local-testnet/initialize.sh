@@ -18,8 +18,6 @@ cd ..
 # Bootstrap nodes
 cd $dir
 
-export COMPOSE_PROJECT_NAME=geodb
-
 if [ "$(docker network ls | grep ${COMPOSE_PROJECT_NAME}_geodb)" ]; then
   >&2 echo "Network already exists. Stop the network first"
   exit 1
