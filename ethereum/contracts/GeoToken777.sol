@@ -37,13 +37,11 @@ contract GeoToken777 is Ownable, Pausable, ERC777 {
 
 
   function releaseReward(address to, uint256 reward) public onlyOwner whenNotPaused returns (bool) {
-    if(totalSupply().add(reward) < maxSupply) {
-      emit LogReward(msg.sender, tx.origin, to, reward);
-      _mint(msg.sender, to, reward, "", "");
-      return true;
-    }
+    require(totalSupply().add(reward) <= maxSupply);
 
-    return false;
+    emit LogReward(msg.sender, tx.origin, to, reward);
+    _mint(msg.sender, to, reward, "", "");
+    return true;
   }
 
 }
