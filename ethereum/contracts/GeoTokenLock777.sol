@@ -4,11 +4,12 @@ pragma solidity >= 0.5.0 <6.0.0;
 import "../externals/openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../externals/openzeppelin-solidity/contracts/token/ERC777/IERC777.sol";
 import "../externals/openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "../externals/openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "../externals/openzeppelin-solidity/contracts/token/ERC777/IERC777Recipient.sol";
 import "../externals/openzeppelin-solidity/contracts/token/ERC777/IERC777Sender.sol";
 import "../externals/openzeppelin-solidity/contracts/introspection/IERC1820Registry.sol";
 
-contract GeoTokenLock777 is Ownable, IERC777Recipient, IERC777Sender {
+contract GeoTokenLock777 is Ownable, Pausable, IERC777Recipient, IERC777Sender {
   using SafeMath for uint256;
 
   IERC1820Registry private _erc1820 = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
@@ -28,19 +29,16 @@ contract GeoTokenLock777 is Ownable, IERC777Recipient, IERC777Sender {
   uint256 private _lockedAmount; // amount of tokens that are going to be locked
   uint256 private _withdrawnAmount; // amount of tokens that have been withdrawn
 
-  event LogBalanceLocked(
-    address indexed sender,
-    uint256 lockedAmount
+  event LogTokensReceived(
+    address indexed operator,
+    address indexed from,
+    uint256 amount
   );
 
-  event LogBalanceUnlocked(
-    address indexed sender,
-    uint256 unlockedAmount
-  );
-
-  event LogClaimBack(
-    address indexed sender,
-    uint256 balance
+  event LogTokensSent(
+    address indexed operator,
+    address indexed from,
+    uint256 amount
   );
 
   /*
@@ -70,7 +68,8 @@ contract GeoTokenLock777 is Ownable, IERC777Recipient, IERC777Sender {
       uint256 amount,
       bytes calldata userData,
       bytes calldata operatorData
-  ) external {
+  ) external whenNotPaused {
+
     require(to == _beneficiary);
     uint256 allowance = computeAllowance();
     uint256 usedAllowance = _withdrawnAmount.add(amount);
@@ -79,6 +78,8 @@ contract GeoTokenLock777 is Ownable, IERC777Recipient, IERC777Sender {
       "GeoTokenLock: You are trying to unlock more funds than what you are allowed right now"
     );
     _withdrawnAmount = usedAllowance;
+
+    emit LogTokensSent(operator, from, amount);
   }
 
   function tokensReceived(
@@ -88,8 +89,11 @@ contract GeoTokenLock777 is Ownable, IERC777Recipient, IERC777Sender {
       uint256 amount,
       bytes calldata userData,
       bytes calldata operatorData
-  ) external {
+  ) external whenNotPaused {
+
     _lockedAmount = _lockedAmount.add(amount);
+    emit LogTokensReceived(operator, from, amount);
+
   }
 
   // function lockBalance() public onlyOwner returns (bool) {
@@ -100,8 +104,7 @@ contract GeoTokenLock777 is Ownable, IERC777Recipient, IERC777Sender {
   //   _lockedAmount = balance;
   // }
 
-  function unlock(uint256 withdrawAmount) public onlyOwnerOrBeneficiary returns (uint256) {
-      emit LogBalanceUnlocked(msg.sender, withdrawAmount);
+  function unlock(uint256 withdrawAmount) public onlyOwnerOrBeneficiary whenNotPaused returns (uint256) {
       _token.send(_beneficiary, withdrawAmount, "");
   }
 
@@ -136,6 +139,10 @@ contract GeoTokenLock777 is Ownable, IERC777Recipient, IERC777Sender {
 
   function unlockBlock() public view returns (uint256) {
     return _unlockBlock;
+  }
+
+  function lockedAmount() public view returns (uint256) {
+    return _lockedAmount;
   }
 
   function withdrawnAmount() public view returns (uint256) {

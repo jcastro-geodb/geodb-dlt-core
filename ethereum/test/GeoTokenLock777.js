@@ -5,6 +5,7 @@ const { toWei } = require("web3-utils");
 const { preAssignedSupply, symbol, name } = require("./helpers").geoconstants;
 const moment = require("moment");
 const { timeMachine } = require("./helpers");
+const { erc777BalanceDelta } = require("./helpers").balances;
 
 contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
   let erc1820contractAddress, tokenContract, lockContract;
@@ -34,10 +35,6 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
     (await lockContract.beneficiary()).should.be.equal(beneficiary);
 
     const currentBlock = new BN(`${await web3.eth.getBlockNumber()}`);
-    // const now = (await web3.eth.getBlock(lastBlock)).timestamp;
-
-    // const lockTime = await lockContract.lockTime();
-    // const oneDayInSeconds = await lockContract.oneDayInSeconds();
 
     (await lockContract.lockBlock()).should.be.bignumber.equal(currentBlock);
     (await lockContract.unlockBlock()).should.be.bignumber.equal(currentBlock.add(blocksPerDay.mul(daysLocked)));
@@ -53,7 +50,22 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
     )).should.be.equal(lockContract.address);
   });
 
-  describe("Contract operation", () => {});
+  describe("Contract operation", () => {
+    describe("Sending tokens to the contract", () => {
+      it("acknowledges the received tokens and locks them", async () => {
+        const { tx } = await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+
+        (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
+        (await lockContract.lockedAmount()).should.be.bignumber.equal(amountToLock);
+
+        const event = expectEvent.inTransaction(tx, lockContract, "LogTokensReceived", {
+          operator: geodb,
+          from: geodb,
+          amount: amountToLock
+        });
+      });
+    });
+  });
 
   // describe("Contract operation", () => {
   //   describe("Normal operation", () => {
