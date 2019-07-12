@@ -9,9 +9,11 @@ const { timeMachine } = require("./helpers");
 contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
   let erc1820contractAddress, tokenContract, lockContract;
 
+  const blocksPerDay = new BN("5760");
+
   const amountToLock = new BN(toWei("1", "shannon"));
 
-  const daysLocked = 180;
+  const daysLocked = new BN("180");
 
   before("Fund ERC1820 account and deploy ERC1820 registry", async () => {
     erc1820 = await singletons.ERC1820Registry(erc1820funder);
@@ -20,10 +22,7 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
   beforeEach("Deploy GeoToken and a GeoTokenLock", async () => {
     tokenContract = await GeoToken.new(name, symbol, [], { from: geodb });
 
-    const lastBlock = await web3.eth.getBlockNumber();
-    const now = (await web3.eth.getBlock(lastBlock)).timestamp;
-
-    lockContract = await GeoTokenLock.new(tokenContract.address, beneficiary, `${daysLocked}`, {
+    lockContract = await GeoTokenLock.new(tokenContract.address, beneficiary, daysLocked, {
       from: geodb
     });
   });
@@ -34,12 +33,14 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
     // Beneficiary
     (await lockContract.beneficiary()).should.be.equal(beneficiary);
 
-    const lockTime = await lockContract.lockTime();
-    const oneDayInSeconds = await lockContract.oneDayInSeconds();
+    const currentBlock = new BN(`${await web3.eth.getBlockNumber()}`);
+    // const now = (await web3.eth.getBlock(lastBlock)).timestamp;
 
-    (await lockContract.lockTime()).should.be.bignumber.equal(
-      new BN(`${moment.duration(daysLocked, "days").asSeconds()}`)
-    );
+    // const lockTime = await lockContract.lockTime();
+    // const oneDayInSeconds = await lockContract.oneDayInSeconds();
+
+    (await lockContract.lockBlock()).should.be.bignumber.equal(currentBlock);
+    (await lockContract.unlockBlock()).should.be.bignumber.equal(currentBlock.add(blocksPerDay.mul(daysLocked)));
 
     (await erc1820.getInterfaceImplementer(
       lockContract.address,
@@ -50,9 +51,9 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
       lockContract.address,
       "0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b"
     )).should.be.equal(lockContract.address);
-
-    // const test = await
   });
+
+  describe("Contract operation", () => {});
 
   // describe("Contract operation", () => {
   //   describe("Normal operation", () => {
