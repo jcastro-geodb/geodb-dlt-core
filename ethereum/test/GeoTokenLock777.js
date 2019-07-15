@@ -1,7 +1,7 @@
 const GeoToken = artifacts.require("./GeoToken777.sol");
 const GeoTokenLock = artifacts.require("./GeoTokenLock777.sol");
-const { BN, expectEvent, shouldFail, singletons } = require("openzeppelin-test-helpers");
-const { toWei } = require("web3-utils");
+const { BN, expectEvent, shouldFail, singletons, time } = require("openzeppelin-test-helpers");
+const { toWei, fromWei } = require("web3-utils");
 const { preAssignedSupply, symbol, name } = require("./helpers").geoconstants;
 const moment = require("moment");
 const { timeMachine } = require("./helpers");
@@ -11,10 +11,9 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
   let erc1820contractAddress, tokenContract, lockContract;
 
   const blocksPerDay = new BN("5760");
-
-  const amountToLock = new BN(toWei("1", "shannon"));
-
   const daysLocked = new BN("180");
+
+  const amountToLock = new BN(toWei("1", "ether")); // GEO follows the same decimals structure as ETH
 
   before("Fund ERC1820 account and deploy ERC1820 registry", async () => {
     erc1820 = await singletons.ERC1820Registry(erc1820funder);
@@ -58,11 +57,35 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
         (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
         (await lockContract.lockedAmount()).should.be.bignumber.equal(amountToLock);
 
-        const event = expectEvent.inTransaction(tx, lockContract, "LogTokensReceived", {
+        await expectEvent.inTransaction(tx, GeoTokenLock, "LogTokensReceived", {
           operator: geodb,
           from: geodb,
           amount: amountToLock
         });
+      });
+    });
+
+    describe("computeAllowance()", () => {
+      beforeEach("lock some tokens", async () => {
+        await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+      });
+
+      it("computes allowance correctly after locking the funds", async () => {
+        const elapsedBlocks = new BN("2"); // Contract creation block + sending funds block.
+        const expectedAllowance = amountToLock.div(blocksPerDay.mul(daysLocked)).mul(elapsedBlocks);
+
+        (await lockContract.computeAllowance()).should.be.bignumber.equal(expectedAllowance);
+      });
+
+      it("computes allowance correctly after 90 days", async () => {
+        const numberOfBlocksToAdvance = blocksPerDay
+          .mul(daysLocked)
+          .div(new BN("2"))
+          .sub(new BN("2"));
+
+        for (let i = 0; i < numberOfBlocksToAdvance.toNumber(); i++) await time.advanceBlock();
+
+        (await lockContract.computeAllowance()).should.be.bignumber.equal(amountToLock.div(new BN("2")));
       });
     });
   });

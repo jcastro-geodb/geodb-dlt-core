@@ -150,7 +150,13 @@ contract GeoTokenLock777 is Ownable, Pausable, IERC777Recipient, IERC777Sender {
   }
 
   function computeAllowance() public view returns (uint256) {
-    uint256 allowancePerBlock = _lockedAmount.div(_unlockBlock.sub(_lockBlock));
-    return block.number >= _unlockBlock ? UINT256_MAX : _unlockBlock.sub(block.number).mul(allowancePerBlock);
+    uint256 mUnlockBlock = _unlockBlock;
+    uint256 mLockBlock = _lockBlock;
+    return block.number >= mUnlockBlock ? UINT256_MAX : // If lock time has passed, allow to retrieve all funds
+      // else, compute the allowance as allowancePerBlock * numberOfBlocks
+      block.number.sub(mLockBlock) // Number of blocks since contract creation
+      .mul(
+        _lockedAmount.div(mUnlockBlock.sub(mLockBlock)) // Allowance per block
+      );
   }
 }
