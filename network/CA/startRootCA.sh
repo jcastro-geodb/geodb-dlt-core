@@ -3,6 +3,16 @@
 
 # echo "$COMPOSE_PROJECT_NAME"
 
+if [ ! -d "./fabric-ca-server" ]; then
+  echo "Spawning ./fabric-ca-server directory"
+  mkdir fabric-ca-server
+  mkdir fabric-ca-server/msp
+  mkdir fabric-ca-server/msp/cacerts
+  mkdir fabric-ca-server/msp/keystore
+  mkdir fabric-ca-server/msp/signcerts
+  mkdir fabric-ca-server/msp/user
+fi
+
 if [ ! "$(docker ps -q -f name=ca-root.geodb.com)" ]; then
   if [ "$(docker ps -aq -f status=exited -f name=ca-root.geodb.com)" ]; then
       # cleanup
