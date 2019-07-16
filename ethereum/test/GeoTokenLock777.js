@@ -10,7 +10,6 @@ const { erc777BalanceDelta } = require("./helpers").balances;
 contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
   let erc1820contractAddress, tokenContract, lockContract;
 
-  const blocksPerDay = new BN("5760");
   const daysLocked = new BN("180");
 
   const amountToLock = new BN(toWei("1", "ether")); // GEO follows the same decimals structure as ETH
@@ -33,10 +32,10 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
     // Beneficiary
     (await lockContract.beneficiary()).should.be.equal(beneficiary);
 
-    const currentBlock = new BN(`${await web3.eth.getBlockNumber()}`);
-
-    (await lockContract.lockBlock()).should.be.bignumber.equal(currentBlock);
-    (await lockContract.unlockBlock()).should.be.bignumber.equal(currentBlock.add(blocksPerDay.mul(daysLocked)));
+    (await lockContract.lockTimestamp()).should.be.bignumber.equal(await time.latest());
+    (await lockContract.unlockTimestamp()).should.be.bignumber.equal(
+      time.duration.days(daysLocked.toNumber()).add(await time.latest())
+    );
 
     (await erc1820.getInterfaceImplementer(
       lockContract.address,
@@ -70,23 +69,84 @@ contract("GeoTokenLock", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
         await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
       });
 
-      it("computes allowance correctly after locking the funds", async () => {
-        const elapsedBlocks = new BN("2"); // Contract creation block + sending funds block.
-        const expectedAllowance = amountToLock.div(blocksPerDay.mul(daysLocked)).mul(elapsedBlocks);
+      it("returns 50% when 50% of the lock days have passed with a tolerance of 0.0001%", async () => {
+        const lockTimestamp = await lockContract.lockTimestamp();
+        await time.increaseTo(lockTimestamp.add(time.duration.days(daysLocked.div(new BN("2")))));
 
-        (await lockContract.computeAllowance()).should.be.bignumber.equal(expectedAllowance);
+        const tolerance = amountToLock.div(new BN("1000000"));
+        const upperBound = amountToLock.div(new BN("2")).add(tolerance);
+        const lowerBound = amountToLock.div(new BN("2")).sub(tolerance);
+
+        const allowance = await lockContract.computeAllowance();
+
+        allowance.should.be.bignumber.lte(upperBound);
+        allowance.should.be.bignumber.gte(lowerBound);
       });
 
-      it("computes allowance correctly after 90 days", async () => {
-        const numberOfBlocksToAdvance = blocksPerDay
-          .mul(daysLocked)
-          .div(new BN("2"))
-          .sub(new BN("2"));
+      it("returns 100% after the lock time", async () => {
+        const lockTimestamp = await lockContract.lockTimestamp();
+        await time.increaseTo(lockTimestamp.add(time.duration.days(daysLocked)));
 
-        for (let i = 0; i < numberOfBlocksToAdvance.toNumber(); i++) await time.advanceBlock();
-
-        (await lockContract.computeAllowance()).should.be.bignumber.equal(amountToLock.div(new BN("2")));
+        (await lockContract.computeAllowance()).should.be.bignumber.gte(amountToLock);
       });
+    });
+  });
+
+  describe("unlock()", async () => {
+    beforeEach("lock some tokens", async () => {
+      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+    });
+
+    describe("Normal operation", async () => {
+      it("allows to unlock 50% of funds after 50% days have passed with a 0.0001% tolerance", async () => {
+        const lockTimestamp = await lockContract.lockTimestamp();
+        const targetTimestamp = lockTimestamp.add(time.duration.days(daysLocked.div(new BN("2"))));
+
+        await time.increaseTo(targetTimestamp);
+
+        const allowance = await lockContract.computeAllowance();
+
+        const { tx, logs } = await lockContract.unlock(allowance, { from: beneficiary });
+
+        const tolerance = amountToLock.div(new BN("1000000"));
+        const upperBound = amountToLock.div(new BN("2")).add(tolerance);
+        const lowerBound = amountToLock.div(new BN("2")).sub(tolerance);
+
+        const delta = await erc777BalanceDelta(beneficiary, tokenContract);
+
+        delta.should.be.bignumber.lte(upperBound);
+        delta.should.be.bignumber.gte(lowerBound);
+
+        await expectEvent.inTransaction(tx, GeoTokenLock, "LogTokensSent", {
+          operator: lockContract.address,
+          from: lockContract.address,
+          amount: allowance
+        });
+      });
+
+      it("allows to unlock 100% of funds after the lock time", async () => {
+        await time.increase(time.duration.days(daysLocked));
+
+        const allowance = await lockContract.computeAllowance();
+
+        const { tx, logs } = await lockContract.unlock(allowance, { from: beneficiary });
+
+        const delta = await erc777BalanceDelta(beneficiary, tokenContract);
+
+        delta.should.be.bignumber.equal(amountToLock);
+
+        await expectEvent.inTransaction(tx, GeoTokenLock, "LogTokensSent", {
+          operator: lockContract.address,
+          from: lockContract.address,
+          amount: amountToLock
+        });
+      });
+    });
+
+    describe("Send tokens to contract", async () => {
+      it("will update the locked amount for the beneficiary");
+
+      it("will reject if tokens different from the GEO are being sent to this contract");
     });
   });
 

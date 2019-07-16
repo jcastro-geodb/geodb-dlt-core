@@ -9,3 +9,6 @@
 - [ ] Implement block summary upload
 - [x] Implement testing with truffle suite and openzeppelin-test-helpers. This includes implementing best practices for contract testing (e.g. using beforeEach to reset the contract and test complete workflows)
 - [x] Implement contract events and their testing
+- [x] Implement ERC777 token
+- [ ] Implement token lock compatible with ERC777 token
+- [ ] Implement tests for the ERC777 model.
