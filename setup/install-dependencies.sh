@@ -1,55 +1,4 @@
-# !/bin/bash
-
-checkCURL(){
-  command -v curl >/dev/null 2>&1 || { installCURL; }
-}
-
-installCURL(){
-  echo
-  echo "========================================================="
-  echo "Now installing CURL"
-  echo "========================================================="
-  echo
-
-  sleep 1s
-
-  apt-get install curl -y
-}
-
-checkDocker(){
-  command -v docker >/dev/null 2>&1 || { installDocker; }
-}
-
-installDocker(){
-  echo
-  echo "========================================================="
-  echo "Now installing docker"
-  echo "========================================================="
-  echo
-
-  sleep 1s
-
-  apt-get install docker.io -y
-
-  addUser=`logname`
-  usermod -a -G docker $addUser
-}
-
-checkDockerCompose(){
-  command -v docker-compose >/dev/null 2>&1 || { installDockerCompose; }
-}
-
-installDockerCompose(){
-  echo
-  echo "========================================================="
-  echo "Now installing docker-compose"
-  echo "========================================================="
-  echo
-
-  sleep 1s
-
-  apt-get install docker-compose -y
-}
+#!/bin/bash
 
 installLibtool(){
 
@@ -64,35 +13,27 @@ installLibtool(){
   apt-get install libtool libltdl-dev -y
 }
 
-checkCURL(){
-  command -v jq >/dev/null 2>&1 || { installJQ; }
-}
-
-installJQ(){
-  echo
-  echo "========================================================="
-  echo "Now installing JQ"
-  echo "========================================================="
-  echo
-
-  sleep 1s
-
-  apt-get install jq -y
-}
-
 if [ `id -u` != "0" ]; then
   echo "Please, run as root"
   exit 1
 fi
 
 
-checkCURL
+apt-get update
+programs=(curl make make-guile docker docker-compose jq)
 
-checkDocker
+for program in "${programs[@]}"; do
+    if ! command -v "$program" > /dev/null 2>&1; then
 
-checkDockerCompose
-
-checkJQ
+        echo
+        echo "========================================================="
+        echo "Now installing $program"
+        echo "========================================================="
+        echo
+        apt-get install "$program" -y
+        sleep 1s
+    fi
+done
 
 installLibtool
 
