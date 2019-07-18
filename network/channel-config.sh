@@ -3,6 +3,7 @@
 if [ ! -d "./orderer" ]; then
   echo "Spawning ./orderer directory"
   mkdir orderer
+  touch orderer/genesis.block
 fi
 
 if [ ! -d "./channels" ]; then

@@ -1,5 +1,35 @@
 #!/bin/bash
 
+installDependencies() {
+  apt-get update
+  programs=(curl make docker docker-compose jq)
+
+  for program in "${programs[@]}"; do
+      if ! command -v "$program" > /dev/null 2>&1; then
+
+          echo
+          echo "========================================================="
+          echo "Now installing $program"
+          echo "========================================================="
+          echo
+          apt-get install "$program" -y
+          sleep 1s
+      fi
+  done
+}
+
+installMakeGuile() {
+  echo
+  echo "========================================================="
+  echo "Now installing make-guile"
+  echo "========================================================="
+  echo
+
+  apt-get install make-guile -y
+
+  sleep 1s
+}
+
 installLibtool(){
 
   echo
@@ -13,29 +43,50 @@ installLibtool(){
   apt-get install libtool libltdl-dev -y
 }
 
+checkEnvironment(){
+
+  echo
+  echo "========================================================="
+  echo "Checking and setting ENV"
+  echo "========================================================="
+  echo
+
+  sleep 1s
+
+  while IFS="" read -r checkVar || [ -n "$p" ]
+  do
+    if grep -Fxq "$checkVar" /etc/bash.bashrc
+    then
+        echo "$checkVar IS SET"
+    else
+        echo $checkVar >> /etc/bash.bashrc
+    fi
+  done < fabric-environment.sh
+
+  # cp ./fabric-environment.sh /etc/profile.d/fabric-environment.sh
+}
+
+addUserToDockerGroup() {
+
+  echo
+  echo "========================================================="
+  echo "Adding user to docker group"
+  echo "========================================================="
+  echo
+
+  usermod -a -G docker $(logname)
+}
+
 if [ `id -u` != "0" ]; then
   echo "Please, run as root"
   exit 1
 fi
 
-
-apt-get update
-programs=(curl make make-guile docker docker-compose jq)
-
-for program in "${programs[@]}"; do
-    if ! command -v "$program" > /dev/null 2>&1; then
-
-        echo
-        echo "========================================================="
-        echo "Now installing $program"
-        echo "========================================================="
-        echo
-        apt-get install "$program" -y
-        sleep 1s
-    fi
-done
-
+installDependencies
+installMakeGuile
 installLibtool
+checkEnvironment
+addUserToDockerGroup
 
 echo
 echo "========================================================="

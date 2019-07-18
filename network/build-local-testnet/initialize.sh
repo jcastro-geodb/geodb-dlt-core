@@ -10,7 +10,8 @@ sleep 1s
 # Build certificates
 cd ..
 ./generate-crypto-materials.sh --orgs operations.geodb.com:1:1:7500:geodb:password:7501
-sleep 1s
+
+sleep 3s
 # ./generate-crypto-materials.sh --orgs org1.com:1:1:7500:geodb:shouldChangeThisPass1234:7502
 # ./generate-crypto-materials.sh --orgs org2.com:1:1:7500:geodb:shouldChangeThisPass1234:7503
 
