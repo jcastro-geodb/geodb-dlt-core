@@ -40,6 +40,8 @@ class Federation extends React.Component {
           // => Trigger CA setup
         }
 
+        console.log(result[0]);
+
         if (fs.pathExistsSync(result[0].mspPath) === false) throw errors.certificatePathDoesNotExist;
 
         this.setState({ certPath: result[0].mspPath });
@@ -82,6 +84,8 @@ class Federation extends React.Component {
 
   readCert = () => {
     const { certPath } = this.state;
+
+    console.log(certPath);
 
     if (certPath) {
       this.setState({

@@ -5,66 +5,27 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-###############################################################################
-# Usar este script como sustitución de cryptogen
-# en entornos de producción
-##############################################################################
 
-
-##############
-# Arg parser #
-##############
-
-POSITIONAL=()
-while [[ $# -gt 0 ]]
-do
-key="$1"
-
-case $key in
-    -o|--orgs)
-    ORGS="$2"
-    shift
-    shift
-    ;;
-    -r|--recreate)
-    RECREATE="$2"
-    shift
-    shift
-    ;;
-    *)
-    POSITIONAL+=("$1")
-    shift
-    ;;
-esac
-done
-set -- "${POSITIONAL[@]}" # restore positional parameters
+#set -e
 
 # Organization info where each line is of the form:
-#    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:rootCAUser:rootCAPass:<intermediateCAPort>
-if [ -z "$ORGS" ]; then
-  fatal "--ORGS not found"
-fi
+#    <type>:<orgName>:<rootCAPort>:<intermediateCAPort>:<numOrderersOrPeers>
+ORGS="\
+   orderer:example.com:7054:7055:1 \
+   peer:org1.example.com:7056:7057:2 \
+   peer:org2.example.com:7058:7059:2 \
+"
 
-if [ -z "$RECREATE" ]; then
-  # If true, recreate crypto if it already exists
-  echo "Setting RECREATE=false"
-  RECREATE=false
-fi
+# If true, uses both a root and intermediate CA
+INTERMEDIATE_CA=true
 
-# if [ -z "$INTERMEDIATE_CA" ]; then
-#   # If true, uses both a root and intermediate CA
-#   echo "Setting INTERMEDIATE_CA=true"
-#   INTERMEDIATE_CA=true
-# fi
+# If true, recreate crypto if it already exists
+RECREATE=true
 
-echo "Running script with args:"
-echo "ORGS: ${ORGS}"
-echo "RECREATE: ${RECREATE}"
-
-# Path to fabric CA executables - Remember to configure it correctly for each fabric version
-FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
-CLIENT=$FCAHOME/bin/fabric-ca-client
+# Path to fabric CA executables
+FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca-1.2
 SERVER=$FCAHOME/bin/fabric-ca-server
+CLIENT=$FCAHOME/bin/fabric-ca-client
 
 # Crypto-config directory
 CDIR="crypto-config"
@@ -74,25 +35,23 @@ DEBUG=-d
 
 # Main fabric CA crypto config function
 function main {
-   # if [ -d $CDIR -a "$RECREATE" = false ]; then
-   #    echo "#################################################################"
-   #    echo "#######    Crypto material already exists   #####################"
-   #    echo "#################################################################"
-   #    exit 0
-   # fi
-   echo
+   if [ -d $CDIR -a "$RECREATE" = false ]; then
+      echo "#################################################################"
+      echo "#######    Crypto material already exists   #####################"
+      echo "#################################################################"
+      exit 0
+   fi
    echo "#################################################################"
    echo "#######    Generating crypto material using Fabric CA  ##########"
    echo "#################################################################"
-   echo
    echo "Checking executables ..."
    mydir=`pwd`
    checkExecutables
    cd $mydir
    if [ -d $CDIR ]; then
-      echo "Cleaning up CAs ..."
+      echo "Cleaning up ..."
       stopAllCAs
-      # rm -rf $CDIR
+      rm -rf $CDIR
    fi
    echo "Setting up organizations ..."
    setupOrgs
@@ -106,27 +65,22 @@ function checkExecutables {
    if [ ! -d $FCAHOME ]; then
       fatal "Directory does not exist: $FCAHOME"
    fi
-
    if [ ! -x $SERVER ]; then
+      dir=`pwd`
       cd $FCAHOME
       make fabric-ca-server
       if [ $? -ne 0 ]; then
          fatal "Failed to build $SERVER"
       fi
    fi
-
    if [ ! -x $CLIENT ]; then
+      dir=`pwd`
       cd $FCAHOME
       make fabric-ca-client
       if [ $? -ne 0 ]; then
          fatal "Failed to build $CLIENT"
       fi
    fi
-}
-
-function checkRootCA {
-  cd ./CA
-  ./startRootCA
 }
 
 # Setup orderer and peer organizations
@@ -145,84 +99,52 @@ function setupOrg {
    if [ ${#args[@]} -ne 5 ]; then
       fatal "setupOrg: bad org spec: $1"
    fi
-   orgName=${args[0]}
-
-   orgDir=$CDIR/$orgName
-
-   if [ -d $orgDir -a "$RECREATE" = false ]; then
-      echo "$orgName already exists, skipping"
-      return 0
-   fi
-
-   if [ -d $orgDir -a "$RECREATE" = true ]; then
-     echo "Removing ${orgName} certificates and recreating"
-     rm -rf $orgDir
-   fi
-
-   numPeers=${args[1]}
-   numOrderers=${args[2]}
-
-   echo "Org ${orgName} has ${numPeers} peer nodes and ${numOrderers} orderer nodes"
-   orgDir=${CDIR}/${orgName}
-   rootCAUser=${args[3]}
-   rootCAPass=${args[4]}
-   rootCAPort=${args[5]}
-   intermediateCAPort=${args[6]}
-
+   type=${args[0]}
+   orgName=${args[1]}
+   orgDir=${CDIR}/${type}Organizations/${args[1]}
+   rootCAPort=${args[2]}
+   intermediateCAPort=${args[3]}
+   numNodes=${args[4]}
    IFS=$IFSBU
-
-   # # Start the root CA server
-   # startCA $orgDir/ca/root $rootCAPort $orgName
-   # # Enroll an admin user with the root CA
-   # usersDir=$orgDir/users
-   # adminHome=$usersDir/rootAdmin
-   # enroll $adminHome http://admin:adminpw@localhost:$rootCAPort $orgName
-
-   # Start the intermediate CA server
-   startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://${rootCAUser}:${rootCAPort}@localhost:$rootCAPort
-   # Enroll an admin user with the intermediate CA
-   adminHome=$usersDir/intermediateAdmin
-   intermediateCAURL=http://admin:adminpw@localhost:$intermediateCAPort
-   enroll $adminHome $intermediateCAURL $orgName
-
-
+   # Start the root CA server
+   startCA $orgDir/ca/root $rootCAPort $orgName
+   # Enroll an admin user with the root CA
+   usersDir=$orgDir/users
+   adminHome=$usersDir/rootAdmin
+   enroll $adminHome http://admin:adminpw@localhost:$rootCAPort $orgName
+   if [ "$INTERMEDIATE_CA" == "true" ]; then
+      # Start the intermediate CA server
+      startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://admin:adminpw@localhost:$rootCAPort
+      # Enroll an admin user with the intermediate CA
+      adminHome=$usersDir/intermediateAdmin
+      intermediateCAURL=http://admin:adminpw@localhost:$intermediateCAPort
+      enroll $adminHome $intermediateCAURL $orgName
+   else
+      intermediateCAPort=$rootCAPort
+      intermediateCAURL=http://admin:adminpw@localhost:$rootCAPort
+   fi
    # Register and enroll admin with the intermediate CA
    adminUserHome=$usersDir/Admin@${orgName}
    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName nodeAdmin
    # Register and enroll user1 with the intermediate CA
    user1UserHome=$usersDir/User1@${orgName}
    registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName
-
-   # Create peer nodes
-   peerCount=0
-   while [ $peerCount -lt $numPeers ]; do
-
-      nodeDir=$orgDir/peers/peer${peerCount}.${orgName}
-
+   # Create nodes (orderers or peers)
+   nodeCount=0
+   while [ $nodeCount -lt $numNodes ]; do
+      if [ $numNodes -gt 1 ]; then
+         nodeDir=$orgDir/${type}s/${type}${nodeCount}.${orgName}
+      else
+         nodeDir=$orgDir/${type}s/${type}.${orgName}
+      fi
       mkdir -p $nodeDir
       # Get TLS crypto for this node
       tlsEnroll $nodeDir $rootCAPort $orgName
       # Register and enroll this node's identity
       registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName
       normalizeMSP $nodeDir $orgName $adminUserHome
-      peerCount=$(expr $peerCount + 1)
+      nodeCount=$(expr $nodeCount + 1)
    done
-
-   # Create orderer nodes
-   ordererCount=0
-   while [ $ordererCount -lt $numOrderers ]; do
-
-      nodeDir=$orgDir/orderers/orderer${ordererCount}.${orgName}
-
-      mkdir -p $nodeDir
-      # Get TLS crypto for this node
-      tlsEnroll $nodeDir $rootCAPort $orgName
-      # Register and enroll this node's identity
-      registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName
-      normalizeMSP $nodeDir $orgName $adminUserHome
-      ordererCount=$(expr $ordererCount + 1)
-   done
-
    # Get CA certs from intermediate CA
    getcacerts $orgDir $intermediateCAURL
    # Rename MSP files to names expected by end-to-end
@@ -406,10 +328,6 @@ function normalizeMSP {
       fatal "admin certificate file not found at $src"
    fi
    cp $src $dst
-
-   if [ "$INTERMEDIATE_CA" == "false" ]; then
-      rm -rf $intcerts
-   fi
 }
 # Get the CA certificates and place in MSP directory in <dir>
 #    getcacerts <dir> <serverURL>

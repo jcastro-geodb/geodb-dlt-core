@@ -2,28 +2,15 @@ version: "2"
 
 services:
   ca-root.geodb.com:
+    restart: always
     extends:
       file: ./ca-bootstrap-command.yaml
       service: ca-command
     image: hyperledger/fabric-ca:1.4.1
     container_name: ca-root.geodb.com
     ports:
-      - 7054:7054
+      - 7500:7054
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
     volumes:
       - ./fabric-ca-server:/etc/hyperledger/fabric-ca-server
-# ca.geodb.com:
-#   image: hyperledger/fabric-ca:1.4.1
-#   environment:
-#     - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server-config
-#     - FABRIC_CA_SERVER_CA_NAME=ca.geodb
-#   ports:
-#     - "7054:7054"
-#   working_dir: /etc/hyperledger/fabric-ca-server-config
-#   command: sh -c 'fabric-ca-server start -b admin:adminpw'
-#   volumes:
-#     - ./crypto-config/geodb.com/ca/root/:/etc/hyperledger/fabric-ca-server-config
-#   container_name: ca.geodb.com
-#   networks:
-#     - geodb

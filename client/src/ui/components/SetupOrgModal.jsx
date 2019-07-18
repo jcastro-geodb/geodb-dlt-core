@@ -5,6 +5,7 @@ import { Modal, Spinner, Button } from "react-bootstrap";
 import SetupOrgForm from "./SetupOrgForm.jsx";
 
 import setupCertificates from "./../../setups/certificates.jsx";
+import setupNode from "./../../setups/node.jsx";
 
 class SetupOrgModal extends React.Component {
   state = {
@@ -17,41 +18,45 @@ class SetupOrgModal extends React.Component {
     this.setState({ setupStarted: true });
     const { db } = this.props;
 
-    setupCertificates(
-      params,
-      data => {
-        console.log(`${data}`);
-      },
-      data => {
-        console.error(`${data}`);
-      },
-      code => {
-        console.log(`child process exited with code ${code}`);
-
+    setupCertificates(params)
+      .on("stdout", data => console.log(`${data}`))
+      .on("stderr", data => console.error(`${data}`))
+      .run()
+      .then(() => {
+        const domain = params.domain;
         const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/${params.domain}`);
+        if (fs.pathExistsSync(mspPath) !== true) throw new Error("mspPath was not created correctly");
 
-        if (code === 0 && fs.pathExistsSync(mspPath) === true) {
-          db.update({ _id: "msp-path" }, { _id: "msp-path", mspPath }, { upsert: true })
-            .then(result => {
-              this.setState({ setupSuccess: true });
-            })
-            .catch(error => {
-              console.error(error);
-              this.setState({ setupSuccess: false });
-            })
-            .finally(() => {
-              this.setState({ setupFinished: true });
-            });
-        } else {
-          this.setState({ setupFinished: true });
-        }
-      }
-    );
+        return db.update({ _id: "msp-path" }, { _id: "msp-path", mspPath, domain }, { upsert: true });
+      })
+      .then(dbUpdateResult => {
+        return setupNode(params)
+          .on("stderr", data => console.error(`${data}`))
+          .run();
+      })
+      .then(nodeSetupResult => {
+        this.setState({ setupSuccess: true });
+      })
+      .catch(error => {
+        console.error(error);
+        this.setState({ setupSuccess: false });
+      })
+      .finally(() => {
+        this.setState({ setupFinished: true });
+      });
+  };
+
+  onClose = () => {
+    const { onHide } = this.props;
+
+    const { setupSuccess } = this.state.setupSuccess;
+    this.setState({ setupStarted: false, setupFinished: false, setupSuccess: false });
+
+    onHide(setupSuccess);
   };
 
   render() {
     const { setupStarted, setupFinished, setupSuccess } = this.state;
-    const { onHide } = this.props;
 
     return (
       <Modal {...this.props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered backdrop="static">
@@ -65,7 +70,7 @@ class SetupOrgModal extends React.Component {
           {setupStarted === true && setupFinished === false ? this.renderSetupProcess() : null}
           {setupStarted === true && setupFinished === true ? this.renderSetupFinished() : null}
           {setupFinished === true && (
-            <Button block variant="outline-primary" onClick={() => onHide(setupSuccess)}>
+            <Button block variant="outline-primary" onClick={this.onClose}>
               Close
             </Button>
           )}
@@ -75,8 +80,6 @@ class SetupOrgModal extends React.Component {
   }
 
   renderForm = () => {
-    const { onHide } = this.props;
-
     return (
       <div>
         <p>
@@ -86,7 +89,7 @@ class SetupOrgModal extends React.Component {
         </p>
         <p>Please, fill the following form to before starting the process</p>
 
-        <SetupOrgForm handleCancel={onHide} startSetup={this.startSetup} />
+        <SetupOrgForm handleCancel={this.onClose} startSetup={this.startSetup} />
       </div>
     );
   };

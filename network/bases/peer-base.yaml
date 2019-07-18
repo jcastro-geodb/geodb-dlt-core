@@ -2,11 +2,13 @@ version: "2"
 
 services:
   peer:
+    restart: always
     image: hyperledger/fabric-peer:1.4.1
     environment:
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${COMPOSE_PROJECT_NAME}_geodb #${COMPOSE_PROJECT_NAME}_networkname
       - CORE_PEER_ADDRESSAUTODETECT=true
+      - CORE_LOGGING_LEVEL=DEBUG
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer/
     command: peer node start
     volumes:

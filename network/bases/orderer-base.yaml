@@ -1,0 +1,18 @@
+version: "2"
+
+services:
+  orderer:
+    restart: always
+    image: hyperledger/fabric-orderer:1.4.1
+    environment:
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_LOGLEVEL=debug
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+      - ../orderer/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+    networks:
+      - geodb

@@ -4,7 +4,7 @@ On a fresh Ubuntu 16.04 / 18.04 installation run:
 
 `sudo ./install-dependencies.sh`
 
-`./setup-fabric-geodb.sh`
+`sudo ./setup-fabric-geodb.sh`
 
 # TODOs
 
