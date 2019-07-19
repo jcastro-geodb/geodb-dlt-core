@@ -1,14 +1,22 @@
 const GeoToken = artifacts.require("./GeoToken.sol");
-const { BN, expectEvent } = require("openzeppelin-test-helpers");
+const { BN, expectEvent, expectRevert, singletons } = require("openzeppelin-test-helpers");
+const { toWei, fromWei } = require("web3-utils");
+const { geoconstants, ErrorMsgs } = require("./helpers");
+
+const { symbol, name } = geoconstants;
 
 const preAssignedTokensInMillions = new BN("300");
 const tokenDecimals = new BN("18");
 
-contract("GeoToken", ([geodb, ...accounts]) => {
-  let contract;
+contract("GeoToken", ([erc1820funder, geodb, ...accounts]) => {
+  let erc1820, contract;
+
+  before("Fund ERC1820 account and deploy ERC1820 registry", async () => {
+    erc1820 = await singletons.ERC1820Registry(erc1820funder);
+  });
 
   beforeEach("Initialize contract", async () => {
-    contract = await GeoToken.new();
+    contract = await GeoToken.new(name, symbol, [], { from: geodb });
   });
 
   describe("The contract is initialized correctly", () => {
@@ -39,14 +47,22 @@ contract("GeoToken", ([geodb, ...accounts]) => {
       const { logs } = await contract.releaseReward(to, amount, { from });
 
       const event = expectEvent.inLogs(logs, "LogReward", {
-        from,
+        sender: from,
+        origin: from,
         to,
         amount
       });
+    });
 
-      event.args.from.should.be.equal(from);
-      event.args.to.should.be.equal(to);
-      event.args.amount.should.be.bignumber.equal(amount);
+    it(`supply tops with ${fromWei(geoconstants.maxSupply, "ether")} tokens`, async () => {
+      const from = geodb;
+      const to = accounts[0];
+      const amount = geoconstants.maxSupply.sub(geoconstants.preAssignedSupply);
+
+      const { logs } = await contract.releaseReward(to, amount, { from });
+      (await contract.totalSupply()).should.be.bignumber.equal(geoconstants.maxSupply);
+
+      await expectRevert.unspecified(contract.releaseReward(to, new BN("1"), { from }));
     });
   });
 });

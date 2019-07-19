@@ -1,7 +1,6 @@
 pragma solidity >= 0.5.0 <6.0.0;
 
 import "../externals/openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
-import "../externals/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 // Replace the two above for:
 // import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 // import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -13,7 +12,7 @@ import "./GeoDBClasses.sol";
 /**
 * @title GeoDB ERC20 Token
 */
-contract GeoFederation is GeoDBClasses, Ownable{
+contract GeoFederation is GeoDBClasses, Ownable {
   using SafeMath for uint256;
   // Token
 
