@@ -29,11 +29,20 @@ import "../externals/openzeppelin-solidity/contracts/introspection/IERC1820Regis
 contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   using SafeMath for uint256;
 
+  struct Balance {
+    uint256 balance;
+    uint256 withdrawn;
+    uint256 lockTimestamp;
+    uint256 unlockTimestamp;
+  }
+
   IERC1820Registry private _erc1820 = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24); // See EIP1820
   bytes32 constant private TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender"); // See EIP777
   bytes32 constant private TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient"); // See EIP777
 
   IERC777 public token; // ERC777 basic token contract being held
+  mapping(address => Balance) private _balances;
+
 
   event LogTokensReceived(
     address indexed operator,
@@ -48,6 +57,12 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     uint256 amount
   );
 
+  event LogTokensLocked(
+    address indexed to,
+    uint256 amount,
+    uint256 unlockTimestamp
+  );
+
   /**
    * @dev note that the duration must be specified in DAYS. This will be translated to EVM timestamp (Unix timestamp)
    * in seconds.
@@ -55,6 +70,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
    * @param _token IERC777 address of the ERC777 contract
    */
   constructor(IERC777 _token) public {
+    require(address(_token) != address(0), "Token address cannot be 0x0");
     token = _token;
     // Register as a token receiver
     _erc1820.setInterfaceImplementer(address(this), TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
@@ -76,15 +92,14 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
       bytes calldata /*userData*/,
       bytes calldata /*operatorData*/
   ) external whenNotPaused {
-
     require(msg.sender == address(token), "Can only be called by the GeoDB GeoTokens contract");
+    _balances[from].balance = _balances[from].balance;
     emit LogTokensSent(operator, from, to, amount);
   }
 
   /**
    * @dev ERC777 Hook. It will be called when this contract receives tokens.
-   * This function will update and increase the locked amount for the beneficiary, but it will not
-   * update the lock's timestamp for the funds to be released.
+   * This function will update and increase the owner's funds.
    * Flow should be: token.send() calls => token.tokensReceived(this) calls => this.tokensReceived()
    */
   function tokensReceived(
@@ -95,8 +110,31 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
       bytes calldata /*userData*/,
       bytes calldata /*operatorData*/
   ) external whenNotPaused {
-
     require(msg.sender == address(token), "Can only receive GeoDB GeoTokens");
+    address owner = owner();
+    _balances[owner].balance = _balances[owner].balance.add(amount);
     emit LogTokensReceived(operator, from, amount);
   }
+
+  function lock(address to, uint256 amount, uint256 lockTimeInDays) public onlyOwner returns (bool) {
+    require(to != address(0), "Cannot lock amounts for the 0x0 address");
+    require(amount > 0, "The amount to lock must be greater than 0");
+    require(lockTimeInDays > 0, "Lock time must be greater than 0");
+    require(_balances[to].balance == 0, "This address already has funds locked");
+
+    _balances[msg.sender].balance = _balances[msg.sender].balance.sub(amount);
+    _balances[to].balance = amount;
+    _balances[to].lockTimestamp = now;
+    uint256 unlockTimestamp = now.add(lockTimeInDays.mul(1 days));
+    _balances[to].unlockTimestamp = unlockTimestamp;
+
+    emit LogTokensLocked(to, amount, unlockTimestamp);
+
+    return true;
+
+  }
+
+
+
+
 }
