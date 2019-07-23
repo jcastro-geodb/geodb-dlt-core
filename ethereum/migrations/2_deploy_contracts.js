@@ -1,3 +1,6 @@
+require('openzeppelin-test-helpers/configure')({ web3 });
+
+const { singletons } = require('openzeppelin-test-helpers');
 const fs = require("fs-extra");
 const path = require("path");
 const { BN } = require("web3-utils").BN;
@@ -19,10 +22,15 @@ const clientEthContractsDirectory = path.resolve(__dirname, "./../../client/src/
 
 const presaleHoldersPath = path.resolve(__dirname, "./../.presale_holders.json");
 
-module.exports = function(deployer, network) {
+module.exports = function(deployer, network, accounts) {
   if (network.includes("test") || network.includes("development"))
     // do not deploy, each test should deploy by itself
     return;
+  
+  if (network === 'ganache') {
+    // In a test environment an ERC777 token requires deploying an ERC1820 registry
+    singletons.ERC1820Registry(accounts[0]);
+  }
 
   const presaleHolders = fs.readJsonSync(presaleHoldersPath);
 
@@ -35,7 +43,7 @@ module.exports = function(deployer, network) {
   }
 
   deployer
-    .deploy(GeoToken, holders, amounts)
+    .deploy(GeoToken,"GeoToken", "GTKN", holders)
     .then(() => {
       return GeoToken.deployed();
     })
