@@ -78,6 +78,15 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     _erc1820.setInterfaceImplementer(address(this), TOKENS_SENDER_INTERFACE_HASH, address(this));
   }
 
+  /*
+    @dev: This function is the default callback for the contract.
+
+    We do not want to accept any ether.
+  */
+  function() external {
+    revert();
+  }
+
   /**
    * @dev ERC777 Hook. It will be called when this contract sends tokens to any address.
    * This function will update the withdrawn amount by the beneficiary, keeping the internal balance record so that
@@ -93,7 +102,6 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
       bytes calldata /*operatorData*/
   ) external whenNotPaused {
     require(msg.sender == address(token), "Can only be called by the GeoDB GeoTokens contract");
-    _balances[from].balance = _balances[from].balance;
     emit LogTokensSent(operator, from, to, amount);
   }
 
@@ -116,8 +124,9 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     emit LogTokensReceived(operator, from, amount);
   }
 
-  function lock(address to, uint256 amount, uint256 lockTimeInDays) public onlyOwner returns (bool) {
+  function lock(address to, uint256 amount, uint256 lockTimeInDays) public onlyOwner whenNotPaused returns (bool) {
     require(to != address(0), "Cannot lock amounts for the 0x0 address");
+    require(to != owner(), "Cannot self-lock tokens");
     require(amount > 0, "The amount to lock must be greater than 0");
     require(lockTimeInDays > 0, "Lock time must be greater than 0");
     require(_balances[to].balance == 0, "This address already has funds locked");
@@ -131,7 +140,49 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     emit LogTokensLocked(to, amount, unlockTimestamp);
 
     return true;
+  }
 
+  function unlock() public {
+    uint256 allowance = computeAllowance();
+    require(allowance > 0, "No allowance on this contract");
+    _balances[msg.sender].withdrawn = _balances[msg.sender].withdrawn.add(allowance);
+    token.send(msg.sender, allowance, "");
+  }
+
+  function send(address to, uint256 amount) public {
+    require(amount <= computeAllowance());
+    require(amount > 0);
+    require(to != address(0));
+    _balances[msg.sender].withdrawn = _balances[msg.sender].withdrawn.add(amount);
+    token.send(to, amount, "");
+  }
+
+  /**
+   * @dev computes the total amount of tokens that could be retrieved at this point in time.
+   * @return uint256 the total amount of tokens that the sender is entitled to at this point in time.
+   */
+  function computeAllowance() public view returns (uint256) {
+
+    uint256 lockTimestamp = _balances[msg.sender].lockTimestamp;
+    uint256 unlockTimestamp = _balances[msg.sender].unlockTimestamp;
+    uint256 lockedAmount = _balances[msg.sender].unlockTimestamp;
+
+    uint256 totalAllowance = now >= unlockTimestamp ? lockedAmount : // If lock time has passed, allow to retrieve all funds
+      // else, compute the proportional allowance
+      now.sub(lockTimestamp) // Elapsed seconds since contract creation
+      .mul(
+        lockedAmount.div(unlockTimestamp.sub(lockTimestamp)) // Allowance per block
+      );
+
+    return totalAllowance.sub(_balances[msg.sender].withdrawn);
+  }
+
+  /**
+   * @dev returns the balance that was originally locked - the total presale entitlement of the holder.
+   * @return uint256 field balance of mapping
+   */
+  function balanceOf(address addr) public view returns (uint256) {
+    return _balances[addr].balance;
   }
 
 
