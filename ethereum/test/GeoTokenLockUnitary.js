@@ -1,6 +1,6 @@
 const GeoToken = artifacts.require("./GeoToken.sol");
 const GeoTokenLockUnitary = artifacts.require("./GeoTokenLockUnitary.sol");
-const { BN, expectEvent, expectRevert, singletons, time } = require("openzeppelin-test-helpers");
+const { BN, expectEvent, expectRevert, singletons, time, constants } = require("openzeppelin-test-helpers");
 const { toWei, fromWei } = require("web3-utils");
 const { preAssignedSupply, symbol, name } = require("./helpers").geoconstants;
 const { ErrorMsgs } = require("./helpers");
@@ -23,6 +23,8 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
     lockContract = await GeoTokenLockUnitary.new(tokenContract.address, {
       from: geodb
     });
+
+    await tokenContract.send(accounts[0], amountToLock, "0x0", { from: geodb }); // Fund another account for external actions
   });
 
   it("initializes correctly", async () => {
@@ -39,4 +41,72 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       "0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b"
     )).should.be.equal(lockContract.address);
   });
+
+  describe("Send tokens to the contract", () => {
+    it("assigns the balance to the owner if sent by the owner", async () => {
+      const { tx, logs } = await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+
+      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
+      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock);
+
+      await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensReceived", {
+        operator: geodb,
+        from: geodb,
+        amount: amountToLock
+      });
+    });
+
+    it("assigns the balance to the owner if sent by the other address", async () => {
+      const { tx, logs } = await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: accounts[0] });
+
+      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
+      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock);
+
+      await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensReceived", {
+        operator: accounts[0],
+        from: accounts[0],
+        amount: amountToLock
+      });
+    });
+
+    it("keeps incrementing owner's balance as new transfers are done to the contract", async () => {
+      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+
+      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
+      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock);
+
+      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: accounts[0] });
+      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
+      (await tokenContract.balanceOf(lockContract.address)).should.be.bignumber.equal(amountToLock.mul(new BN("2")));
+      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("2")));
+    });
+  });
+
+  describe("lock()", async () => {
+    beforeEach("send tokens to the contract", async () => {
+      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+    });
+
+    it("allows to lock tokens for a beneficiary", async () => {});
+
+    it("rejects if the beneficiary already has locked tokens");
+
+    it("rejects if the caller is not the owner");
+
+    it("rejects if the caller has not enough amount");
+
+    it("rejects locking to the 0x0 address");
+
+    it("rejects locking for 0 days");
+  });
+
+  describe("batchLock()", () => {});
+
+  describe("send()", () => {});
+
+  describe("unlock()", () => {});
+
+  describe("ownerUnlock()", () => {});
+
+  describe("ownerBatchUnlock()", () => {});
 });
