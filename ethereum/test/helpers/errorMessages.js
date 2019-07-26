@@ -13,5 +13,6 @@ module.exports = {
   cannotLockAmountsForZeroAddress: "Cannot lock amounts for the 0x0 address",
   cannotSelfLockTokens: "Cannot self-lock tokens",
   theAmountToLockMustBeGreaterThanZero: "The amount to lock must be greater than 0",
-  lockTimeMustBeGreaterThanZero: "Lock time must be greater than 0"
+  lockTimeMustBeGreaterThanZero: "Lock time must be greater than 0",
+  emptyBeneficiariesList: "Empty beneficiaries list"
 };

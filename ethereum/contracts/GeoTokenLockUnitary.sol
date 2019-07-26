@@ -127,7 +127,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   }
 
   function lock(address beneficiary, uint256 amount, uint256 lockTimeInDays) public onlyOwner whenNotPaused returns (bool) {
-    
+
     require(beneficiary != address(0), "Cannot lock amounts for the 0x0 address");
     require(beneficiary != owner(), "Cannot self-lock tokens");
     require(amount > 0, "The amount to lock must be greater than 0");
@@ -144,7 +144,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   }
 
   function batchLock(address[] memory beneficiaries, uint256 amount, uint256 lockTimeInDays) public onlyOwner whenNotPaused returns (bool) {
-    require(beneficiaries.length > 0);
+    require(beneficiaries.length > 0, "Empty beneficiaries list");
     uint8 i = 0;
 
     for(i; i < beneficiaries.length; i++) {

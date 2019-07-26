@@ -110,12 +110,6 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       });
     });
 
-    // require(beneficiary != address(0), "Cannot lock amounts for the 0x0 address");
-    // require(beneficiary != owner(), "Cannot self-lock tokens");
-    // require(amount > 0, "The amount to lock must be greater than 0");
-    // require(lockTimeInDays > 0, "Lock time must be greater than 0");
-    // require(locks[beneficiary].balance == 0, "This address already has funds locked");
-
     it("rejects if the caller is not the owner", async () => {
       await expectRevert.unspecified(lockContract.lock(beneficiary, amountToLock, daysLocked, { from: beneficiary }));
     });
@@ -163,7 +157,47 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
     });
   });
 
-  describe("batchLock()", () => {});
+  describe("batchLock()", () => {
+    beforeEach("send tokens to the contract", async () => {
+      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+    });
+
+    it("allows to lock for a batch of accounts", async () => {
+      const dividedLockAmount = amountToLock.div(new BN(`${accounts.length}`));
+
+      const { tx, logs } = await lockContract.batchLock(accounts, dividedLockAmount, daysLocked, { from: geodb });
+
+      const currentTimestamp = await time.latest();
+      const unlockTimestamp = currentTimestamp.add(time.duration.days(daysLocked));
+
+      for (let i = 0; i < accounts.length; i++) {
+        const beneficiaryLock = await lockContract.locks(accounts[i]);
+
+        beneficiaryLock.balance.should.be.bignumber.equal(dividedLockAmount);
+        beneficiaryLock.withdrawn.should.be.bignumber.equal(ZERO_UINT);
+        beneficiaryLock.lockTimestamp.should.be.bignumber.equal(currentTimestamp);
+        beneficiaryLock.unlockTimestamp.should.be.bignumber.equal(unlockTimestamp);
+
+        await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensLocked", {
+          to: accounts[i],
+          amount: dividedLockAmount,
+          unlockTimestamp
+        });
+      }
+
+      const ownerLock = await lockContract.locks(geodb);
+      ownerLock.balance.should.be.bignumber.equal(
+        amountToLock.sub(dividedLockAmount.mul(new BN(`${accounts.length}`)))
+      );
+    });
+
+    it("rejects if the accounts list is empty", async () => {
+      await expectRevert(
+        lockContract.batchLock([], amountToLock, daysLocked, { from: geodb }),
+        ErrorMsgs.emptyBeneficiariesList
+      );
+    });
+  });
 
   describe("send()", () => {});
 
