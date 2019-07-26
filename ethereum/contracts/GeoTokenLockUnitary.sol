@@ -29,7 +29,7 @@ import "../externals/openzeppelin-solidity/contracts/introspection/IERC1820Regis
 contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   using SafeMath for uint256;
 
-  struct Balance {
+  struct Lock {
     uint256 balance;
     uint256 withdrawn;
     uint256 lockTimestamp;
@@ -41,7 +41,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   bytes32 constant private TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient"); // See EIP777
 
   IERC777 public token; // ERC777 basic token contract being held
-  mapping(address => Balance) public balances;
+  mapping(address => Lock) public locks;
 
 
   event LogTokensReceived(
@@ -122,22 +122,23 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   ) external whenNotPaused {
     require(msg.sender == address(token), "Can only receive GeoDB GeoTokens");
     address owner = owner();
-    balances[owner].balance = balances[owner].balance.add(amount);
+    locks[owner].balance = locks[owner].balance.add(amount);
     emit LogTokensReceived(operator, from, amount);
   }
 
   function lock(address beneficiary, uint256 amount, uint256 lockTimeInDays) public onlyOwner whenNotPaused returns (bool) {
+    
     require(beneficiary != address(0), "Cannot lock amounts for the 0x0 address");
     require(beneficiary != owner(), "Cannot self-lock tokens");
     require(amount > 0, "The amount to lock must be greater than 0");
     require(lockTimeInDays > 0, "Lock time must be greater than 0");
-    require(balances[beneficiary].balance == 0, "This address already has funds locked");
+    require(locks[beneficiary].balance == 0, "This address already has funds locked");
 
-    balances[msg.sender].balance = balances[msg.sender].balance.sub(amount);
-    balances[beneficiary].balance = amount;
-    balances[beneficiary].lockTimestamp = now;
+    locks[msg.sender].balance = locks[msg.sender].balance.sub(amount);
+    locks[beneficiary].balance = amount;
+    locks[beneficiary].lockTimestamp = now;
     uint256 unlockTimestamp = now.add(lockTimeInDays.mul(1 days));
-    balances[beneficiary].unlockTimestamp = unlockTimestamp;
+    locks[beneficiary].unlockTimestamp = unlockTimestamp;
     emit LogTokensLocked(beneficiary, amount, unlockTimestamp);
     return true;
   }
@@ -158,7 +159,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     require(amount > 0);
     require(to != address(0));
 
-    balances[msg.sender].withdrawn = balances[msg.sender].withdrawn.add(amount);
+    locks[msg.sender].withdrawn = locks[msg.sender].withdrawn.add(amount);
     token.send(to, amount, abi.encodePacked(msg.sender));
     return true;
   }
@@ -167,7 +168,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     uint256 allowance = computeAllowance(msg.sender);
     require(allowance > 0, "No allowance on this contract");
 
-    balances[msg.sender].withdrawn = balances[msg.sender].withdrawn.add(allowance);
+    locks[msg.sender].withdrawn = locks[msg.sender].withdrawn.add(allowance);
     token.send(msg.sender, allowance, abi.encodePacked(msg.sender));
     return true;
   }
@@ -177,7 +178,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     uint256 allowance = computeAllowance(beneficiary);
     require(allowance > 0, "No allowance on this contract");
 
-    balances[beneficiary].withdrawn = balances[beneficiary].withdrawn.add(allowance);
+    locks[beneficiary].withdrawn = locks[beneficiary].withdrawn.add(allowance);
     token.send(beneficiary, allowance, abi.encodePacked(beneficiary));
     return true;
   }
@@ -199,9 +200,9 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
    */
   function computeAllowance(address from) public view returns (uint256) {
 
-    uint256 lockTimestamp = balances[from].lockTimestamp;
-    uint256 unlockTimestamp = balances[from].unlockTimestamp;
-    uint256 lockedAmount = balances[from].unlockTimestamp;
+    uint256 lockTimestamp = locks[from].lockTimestamp;
+    uint256 unlockTimestamp = locks[from].unlockTimestamp;
+    uint256 lockedAmount = locks[from].unlockTimestamp;
 
     uint256 totalAllowance = now >= unlockTimestamp ? lockedAmount : // If lock time has passed, allow to retrieve all funds
       // else, compute the proportional allowance
@@ -210,7 +211,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
         lockedAmount.div(unlockTimestamp.sub(lockTimestamp)) // Allowance per block
       );
 
-    return totalAllowance.sub(balances[from].withdrawn);
+    return totalAllowance.sub(locks[from].withdrawn);
   }
 
   /**
@@ -218,7 +219,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
    * @return uint256 field balance of mapping
    */
   function balanceOf(address addr) public view returns (uint256) {
-    return balances[addr].balance;
+    return locks[addr].balance;
   }
 
   function bytesToAddress(bytes memory bys) private pure returns (address addr) {

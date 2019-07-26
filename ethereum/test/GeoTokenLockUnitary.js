@@ -9,8 +9,8 @@ const { erc777BalanceDelta } = require("./helpers").balances;
 contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts]) => {
   let erc1820, tokenContract, lockContract;
 
-  const daysLocked = new BN("180");
-
+  const ZERO_UINT = new BN("0");
+  const daysLocked = new BN(`${18 * 30}`); // 18 months
   const amountToLock = new BN(toWei("1", "ether")); // GEO follows the same decimals structure as ETH
 
   before("Fund ERC1820 account and deploy ERC1820 registry", async () => {
@@ -47,7 +47,7 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       const { tx, logs } = await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
 
       (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
-      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock);
+      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
 
       await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensReceived", {
         operator: geodb,
@@ -60,7 +60,7 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       const { tx, logs } = await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: accounts[0] });
 
       (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
-      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock);
+      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
 
       await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensReceived", {
         operator: accounts[0],
@@ -73,12 +73,12 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
 
       (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
-      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock);
+      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
 
       await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: accounts[0] });
       (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
       (await tokenContract.balanceOf(lockContract.address)).should.be.bignumber.equal(amountToLock.mul(new BN("2")));
-      (await lockContract.balances(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("2")));
+      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("2")));
     });
   });
 
@@ -87,17 +87,80 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
     });
 
-    it("allows to lock tokens for a beneficiary", async () => {});
+    it("allows to lock tokens for a beneficiary", async () => {
+      const { tx, logs } = await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
 
-    it("rejects if the beneficiary already has locked tokens");
+      const currentTimestamp = await time.latest();
+      const unlockTimestamp = currentTimestamp.add(time.duration.days(daysLocked));
 
-    it("rejects if the caller is not the owner");
+      const beneficiaryLock = await lockContract.locks(beneficiary);
 
-    it("rejects if the caller has not enough amount");
+      beneficiaryLock.balance.should.be.bignumber.equal(amountToLock);
+      beneficiaryLock.withdrawn.should.be.bignumber.equal(ZERO_UINT);
+      beneficiaryLock.lockTimestamp.should.be.bignumber.equal(currentTimestamp);
+      beneficiaryLock.unlockTimestamp.should.be.bignumber.equal(unlockTimestamp);
 
-    it("rejects locking to the 0x0 address");
+      const ownerLock = await lockContract.locks(geodb);
+      ownerLock.balance.should.be.bignumber.equal(ZERO_UINT);
 
-    it("rejects locking for 0 days");
+      await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensLocked", {
+        to: beneficiary,
+        amount: amountToLock,
+        unlockTimestamp
+      });
+    });
+
+    // require(beneficiary != address(0), "Cannot lock amounts for the 0x0 address");
+    // require(beneficiary != owner(), "Cannot self-lock tokens");
+    // require(amount > 0, "The amount to lock must be greater than 0");
+    // require(lockTimeInDays > 0, "Lock time must be greater than 0");
+    // require(locks[beneficiary].balance == 0, "This address already has funds locked");
+
+    it("rejects if the caller is not the owner", async () => {
+      await expectRevert.unspecified(lockContract.lock(beneficiary, amountToLock, daysLocked, { from: beneficiary }));
+    });
+
+    it("rejects if the contract is paused", async () => {
+      await lockContract.pause({ from: geodb });
+      await expectRevert.unspecified(lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb }));
+    });
+
+    it("rejects locking to the 0x0 address", async () => {
+      await expectRevert(
+        lockContract.lock(constants.ZERO_ADDRESS, amountToLock, daysLocked, { from: geodb }),
+        ErrorMsgs.cannotLockAmountsForZeroAddress
+      );
+    });
+
+    it("rejects locking to the owner address", async () => {
+      await expectRevert(
+        lockContract.lock(geodb, amountToLock, daysLocked, { from: geodb }),
+        ErrorMsgs.cannotSelfLockTokens
+      );
+    });
+
+    it("rejects locking 0", async () => {
+      await expectRevert(
+        lockContract.lock(beneficiary, ZERO_UINT, daysLocked, { from: geodb }),
+        ErrorMsgs.theAmountToLockMustBeGreaterThanZero
+      );
+    });
+
+    it("rejects locking for 0 days", async () => {
+      await expectRevert(
+        lockContract.lock(beneficiary, amountToLock, ZERO_UINT, { from: geodb }),
+        ErrorMsgs.lockTimeMustBeGreaterThanZero
+      );
+    });
+
+    it("rejects if the beneficiary already has locked tokens", async () => {
+      await lockContract.lock(beneficiary, new BN("1"), daysLocked, { from: geodb });
+
+      await expectRevert(
+        lockContract.lock(beneficiary, new BN("1"), daysLocked, { from: geodb }),
+        ErrorMsgs.thisAddressAlreadyHasFundsLocked
+      );
+    });
   });
 
   describe("batchLock()", () => {});
