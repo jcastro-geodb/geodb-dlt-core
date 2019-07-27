@@ -202,7 +202,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
 
     uint256 lockTimestamp = locks[from].lockTimestamp;
     uint256 unlockTimestamp = locks[from].unlockTimestamp;
-    uint256 lockedAmount = locks[from].unlockTimestamp;
+    uint256 lockedAmount = locks[from].balance;
 
     uint256 totalAllowance = now >= unlockTimestamp ? lockedAmount : // If lock time has passed, allow to retrieve all funds
       // else, compute the proportional allowance
@@ -212,6 +212,18 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
       );
 
     return totalAllowance.sub(locks[from].withdrawn);
+  }
+
+  function steps(address from) public view returns (uint256 elapsed, uint256 duration, uint256 perBlock, uint256 remainder) {
+    uint256 lockTimestamp = locks[from].lockTimestamp;
+    uint256 unlockTimestamp = locks[from].unlockTimestamp;
+    uint256 lockedAmount = locks[from].balance;
+
+    elapsed = now.sub(lockTimestamp);
+    duration = unlockTimestamp.sub(lockTimestamp);
+    perBlock = lockedAmount.div(duration);
+    remainder =lockedAmount % duration;
+
   }
 
   /**
@@ -229,7 +241,11 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     }
   }
 
-
-
+// 1.587.478.744
+//
+// 23.328.000 // Tiempo transcurrido
+// 46.656.000 // Total tiempo
+//
+// 21.433.470.507,544582367 // Desbloqueo por tiempo
 
 }

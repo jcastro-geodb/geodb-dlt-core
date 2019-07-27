@@ -21,6 +21,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 require("chai/register-should");
+const { toWei } = require("web3-utils");
 
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
@@ -90,13 +91,21 @@ module.exports = {
     rinkeby: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.rinkeby),
       confirmations: 2,
-      network_id: "1" // Match any network id
+      network_id: "1"
     },
     ropsten: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten),
       confirmations: 2,
       gas: 5500000,
-      network_id: "3" // Match any network id
+      network_id: "3",
+      gasPrice: toWei("2", "gwei")
+    },
+    kovan: {
+      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.kovan),
+      confirmations: 2,
+      gas: 8000000,
+      network_id: "42",
+      gasPrice: toWei("2", "gwei")
     }
   },
 

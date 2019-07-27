@@ -11,7 +11,10 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
 
   const ZERO_UINT = new BN("0");
   const daysLocked = new BN(`${18 * 30}`); // 18 months
-  const amountToLock = new BN(toWei("1", "ether")); // GEO follows the same decimals structure as ETH
+
+  // GEO follows the same decimals structure as ETH, so we can use the fromWei and toWei utils from web3
+  // The amount is computed so that the allowance per second is integral and has no remainder when divided by the daysLocked
+  const amountToLock = toWei(daysLocked.mul(new BN("24")).mul(new BN("3600")), "ether");
 
   before("Fund ERC1820 account and deploy ERC1820 registry", async () => {
     erc1820 = await singletons.ERC1820Registry(erc1820funder);
@@ -199,7 +202,50 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
     });
   });
 
-  describe("send()", () => {});
+  describe("computeAllowance()", async () => {
+    beforeEach("send tokens to the contract", async () => {
+      await tokenContract.send(lockContract.address, amountToLock.mul(new BN("3")), "0x0", { from: geodb });
+    });
+
+    describe("for the contract owner", () => {
+      it("returns the total amount that has not been locked for other users", async () => {
+        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("3")));
+
+        await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
+        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("2")));
+
+        await lockContract.lock(accounts[0], amountToLock, daysLocked, { from: geodb });
+        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
+
+        await lockContract.lock(accounts[1], amountToLock, daysLocked, { from: geodb });
+        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(ZERO_UINT);
+      });
+    });
+
+    describe("for a beneficiary", () => {
+      beforeEach("lock the amount for the beneficiary", async () => {
+        await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
+      });
+
+      it("is 0 at the start of a lock", async () => {
+        (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(ZERO_UINT);
+      });
+
+      it("is half when 9 months have passed", async () => {
+        await time.increase(time.duration.days(new BN(`${9 * 30}`)));
+        (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(amountToLock.div(new BN("2")));
+      });
+    });
+  });
+
+  describe("send()", () => {
+    beforeEach("send tokens to the contract and lock them", async () => {
+      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+      await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
+    });
+
+    it("allows to unlock");
+  });
 
   describe("unlock()", () => {});
 
