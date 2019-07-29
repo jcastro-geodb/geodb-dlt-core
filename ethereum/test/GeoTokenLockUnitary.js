@@ -46,48 +46,14 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
   });
 
   describe("Send tokens to the contract", () => {
-    it("assigns the balance to the owner if sent by the owner", async () => {
-      const { tx, logs } = await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
-
-      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
-      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
-
-      await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensReceived", {
-        operator: geodb,
-        from: geodb,
-        amount: amountToLock
-      });
-    });
-
-    it("assigns the balance to the owner if sent by the other address", async () => {
-      const { tx, logs } = await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: accounts[0] });
-
-      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
-      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
-
-      await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensReceived", {
-        operator: accounts[0],
-        from: accounts[0],
-        amount: amountToLock
-      });
-    });
-
-    it("keeps incrementing owner's balance as new transfers are done to the contract", async () => {
-      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
-
-      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
-      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
-
-      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: accounts[0] });
-      (await erc777BalanceDelta(lockContract.address, tokenContract)).should.be.bignumber.equal(amountToLock);
-      (await tokenContract.balanceOf(lockContract.address)).should.be.bignumber.equal(amountToLock.mul(new BN("2")));
-      (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("2")));
-    });
+    it("rejects if the token is not GeoToken");
+    it("rejects if the operator is not the lock contract");
+    it("rejects if spender is not the owner");
   });
 
   describe("lock()", async () => {
-    beforeEach("send tokens to the contract", async () => {
-      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+    beforeEach("sign the lock contract as operator for the owner", async () => {
+      await tokenContract.authorizeOperator(lockContract.address, { from: geodb });
     });
 
     it("allows to lock tokens for a beneficiary", async () => {
@@ -102,9 +68,6 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       beneficiaryLock.withdrawn.should.be.bignumber.equal(ZERO_UINT);
       beneficiaryLock.lockTimestamp.should.be.bignumber.equal(currentTimestamp);
       beneficiaryLock.unlockTimestamp.should.be.bignumber.equal(unlockTimestamp);
-
-      const ownerLock = await lockContract.locks(geodb);
-      ownerLock.balance.should.be.bignumber.equal(ZERO_UINT);
 
       await expectEvent.inTransaction(tx, GeoTokenLockUnitary, "LogTokensLocked", {
         to: beneficiary,
@@ -161,8 +124,8 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
   });
 
   describe("batchLock()", () => {
-    beforeEach("send tokens to the contract", async () => {
-      await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
+    beforeEach("sign the lock contract as operator for the owner", async () => {
+      await tokenContract.authorizeOperator(lockContract.address, { from: geodb });
     });
 
     it("allows to lock for a batch of accounts", async () => {
@@ -188,10 +151,10 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
         });
       }
 
-      const ownerLock = await lockContract.locks(geodb);
-      ownerLock.balance.should.be.bignumber.equal(
-        amountToLock.sub(dividedLockAmount.mul(new BN(`${accounts.length}`)))
-      );
+      // const ownerLock = await lockContract.locks(geodb);
+      // ownerLock.balance.should.be.bignumber.equal(
+      //   amountToLock.sub(dividedLockAmount.mul(new BN(`${accounts.length}`)))
+      // );
     });
 
     it("rejects if the accounts list is empty", async () => {
@@ -203,38 +166,21 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
   });
 
   describe("computeAllowance()", async () => {
-    beforeEach("send tokens to the contract", async () => {
-      await tokenContract.send(lockContract.address, amountToLock.mul(new BN("3")), "0x0", { from: geodb });
+    beforeEach("sign the lock contract as operator for the owner", async () => {
+      await tokenContract.authorizeOperator(lockContract.address, { from: geodb });
+      await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
+    });
+    it("is 0 at the start of a lock", async () => {
+      (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(ZERO_UINT);
     });
 
-    describe("for the contract owner", () => {
-      it("returns the total amount that has not been locked for other users", async () => {
-        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("3")));
-
-        await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
-        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock.mul(new BN("2")));
-
-        await lockContract.lock(accounts[0], amountToLock, daysLocked, { from: geodb });
-        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(amountToLock);
-
-        await lockContract.lock(accounts[1], amountToLock, daysLocked, { from: geodb });
-        (await lockContract.locks(geodb)).balance.should.be.bignumber.equal(ZERO_UINT);
-      });
+    it("is half when 9 months have passed", async () => {
+      await time.increase(time.duration.days(daysLocked.div(new BN("2"))));
+      (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(amountToLock.div(new BN("2")));
     });
 
-    describe("for a beneficiary", () => {
-      beforeEach("lock the amount for the beneficiary", async () => {
-        await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
-      });
-
-      it("is 0 at the start of a lock", async () => {
-        (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(ZERO_UINT);
-      });
-
-      it("is half when 9 months have passed", async () => {
-        await time.increase(time.duration.days(new BN(`${9 * 30}`)));
-        (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(amountToLock.div(new BN("2")));
-      });
+    it("is the full amount when 18 months have passed", async () => {
+      await time.increase(time.duration.days(daysLocked));
     });
   });
 

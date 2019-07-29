@@ -45,8 +45,6 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
 
 
   event LogTokensReceived(
-    address indexed operator,
-    address indexed from,
     uint256 amount
   );
 
@@ -109,39 +107,43 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
 
   /**
    * @dev ERC777 Hook. It will be called when this contract receives tokens.
-   * This function will update and increase the owner's funds.
+   * This function will make sure that only the owner can lock tokens here
    * Flow should be: token.send() calls => token.tokensReceived(this) calls => this.tokensReceived()
    */
   function tokensReceived(
       address operator,
       address from,
       address /*to*/,
-      uint256 amount,
+      uint256 /*amount*/,
       bytes calldata /*userData*/,
       bytes calldata /*operatorData*/
   ) external whenNotPaused {
     require(msg.sender == address(token), "Can only receive GeoDB GeoTokens");
-    address owner = owner();
-    locks[owner].balance = locks[owner].balance.add(amount);
-    emit LogTokensReceived(operator, from, amount);
+    require(from == owner());
+    require(operator == address(this));
   }
 
-  function lock(address beneficiary, uint256 amount, uint256 lockTimeInDays) public onlyOwner whenNotPaused returns (bool) {
+  function lock(address beneficiary, uint256 amount, uint256 lockTimeInDays)
+    public
+    onlyOwner
+    whenNotPaused
+    returns (bool) {
 
-    require(beneficiary != address(0), "Cannot lock amounts for the 0x0 address");
-    require(beneficiary != owner(), "Cannot self-lock tokens");
-    require(amount > 0, "The amount to lock must be greater than 0");
-    require(lockTimeInDays > 0, "Lock time must be greater than 0");
-    require(locks[beneficiary].balance == 0, "This address already has funds locked");
+      require(beneficiary != address(0), "Cannot lock amounts for the 0x0 address");
+      require(beneficiary != owner(), "Cannot self-lock tokens");
+      require(amount > 0, "The amount to lock must be greater than 0");
+      require(lockTimeInDays > 0, "Lock time must be greater than 0");
+      require(locks[beneficiary].balance == 0, "This address already has funds locked");
 
-    locks[msg.sender].balance = locks[msg.sender].balance.sub(amount);
-    locks[beneficiary].balance = amount;
-    locks[beneficiary].lockTimestamp = now;
-    uint256 unlockTimestamp = now.add(lockTimeInDays.mul(1 days));
-    locks[beneficiary].unlockTimestamp = unlockTimestamp;
-    emit LogTokensLocked(beneficiary, amount, unlockTimestamp);
-    return true;
-  }
+      token.operatorSend(msg.sender, address(this), amount, "", "");
+
+      locks[beneficiary].balance = amount;
+      locks[beneficiary].lockTimestamp = now;
+      uint256 unlockTimestamp = now.add(lockTimeInDays.mul(1 days));
+      locks[beneficiary].unlockTimestamp = unlockTimestamp;
+      emit LogTokensLocked(beneficiary, amount, unlockTimestamp);
+      return true;
+    }
 
   function batchLock(address[] memory beneficiaries, uint256 amount, uint256 lockTimeInDays) public onlyOwner whenNotPaused returns (bool) {
     require(beneficiaries.length > 0, "Empty beneficiaries list");
@@ -214,18 +216,6 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     return totalAllowance.sub(locks[from].withdrawn);
   }
 
-  function steps(address from) public view returns (uint256 elapsed, uint256 duration, uint256 perBlock, uint256 remainder) {
-    uint256 lockTimestamp = locks[from].lockTimestamp;
-    uint256 unlockTimestamp = locks[from].unlockTimestamp;
-    uint256 lockedAmount = locks[from].balance;
-
-    elapsed = now.sub(lockTimestamp);
-    duration = unlockTimestamp.sub(lockTimestamp);
-    perBlock = lockedAmount.div(duration);
-    remainder =lockedAmount % duration;
-
-  }
-
   /**
    * @dev returns the balance that was originally locked - the total presale entitlement of the holder.
    * @return uint256 field balance of mapping
@@ -240,12 +230,5 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
       addr := mload(add(bys,20))
     }
   }
-
-// 1.587.478.744
-//
-// 23.328.000 // Tiempo transcurrido
-// 46.656.000 // Total tiempo
-//
-// 21.433.470.507,544582367 // Desbloqueo por tiempo
 
 }
