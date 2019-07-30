@@ -10,11 +10,11 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
   let erc1820, tokenContract, lockContract;
 
   const ZERO_UINT = new BN("0");
-  const daysLocked = new BN(`${18 * 30}`); // 18 months
+  const lockPeriod = new BN(`${18 * 30 * 24 * 3600}`); // 18 months in seconds
 
   // GEO follows the same decimals structure as ETH, so we can use the fromWei and toWei utils from web3
-  // The amount is computed so that the allowance per second is integral and has no remainder when divided by the daysLocked
-  const amountToLock = toWei(daysLocked.mul(new BN("24")).mul(new BN("3600")), "ether");
+  // The amount is computed so that the allowance per second is integral and has no remainder when divided by lockPeriod
+  const amountToLock = toWei(lockPeriod, "ether");
 
   before("Fund ERC1820 account and deploy ERC1820 registry", async () => {
     erc1820 = await singletons.ERC1820Registry(erc1820funder);
@@ -27,7 +27,7 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
       from: geodb
     });
 
-    await tokenContract.send(accounts[0], amountToLock, "0x0", { from: geodb }); // Fund another account for external actions
+    // await tokenContract.send(accounts[0], amountToLock, "0x0", { from: geodb }); // Fund another account for external actions
   });
 
   it("initializes correctly", async () => {
@@ -57,10 +57,10 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
     });
 
     it("allows to lock tokens for a beneficiary", async () => {
-      const { tx, logs } = await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
+      const { tx, logs } = await lockContract.lock(beneficiary, amountToLock, lockPeriod, { from: geodb });
 
       const currentTimestamp = await time.latest();
-      const unlockTimestamp = currentTimestamp.add(time.duration.days(daysLocked));
+      const unlockTimestamp = currentTimestamp.add(lockPeriod);
 
       const beneficiaryLock = await lockContract.locks(beneficiary);
 
@@ -77,31 +77,31 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
     });
 
     it("rejects if the caller is not the owner", async () => {
-      await expectRevert.unspecified(lockContract.lock(beneficiary, amountToLock, daysLocked, { from: beneficiary }));
+      await expectRevert.unspecified(lockContract.lock(beneficiary, amountToLock, lockPeriod, { from: beneficiary }));
     });
 
     it("rejects if the contract is paused", async () => {
       await lockContract.pause({ from: geodb });
-      await expectRevert.unspecified(lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb }));
+      await expectRevert.unspecified(lockContract.lock(beneficiary, amountToLock, lockPeriod, { from: geodb }));
     });
 
     it("rejects locking to the 0x0 address", async () => {
       await expectRevert(
-        lockContract.lock(constants.ZERO_ADDRESS, amountToLock, daysLocked, { from: geodb }),
+        lockContract.lock(constants.ZERO_ADDRESS, amountToLock, lockPeriod, { from: geodb }),
         ErrorMsgs.cannotLockAmountsForZeroAddress
       );
     });
 
     it("rejects locking to the owner address", async () => {
       await expectRevert(
-        lockContract.lock(geodb, amountToLock, daysLocked, { from: geodb }),
+        lockContract.lock(geodb, amountToLock, lockPeriod, { from: geodb }),
         ErrorMsgs.cannotSelfLockTokens
       );
     });
 
     it("rejects locking 0", async () => {
       await expectRevert(
-        lockContract.lock(beneficiary, ZERO_UINT, daysLocked, { from: geodb }),
+        lockContract.lock(beneficiary, ZERO_UINT, lockPeriod, { from: geodb }),
         ErrorMsgs.theAmountToLockMustBeGreaterThanZero
       );
     });
@@ -114,11 +114,19 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
     });
 
     it("rejects if the beneficiary already has locked tokens", async () => {
-      await lockContract.lock(beneficiary, new BN("1"), daysLocked, { from: geodb });
+      await lockContract.lock(beneficiary, new BN("1"), lockPeriod, { from: geodb });
 
       await expectRevert(
-        lockContract.lock(beneficiary, new BN("1"), daysLocked, { from: geodb }),
+        lockContract.lock(beneficiary, new BN("1"), lockPeriod, { from: geodb }),
         ErrorMsgs.thisAddressAlreadyHasFundsLocked
+      );
+    });
+
+    it("rejects locking more funds than the owner has", async () => {
+      (await tokenContract.balanceOf(geodb)).should.be.bignumber.equal(preAssignedSupply);
+      await expectRevert(
+        lockContract.lock(beneficiary, preAssignedSupply.add(new BN("1")), lockPeriod, { from: geodb }),
+        "SafeMath: subtraction overflow"
       );
     });
   });
@@ -131,10 +139,10 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
     it("allows to lock for a batch of accounts", async () => {
       const dividedLockAmount = amountToLock.div(new BN(`${accounts.length}`));
 
-      const { tx, logs } = await lockContract.batchLock(accounts, dividedLockAmount, daysLocked, { from: geodb });
+      const { tx, logs } = await lockContract.batchLock(accounts, dividedLockAmount, lockPeriod, { from: geodb });
 
       const currentTimestamp = await time.latest();
-      const unlockTimestamp = currentTimestamp.add(time.duration.days(daysLocked));
+      const unlockTimestamp = currentTimestamp.add(lockPeriod);
 
       for (let i = 0; i < accounts.length; i++) {
         const beneficiaryLock = await lockContract.locks(accounts[i]);
@@ -159,7 +167,7 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
 
     it("rejects if the accounts list is empty", async () => {
       await expectRevert(
-        lockContract.batchLock([], amountToLock, daysLocked, { from: geodb }),
+        lockContract.batchLock([], amountToLock, lockPeriod, { from: geodb }),
         ErrorMsgs.emptyBeneficiariesList
       );
     });
@@ -168,26 +176,27 @@ contract("GeoTokenLockUnitary", ([erc1820funder, geodb, beneficiary, ...accounts
   describe("computeAllowance()", async () => {
     beforeEach("sign the lock contract as operator for the owner", async () => {
       await tokenContract.authorizeOperator(lockContract.address, { from: geodb });
-      await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
+      await lockContract.lock(beneficiary, amountToLock, lockPeriod, { from: geodb });
     });
     it("is 0 at the start of a lock", async () => {
       (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(ZERO_UINT);
     });
 
     it("is half when 9 months have passed", async () => {
-      await time.increase(time.duration.days(daysLocked.div(new BN("2"))));
+      await time.increase(lockPeriod.div(new BN("2")));
       (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(amountToLock.div(new BN("2")));
     });
 
     it("is the full amount when 18 months have passed", async () => {
-      await time.increase(time.duration.days(daysLocked));
+      await time.increase(lockPeriod);
+      (await lockContract.computeAllowance(beneficiary)).should.be.bignumber.equal(amountToLock);
     });
   });
 
   describe("send()", () => {
     beforeEach("send tokens to the contract and lock them", async () => {
       await tokenContract.send(lockContract.address, amountToLock, "0x0", { from: geodb });
-      await lockContract.lock(beneficiary, amountToLock, daysLocked, { from: geodb });
+      await lockContract.lock(beneficiary, amountToLock, lockPeriod, { from: geodb });
     });
 
     it("allows to unlock");

@@ -12,11 +12,11 @@ import "../externals/openzeppelin-solidity/contracts/introspection/IERC1820Regis
 /**
  * @dev Contract to hold and release in steps the funds of GEO for the presale investors. ERC777 Implementation
  *
- * This contract will be passed a BENEFICIARY (ADDRESS) and a lock DURATION IN DAYS. The constructor will compute
+ * This contract will be passed a BENEFICIARY (ADDRESS) and a lock DURATION IN SECONDS. The constructor will compute
  * the timestamp at which the funds should be released. Then the beneficiary or the owner can call the unlock function
  * to release an amount of tokens proportional to the time that has passed since the lock, eg: if a lock of 180 days
  * has been passed to the constructor, and 10 (10e18) tokens have been assigned, then the user will be able to
- * withdraw 5 (5e18) tokens approximately. It is important that the amount of tokens being held is divisible by
+ * withdraw 5 (5e18) tokens approximately after 90 days. It is important that the amount of tokens being held is divisible by
  * the duration of the lock in seconds, otherwise the amount will be fully locked until the complete time has passed,
  * missing the stepped release (ie, if lock duration is 180 days = 15 552 000 seconds, and less than 15 552 000 tokens
  * are locked, then the division yields 0 tokens per step, and won't be able to unlock the tokens until 15 552 000
@@ -62,8 +62,7 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   );
 
   /**
-   * @dev note that the duration must be specified in DAYS. This will be translated to EVM timestamp (Unix timestamp)
-   * in seconds.
+   * @dev note that this contract takes advantage of the ERC777 and ERC1820 introspection
    *
    * @param _token IERC777 address of the ERC777 contract
    */
@@ -86,10 +85,8 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   }
 
   /**
-   * @dev ERC777 Hook. It will be called when this contract sends tokens to any address.
-   * This function will update the withdrawn amount by the beneficiary, keeping the internal balance record so that
-   * no more than the allowed amount for the time passed is withdrawn.
-   * Flow should be: this.unlock() calls => token.send() calls => token.tokensToSend(this) calls => this.tokensToSend()
+   * @dev ERC777 Hook. It will be called when this contract sends tokens to any address. This will act as a security
+   *  measure to disallow external malicious calls and log tokens sent outside of the contract
    */
   function tokensToSend(
       address operator,
@@ -101,14 +98,13 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
   ) external whenNotPaused {
     require(msg.sender == address(token), "Can only be called by the GeoDB GeoTokens contract");
     require(from == address(this));
-
     emit LogTokensSent(operator, bytesToAddress(userData), to, amount);
   }
 
   /**
    * @dev ERC777 Hook. It will be called when this contract receives tokens.
-   * This function will make sure that only the owner can lock tokens here
-   * Flow should be: token.send() calls => token.tokensReceived(this) calls => this.tokensReceived()
+   * This function will make sure that only the owner can lock tokens here, the tokens must be the GeoTokens,
+   * and that the tokens are locked via the lock() and batchLock() methods instead of the ERC777 send() method.
    */
   function tokensReceived(
       address operator,
@@ -123,7 +119,14 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
     require(operator == address(this));
   }
 
-  function lock(address beneficiary, uint256 amount, uint256 lockTimeInDays)
+  /**
+   * @dev lock function, can only be called by the owner. Specifies an amount to be locked during a period of time.
+   * which will be unlockable by the user or the owner afterwards.
+   * @param beneficiary address is the final destination of the tokens after unlocking them.
+   * @param amount uint256 is the amount to be assigned to the user
+   * @param lockTime uint256 is the time that the lock will remain in effect (seconds).
+   */
+  function lock(address beneficiary, uint256 amount, uint256 lockTime)
     public
     onlyOwner
     whenNotPaused
@@ -132,25 +135,25 @@ contract GeoTokenLockUnitary is Pausable, IERC777Recipient, IERC777Sender {
       require(beneficiary != address(0), "Cannot lock amounts for the 0x0 address");
       require(beneficiary != owner(), "Cannot self-lock tokens");
       require(amount > 0, "The amount to lock must be greater than 0");
-      require(lockTimeInDays > 0, "Lock time must be greater than 0");
+      require(lockTime > 0, "Lock time must be greater than 0");
       require(locks[beneficiary].balance == 0, "This address already has funds locked");
 
       token.operatorSend(msg.sender, address(this), amount, "", "");
 
       locks[beneficiary].balance = amount;
       locks[beneficiary].lockTimestamp = now;
-      uint256 unlockTimestamp = now.add(lockTimeInDays.mul(1 days));
+      uint256 unlockTimestamp = now.add(lockTime);
       locks[beneficiary].unlockTimestamp = unlockTimestamp;
       emit LogTokensLocked(beneficiary, amount, unlockTimestamp);
       return true;
     }
 
-  function batchLock(address[] memory beneficiaries, uint256 amount, uint256 lockTimeInDays) public onlyOwner whenNotPaused returns (bool) {
+  function batchLock(address[] memory beneficiaries, uint256 amount, uint256 lockTime) public onlyOwner whenNotPaused returns (bool) {
     require(beneficiaries.length > 0, "Empty beneficiaries list");
     uint8 i = 0;
 
     for(i; i < beneficiaries.length; i++) {
-      lock(beneficiaries[i], amount, lockTimeInDays);
+      lock(beneficiaries[i], amount, lockTime);
     }
 
     return true;

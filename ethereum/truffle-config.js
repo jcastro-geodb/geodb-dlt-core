@@ -94,7 +94,7 @@ module.exports = {
       network_id: "1"
     },
     ropsten: {
-      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten),
+      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten, 2),
       confirmations: 2,
       gas: 5500000,
       network_id: "3",
