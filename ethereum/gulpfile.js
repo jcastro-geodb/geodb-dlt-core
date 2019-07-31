@@ -4,6 +4,8 @@ const { exec, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs-extra");
 
+const contractToTest = (process.env.CONTRACT || "*").trim();
+
 gulp.task("default", async () => {
   console.log("Options: ", "test");
 });
@@ -11,11 +13,11 @@ gulp.task("default", async () => {
 gulp.task("watch", async cb => {
   compileContractsAndRunTest();
 
-  watch(["./contracts/**/*.sol"], cb => {
+  watch([`./contracts/**/${contractToTest}.sol`], cb => {
     compileContractsAndRunTest(cb);
   });
 
-  watch(["./test/**/*.js"], cb => {
+  watch([`./test/**/*.js`], cb => {
     test(cb);
   });
 });
@@ -44,7 +46,9 @@ const compileContractsAndRunTest = cb => {
 const test = cb => {
   console.log("\n===============\nTesting\n===============\n");
 
-  if (cb && cb.history && cb.history[0]) {
+  if (contractToTest !== "*") {
+    runOneTest(`${contractToTest}`);
+  } else if (cb && cb.history && cb.history[0]) {
     const contracts = fs.readdirSync("./contracts");
 
     for (let i = 0; i < contracts.length; i++) {
