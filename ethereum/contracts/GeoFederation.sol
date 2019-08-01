@@ -1,22 +1,33 @@
 pragma solidity >= 0.5.0 <6.0.0;
 
-import "../externals/openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
+//import "../externals/openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
+import "../externals/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../externals/openzeppelin-solidity/contracts/token/ERC777/IERC777.sol";
+import "./utils/Pausable.sol";
+import "../externals/openzeppelin-solidity/contracts/token/ERC777/IERC777Recipient.sol";
+import "../externals/openzeppelin-solidity/contracts/token/ERC777/IERC777Sender.sol";
+import "../externals/openzeppelin-solidity/contracts/introspection/IERC1820Registry.sol";
 // Replace the two above for:
 // import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 // import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 // in production
-
 import "./GeoToken.sol";
 import "./GeoDBClasses.sol";
 
 /**
 * @title GeoDB ERC20 Token
 */
-contract GeoFederation is GeoDBClasses, Ownable {
+contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sender {
   using SafeMath for uint256;
-  // Token
+  // Token requirements Initialiozation
 
-  GeoToken token;
+  GeoToken public token;
+
+  IERC1820Registry private _erc1820 = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24); // See EIP1820
+  bytes32 constant private TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender"); // See EIP777
+  bytes32 constant private TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient"); // See EIP777
+
+  //IERC777 public token; // ERC777 basic token contract being held
 
   // Federation
 
@@ -31,12 +42,6 @@ contract GeoFederation is GeoDBClasses, Ownable {
   mapping(address => uint256) public stakeProposals;
 
   // FederationStakingBallot[] public federationStakingBallots;
-
-  constructor(address tokenContract) public {
-    federationMinimumStake = 100000; // Initial minimum stake: 1 GEO
-    token = GeoToken(tokenContract);
-    federationStakes[msg.sender] = FederationStake(0, true);
-  }
 
   event LogIncreaseStake(
     address indexed sender,
@@ -112,6 +117,23 @@ contract GeoFederation is GeoDBClasses, Ownable {
     uint256 newStakeRequirement
   );
 
+  event LogTokensReceived(
+    uint256 amount
+  );
+
+  event LogTokensSent(
+    address indexed operator,
+    address indexed from,
+    address indexed to,
+    uint256 amount
+  );
+
+  event LogTokensLocked(
+    address indexed to,
+    uint256 amount,
+    uint256 unlockTimestamp
+  );
+
   modifier callerMustBeApproved(){
     require(isApproved(msg.sender), "Caller must be approved");
     _;
@@ -142,13 +164,59 @@ contract GeoFederation is GeoDBClasses, Ownable {
     _;
   }
 
+  constructor(address _token) public {
+    require(address(_token) != address(0), "Token address cannot be 0x0");
+    token = GeoToken(_token);
+    // Register as a token receiver
+    _erc1820.setInterfaceImplementer(address(this), TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
+    // Register as a token sender
+    _erc1820.setInterfaceImplementer(address(this), TOKENS_SENDER_INTERFACE_HASH, address(this));
+    federationMinimumStake = 100000; // Initial minimum stake: 1 GEO
+    federationStakes[msg.sender] = FederationStake(0, true);
+  }
+
+  /**
+   * @dev ERC777 Hook. It will be called when this contract sends tokens to any address. This will act as a security
+   *  measure to disallow external malicious calls and log tokens sent outside of the contract
+   */
+  function tokensToSend(
+      address operator,
+      address /*from*/,
+      address to,
+      uint256 amount,
+      bytes calldata userData,
+      bytes calldata /*operatorData*/
+  ) external whenNotPaused {
+    require(msg.sender == address(token), "Can only be called by the GeoDB GeoTokens contract");
+    //require(from == address(this));
+    emit LogTokensSent(operator, bytesToAddress(userData), to, amount);
+  }
+
+  /**
+   * @dev ERC777 Hook. It will be called when this contract receives tokens.
+   * This function will make sure that only the owner can lock tokens here, the tokens must be the GeoTokens,
+   * and that the tokens are locked via the lock() and batchLock() methods instead of the ERC777 send() method.
+   */
+  function tokensReceived(
+      address operator,
+      address /*from*/,
+      address /*to*/,
+      uint256 /*amount*/,
+      bytes calldata /*userData*/,
+      bytes calldata /*operatorData*/
+  ) external whenNotPaused {
+    require(msg.sender == address(token), "Can only receive GeoDB GeoTokens");
+    //require(from == owner());
+    require(operator == address(this));
+  }
+
   function increaseStake(uint256 amount) public callerMustBeApproved() {
       uint256 summedStakes = federationStakes[msg.sender].stake.add(amount);
       require(summedStakes >= federationMinimumStake, "Staked amount is not enough");
       totalStake = totalStake.add(amount);
       federationStakes[msg.sender].stake = summedStakes;
       emit LogIncreaseStake(msg.sender, amount, totalStake);
-      require(token.transferFrom(msg.sender, address(this), amount));
+      token.operatorSend(msg.sender, address(this), amount, "", "");
   }
 
   function newJoinBallot(uint256 amount) public callerCannotBeApproved() callerCannotHaveStake() {
@@ -160,7 +228,7 @@ contract GeoFederation is GeoDBClasses, Ownable {
     });
     federationStakes[msg.sender].stake = amount;
     emit LogNewJoinBallot(msg.sender, amount, federationJoinBallots[msg.sender].deadline);
-    require(token.transferFrom(msg.sender, address(this), amount));
+    token.operatorSend(msg.sender, address(this), amount, "", "");
   }
 
   function voteJoinBallot(address newMember) public
@@ -186,7 +254,7 @@ contract GeoFederation is GeoDBClasses, Ownable {
     }else{
       uint256 stake = federationStakes[msg.sender].stake;
       federationStakes[msg.sender].stake = 0;
-      require(token.transfer(msg.sender, stake), "Could not return back stake");
+      token.send(msg.sender, stake, abi.encodePacked(msg.sender));
     }
   }
 
@@ -228,7 +296,7 @@ contract GeoFederation is GeoDBClasses, Ownable {
       federationStakes[msg.sender].stake = 0;
       totalStake = totalStake.sub(stake);
       emit LogMemberExit(msg.sender, stake);
-      require(token.transfer(msg.sender, stake), "Could not return back stake");
+      token.send(msg.sender, stake, abi.encodePacked(msg.sender));
     }
   }
 
@@ -274,7 +342,7 @@ contract GeoFederation is GeoDBClasses, Ownable {
   }
 
   function releaseReward(address to, uint256 reward) public callerMustBeFederated() {
-    require(token.releaseReward(to, reward), "Could not release reward");
+    token.releaseReward(to, reward);
   }
 
   // Getters
@@ -288,6 +356,14 @@ contract GeoFederation is GeoDBClasses, Ownable {
 
   function getStake() public view returns(uint256){
     return federationStakes[msg.sender].stake;
+    //return federationStakes[addr].stake;
+  }
+
+  function bytesToAddress(bytes memory bys) private pure returns (address addr) {
+    require(bys.length == 20);
+    assembly {
+      addr := mload(add(bys,20))
+    }
   }
 
 }
