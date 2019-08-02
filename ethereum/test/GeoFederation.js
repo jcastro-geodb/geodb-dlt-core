@@ -320,7 +320,7 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
         });
 
         it("should allow to create a new join ballot", async () => {
-          await token.approve(federation.address, initialMinimumFederationStake, { from: partner });
+          await token.authorizeOperator(federation.address, { from: partner });
           const { logs } = await federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
 
           expectEvent

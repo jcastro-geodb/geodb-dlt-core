@@ -19,6 +19,7 @@ import "./GeoDBClasses.sol";
 */
 contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sender {
   using SafeMath for uint256;
+  
   // Token requirements Initialiozation
 
   GeoToken public token;
@@ -27,7 +28,7 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
   bytes32 constant private TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender"); // See EIP777
   bytes32 constant private TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient"); // See EIP777
 
-  //IERC777 public token; // ERC777 basic token contract being held
+  //IERC777 public token; -->Old invocation. GeoToken invocation is implemented. In order to instantiate GeoToken Contract and use releaseReward
 
   // Federation
 
@@ -118,6 +119,7 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
   );
 
   event LogTokensReceived(
+    address indexed from,
     uint256 amount
   );
 
@@ -128,11 +130,11 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
     uint256 amount
   );
 
-  event LogTokensLocked(
-    address indexed to,
-    uint256 amount,
-    uint256 unlockTimestamp
-  );
+  //event LogTokensLocked(
+  //  address indexed to,
+  //  uint256 amount,
+  //  uint256 unlockTimestamp
+  //);
 
   modifier callerMustBeApproved(){
     require(isApproved(msg.sender), "Caller must be approved");
@@ -181,33 +183,33 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
    */
   function tokensToSend(
       address operator,
-      address /*from*/,
+      address from,
       address to,
       uint256 amount,
       bytes calldata userData,
       bytes calldata /*operatorData*/
   ) external whenNotPaused {
     require(msg.sender == address(token), "Can only be called by the GeoDB GeoTokens contract");
-    //require(from == address(this));
+    require(from == address(this), "Sender is not SelfContract");
     emit LogTokensSent(operator, bytesToAddress(userData), to, amount);
   }
 
   /**
    * @dev ERC777 Hook. It will be called when this contract receives tokens.
-   * This function will make sure that only the owner can lock tokens here, the tokens must be the GeoTokens,
-   * and that the tokens are locked via the lock() and batchLock() methods instead of the ERC777 send() method.
+   * This function will make sure that only the owner can request access to federation, the tokens must be the GeoTokens,
+   * and that the tokens are locked via the increaseStake() or newJoinBallot() methods instead of the ERC777 send() method.
    */
   function tokensReceived(
       address operator,
-      address /*from*/,
+      address from,
       address /*to*/,
-      uint256 /*amount*/,
+      uint256 amount,
       bytes calldata /*userData*/,
       bytes calldata /*operatorData*/
   ) external whenNotPaused {
     require(msg.sender == address(token), "Can only receive GeoDB GeoTokens");
-    //require(from == owner());
     require(operator == address(this));
+    emit LogTokensReceived (from, amount);
   }
 
   function increaseStake(uint256 amount) public callerMustBeApproved() {
