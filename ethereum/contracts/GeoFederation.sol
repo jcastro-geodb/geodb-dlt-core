@@ -28,8 +28,6 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
   bytes32 constant private TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender"); // See EIP777
   bytes32 constant private TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient"); // See EIP777
 
-  //IERC777 public token; -->Old invocation. GeoToken invocation is implemented. In order to instantiate GeoToken Contract and use releaseReward
-
   // Federation
 
   uint256 public federationMinimumStake;
@@ -211,6 +209,11 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
     require(operator == address(this));
     emit LogTokensReceived (from, amount);
   }
+
+  /**
+   * @dev Increase Stake on Demand. It will be called by federated user who wants to increase stake.
+   * The caller must be Federated, in other case, caller must create access Ballot
+   */
 
   function increaseStake(uint256 amount) public callerMustBeApproved() {
       uint256 summedStakes = federationStakes[msg.sender].stake.add(amount);
