@@ -224,6 +224,10 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
       token.operatorSend(msg.sender, address(this), amount, "", "");
   }
 
+  /**
+   * @dev New User's join Function. It will be called by non-federated user who wants to Join to Federation.
+   */
+
   function newJoinBallot(uint256 amount) public callerCannotBeApproved() callerCannotHaveStake() {
     require(amount >= federationMinimumStake, "Not enough stake");
     federationJoinBallots[msg.sender] = Ballot({
