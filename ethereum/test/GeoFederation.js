@@ -25,7 +25,7 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
 
     token.transferOwnership(federation.address, { from: geodb });
 
-    await token.approve(federation.address, initialMinimumFederationStake, {
+    await token.authorizeOperator(federation.address, {
       from: geodb
     });
 
@@ -34,6 +34,21 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
     });
 
     await fundPartnersWithGeoTokens(initialMinimumFederationStake.mul(new BN("10")), geodb, [partner, partner2], token);
+  });
+
+  it("initializes correctly", async () => {
+    // Token address
+    (await federation.token()).should.be.equal(token.address);
+
+    (await erc1820.getInterfaceImplementer(
+      federation.address,
+      "0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895"
+    )).should.be.equal(federation.address);
+
+    (await erc1820.getInterfaceImplementer(
+      federation.address,
+      "0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b"
+    )).should.be.equal(federation.address);
   });
 
   describe("Contract initialization", () => {
@@ -60,7 +75,7 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
         let newJoinBallotLogs;
 
         beforeEach("Approve transfer and create ballot", async () => {
-          await token.approve(federation.address, initialMinimumFederationStake, { from: partner });
+          await token.authorizeOperator(federation.address, { from: partner });
           const { logs } = await federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
           newJoinBallotLogs = logs;
         });
@@ -161,6 +176,7 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
 
       describe("Without sufficient funds", () => {
         it("rejects ballot creation", async () => {
+          await token.authorizeOperator(federation.address, { from: emptyAccount });
           await expectRevert(
             federation.newJoinBallot(initialMinimumFederationStake, { from: emptyAccount }),
             ErrorMsgs.safeMathSubstractionOverflow
@@ -175,6 +191,8 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
       let newExitBallotLogs;
 
       beforeEach("Add partners to federation and create ballot", async () => {
+        await token.authorizeOperator(federation.address, { from: partner });
+        await token.authorizeOperator(federation.address, { from: partner2 });
         const voters = await addMembersToFederation(
           [geodb],
           [partner, partner2],
@@ -182,7 +200,6 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
           token,
           federation
         );
-
         const { logs } = await federation.newExitBallot({ from: partner });
         newExitBallotLogs = logs;
       });
@@ -303,7 +320,7 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
         });
 
         it("should allow to create a new join ballot", async () => {
-          await token.approve(federation.address, initialMinimumFederationStake, { from: partner });
+          await token.authorizeOperator(federation.address, { from: partner });
           const { logs } = await federation.newJoinBallot(initialMinimumFederationStake, { from: partner });
 
           expectEvent
@@ -349,6 +366,8 @@ contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAcc
 
   describe("Federation stake requirement change", () => {
     beforeEach("Setup federation", async () => {
+      await token.authorizeOperator(federation.address, { from: partner });
+      await token.authorizeOperator(federation.address, { from: partner2 });
       const voters = await addMembersToFederation(
         [geodb],
         [partner, partner2],
