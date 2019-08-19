@@ -4,6 +4,17 @@
 # en entornos de producción
 ##############################################################################
 
+function check_returnCode {
+        if [ $1 -eq 0 ]; then
+                echo -e "INFO:.... Proccess Succeed"
+        else
+                >&2 echo -e "ERROR:.... Proccess ERROR: $1"
+                cd $dir
+                ./build-local-testnet/reset.sh
+                echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
+                exit $1
+        fi
+}
 
 function main {
 
@@ -15,16 +26,20 @@ function main {
   echo "Checking executables ..."
   mydir=`pwd`
   checkExecutables
+  check_returnCode $?
   cd $mydir
   checkRootCA
+  check_returnCode $?
   cd $mydir
   if [ -d $CDIR ]; then
     echo "Cleaning up CAs ..."
     stopAllCAs
+    check_returnCode $?
     # rm -rf $CDIR
   fi
   echo "Setting up organizations ..."
   setupOrgs
+  check_returnCode $?
   # echo "Finishing ..."
   # stopAllCAs
   # echo "Complete"

@@ -1,5 +1,15 @@
 #!/bin/bash
 
+check_returnCode() {
+        if [ $1 -eq 0 ]; then
+                echo -e "INFO:.... Proccess Succeed"
+        else
+                >&2 echo -e "ERROR.... Proccess ERROR: $1"
+                echo -e "INFO:Please check errors and retry..."
+                exit $1
+        fi
+}
+
 installDependencies() {
   apt-get update
   programs=(curl make docker docker-compose jq)
@@ -83,10 +93,19 @@ if [ `id -u` != "0" ]; then
 fi
 
 installDependencies
+check_returnCode $?
+
 installMakeGuile
+check_returnCode $?
+
 installLibtool
+check_returnCode $?
+
 checkEnvironment
+check_returnCode $?
+
 addUserToDockerGroup
+check_returnCode $?
 
 echo
 echo "========================================================="

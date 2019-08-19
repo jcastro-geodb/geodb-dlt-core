@@ -1,9 +1,9 @@
 {
   "contractName": "GeoDBClasses",
   "abi": [],
-  "metadata": "{\"compiler\":{\"version\":\"0.5.7+commit.6da8b019\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/home/mad/geodb/fabric/ethereum/contracts/GeoDBClasses.sol\":\"GeoDBClasses\"},\"evmVersion\":\"petersburg\",\"libraries\":{},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"/home/mad/geodb/fabric/ethereum/contracts/GeoDBClasses.sol\":{\"keccak256\":\"0x4e4cfa9531eb985650c290b4980e9be02614851585e9b94217101dce3a347adb\",\"urls\":[\"bzzr://d2e73a60041a08fd3f647e021f4fd1de015cc8270db0855c95e4a879d2ba7774\"]}},\"version\":1}",
-  "bytecode": "0x6080604052348015600f57600080fd5b50603580601d6000396000f3fe6080604052600080fdfea165627a7a723058202ccd182abaf428d909ef513849e7f2e6f3631bd24534428ae5e4a209b49150630029",
-  "deployedBytecode": "0x6080604052600080fdfea165627a7a723058202ccd182abaf428d909ef513849e7f2e6f3631bd24534428ae5e4a209b49150630029",
+  "metadata": "{\"compiler\":{\"version\":\"0.5.2+commit.1df8f40c\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/home/mad/geodb/fabric/ethereum/contracts/GeoDBClasses.sol\":\"GeoDBClasses\"},\"evmVersion\":\"byzantium\",\"libraries\":{},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"/home/mad/geodb/fabric/ethereum/contracts/GeoDBClasses.sol\":{\"keccak256\":\"0x4e4cfa9531eb985650c290b4980e9be02614851585e9b94217101dce3a347adb\",\"urls\":[\"bzzr://d2e73a60041a08fd3f647e021f4fd1de015cc8270db0855c95e4a879d2ba7774\"]}},\"version\":1}",
+  "bytecode": "0x6080604052348015600f57600080fd5b50603580601d6000396000f3fe6080604052600080fdfea165627a7a72305820edde5f79805c7057233d53bea75e2ab23013f8b75260363dff0ffda067369b7b0029",
+  "deployedBytecode": "0x6080604052600080fdfea165627a7a72305820edde5f79805c7057233d53bea75e2ab23013f8b75260363dff0ffda067369b7b0029",
   "sourceMap": "34:539:0:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;34:539:0;;;;;;;",
   "deployedSourceMap": "34:539:0:-;;;;;",
   "source": "pragma solidity >= 0.5.0 <6.0.0;\n\ncontract GeoDBClasses {\n\n  // Struct containing a federation member stake and its withdrawal attempts.\n  struct FederationStake {\n    uint256 stake; // Member token staking\n    bool approved; // Member's voted admission by the rest of the federation\n  }\n\n  struct Ballot {\n    uint256 approvals;\n    uint256 deadline;\n    mapping(address => bool) approvers;\n    bool resolved;\n  }\n\n  struct BlockSummary {\n    address minter;\n    address nextMinter;\n    address[] rewardedAddresses;\n    mapping(address => uint256) rewardedAmounts;\n  }\n\n\n}\n",
@@ -786,11 +786,11 @@
   },
   "compiler": {
     "name": "solc",
-    "version": "0.5.7+commit.6da8b019.Emscripten.clang"
+    "version": "0.5.2+commit.1df8f40c.Emscripten.clang"
   },
   "networks": {},
-  "schemaVersion": "3.0.10",
-  "updatedAt": "2019-06-21T11:07:17.764Z",
+  "schemaVersion": "3.0.9",
+  "updatedAt": "2019-06-03T07:04:01.241Z",
   "devdoc": {
     "methods": {}
   },

@@ -1,5 +1,15 @@
 #!/bin/bash
 
+check_returnCode() {
+        if [ $1 -eq 0 ]; then
+                echo -e "INFO:.... Proccess Succeed"
+        else
+                >&2 echo -e "ERROR.... Proccess ERROR: $1"
+                echo -e "INFO:Please check errors and retry..."
+                exit $1
+        fi
+}
+
 checkDependencies(){
   programs=(curl make docker docker-compose jq)
 
@@ -110,12 +120,16 @@ if [ `id -u` != "0" ]; then
 fi
 
 checkDependencies
+check_returnCode $?
 
 checkGo
+check_returnCode $?
 
 installFabric
+check_returnCode $?
 
 installGeodb
+check_returnCode $?
 
 echo
 echo "========================================================="
