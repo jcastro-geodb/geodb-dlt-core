@@ -172,19 +172,19 @@ buildCertificates operations.geodb.com:1:1:7500:geodb:password:7501 ######### Re
 check_returnCode $?
 sleep 3s
 
-# # Generate genesis block
+# Generate genesis block
 
-# genesisBlock $dir
-# check_returnCode $?
+genesisBlock $dir
+check_returnCode $?
 
-# # Bring up the network
+# Bring up the network
 
-# cd $dir
-# bringUpNetwork
-# check_returnCode $?
-# sleep 3s
+cd $dir
+bringUpNetwork
+check_returnCode $?
+sleep 3s
 
-# # Create the channel on the peer from the genesis block
+# Create the channel on the peer from the genesis block
 # operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations.geodb.com:7050' 
 # check_returnCode $?
 

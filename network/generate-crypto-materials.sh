@@ -152,6 +152,8 @@ function setupOrg {
 
    getcacerts $orgDir https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort $TLSROOTCERT $orgDir/ca/intermediate
 
+   normalizeMSP $orgDir $orgName $adminUserHome
+
    echo "Obtenidos los certificados en $orgDir"
 
    startCA $orgDir/ca/intermediate $intermediateCAPort $orgName https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort
@@ -164,16 +166,9 @@ function setupOrg {
 
 
    # Register and enroll admin with the intermediate CA
-   echo "***********************************"
-   echo "intermediateAdmin registrado"
-   echo "***********************************"
    adminUserHome=$usersDir/Admin@${orgName}
    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName $intermediateCATlsCert nodeAdmin
    # Register and enroll user1 with the intermediate CA
-   echo "***********************************"
-   echo "Admin registrado"
-   echo "***********************************"
-   enroll $adminHome $intermediateCAURL $orgName $intermediateCATlsCert
    user1UserHome=$usersDir/User1@${orgName}
    echo "registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName $intermediateCATlsCert nodeUser"
    registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName $intermediateCATlsCert
@@ -209,12 +204,13 @@ function setupOrg {
 
 
    # # Get CA certs from intermediate CA
-   #getcacerts $orgDir $intermediateCAURL $intermediateCATlsCert
+   echo "getcacerts $orgDir $intermediateCAURL $intermediateCATlsCert"
+   getcacerts $orgDir $intermediateCAURL $intermediateCATlsCert $orgDir
    # Rename MSP files to names expected by end-to-end
-   # normalizeMSP $orgDir $orgName $adminUserHome
-   # normalizeMSP $adminHome $orgName
-   # normalizeMSP $adminUserHome $orgName
-   # normalizeMSP $user1UserHome $orgName
+   normalizeMSP $orgDir $orgName $adminUserHome
+   normalizeMSP $adminHome $orgName
+   normalizeMSP $adminUserHome $orgName
+   normalizeMSP $user1UserHome $orgName
 }
 
 # Start a root CA server:
@@ -229,8 +225,6 @@ function startCA {
 
    mkdir -p $homeDir
    export FABRIC_CA_SERVER_HOME=$homeDir
-
-   echo "$SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --tls.enabled --intermediate.tls.certfiles msp/cacerts/ca-root-geodb-com-7500.pem -H ../$homeDir"
 
    $SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --csr.hosts ca-root.geodbInt1.com --tls.enabled --intermediate.tls.certfiles msp/cacerts/ca-root-geodb-com-7500.pem > $homeDir/server.log 2>&1&
 
@@ -270,7 +264,7 @@ function tlsEnroll {
    tlsCert=$1; shift;
 
    host=$(basename $homeDir),$(basename $homeDir | cut -d'.' -f1)
-   tlsDir=$homeDir
+   tlsDir=$homeDir/tls
 
    if [ "$tlsCert" = "" ]; then
      tlsCert=$(realpath $homeDir/tls-cert.pem)
@@ -279,9 +273,7 @@ function tlsEnroll {
    srcMSP=$tlsDir/msp
    dstMSP=$homeDir/msp
    enroll $tlsDir https://admin:adminpw@ca-root.geodbInt1.com:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
-   echo "pwd-->"
-   echo $(pwd)
-   echo "cp $srcMSP/signcerts/* $tlsDir/server.crt"
+   
    cp $srcMSP/signcerts/* $tlsDir/server.crt
    cp $srcMSP/keystore/* $tlsDir/server.key
    mkdir -p $dstMSP/keystore
@@ -331,10 +323,8 @@ function enroll {
    logFile=$homeDir/enroll.log
 
    # Get an enrollment certificate
-   echo "$CLIENT enroll -d -u $url --tls.certfiles $tlsCert"
-   echo "$FABRIC_CA_CLIENT_HOME"
-   sleep 10s
-   $CLIENT enroll -d -u $url --tls.certfiles $tlsCert --csr.hosts ca-root.geodbInt1.com --enrollment.profile tls -H /home/javier/development/1-repos_ramas/1.1-automation/geodb-federation-fabric-prototype/network/crypto-config/operations.geodb.com/ca/intermediate/ > $logFile 2>&1
+   sleep 2s
+   $CLIENT enroll -d -u $url --tls.certfiles $tlsCert --csr.hosts ca-root.geodbInt1.com --enrollment.profile tls -H $homeDir > $logFile 2>&1
 
    if [ $? -ne 0 ]; then
       fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
@@ -355,8 +345,8 @@ function register {
   #export FABRIC_CA_CLIENT_HOME=$homeDir
   mkdir -p $homeDir
   logFile=$homeDir/register.log
-  echo "$CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d -H /home/javier/development/1-repos_ramas/1.1-automation/geodb-federation-fabric-prototype/network/crypto-config/operations.geodb.com/ca/intermediate/"
-  $CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d -H /home/javier/development/1-repos_ramas/1.1-automation/geodb-federation-fabric-prototype/network/crypto-config/operations.geodb.com/ca/intermediate/ > $logFile 2>&1
+
+  $CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d -H $homeDir > $logFile 2>&1
   if [ $? -ne 0 ]; then
     fatal "Failed to register $userName with CA as $homeDir; see $logFile"
   fi
@@ -426,7 +416,6 @@ function getcacerts {
     fatal "Failed to get CA certificates $dir with CA at $caUrl; see $logFile"
   fi
   mkdir -p $dir/msp/tlscacerts
-  echo "cp $dir/msp/cacerts/* $dir/msp/tlscacerts"
   sleep 5s
   
   cp $dir/ca/intermediate/msp/cacerts/* $dir/msp/tlscacerts
