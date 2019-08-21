@@ -7,11 +7,23 @@ channels/
 chaincode/github.com/hyperledger/
 configtxlator-artifacts
 node-artifacts
+build-network-GCP/.terraform
+build-network-GCP/crypto-config
+build-network-GCP/msp
+build-network-GCP/terraform.tfstate
+build-network-GCP/terraform.tfstate.backup
+build-network-GCP/fabric-ca-server.db
 
 # secrets
 crypto-config/
 crypto-config.bak/
 CA/fabric-ca-server
+build-network-GCP/ca-cert.pem
+build-network-GCP/ca-chain.pem
+build-network-GCP/IssuerPublicKey
+build-network-GCP/IssuerRevocationPublicKey
+build-network-GCP/tls-cert.pem
+tls-cert.pem
 
 # misc
 .DS_Store

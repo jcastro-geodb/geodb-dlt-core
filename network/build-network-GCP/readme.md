@@ -1,13 +1,10 @@
-# GeoDB network bootstrap
+# GeoDB network bootstrap from GCP
 
 ## TODOs
 
 - [x] Add installation script for Fabric prerequisites: docker, docker-compose, docker images.
 - [x] Enable TLS
-- [ ] Implement tests
-- [ ] Customize node names. Implement script for generic node deployment and network peer join.
-- [ ] Implement business logic for smart contract interaction
-- [ ] Implement business logic for datasets addition, purchase, etc.
+- [ ] Create variable files
 
 ## Dependencies
 
@@ -41,11 +38,13 @@
 
 ## Local testnet setup
 
-1- ca-root.geodb.com should be recognized by the host as 127.0.0.1 (edit your hosts file to add this).
-2- cd to /build-local-testnet and run initialize.sh. This will spawn the needed cryptomaterials.
-3- Optionally, check that everything is fine running start.sh. This step can be done from the client GUI application.
+1- GCP login .json file is needed to execute. You can find where to obtain it [here](https://cloud.google.com/docs/authentication/production?hl=es-419)
 
-From there you should be able to run the client GUI application.
+2- Download this file at ./secret/DLTTesting-Credentials.json (this is include in .gitignore)
+
+COMPLETAR
+
+2- `./initialize.sh`
 
 ## Important note
 

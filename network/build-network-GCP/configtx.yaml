@@ -1,0 +1,102 @@
+Organizations:
+  - &GeoDB
+    Name: GeoDB
+    ID: geodbMSP
+    # MSPDir: crypto-config/ordererOrganizations/operations.geodb.com/msp
+    MSPDir: ../crypto-config/operations.geodb.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('geodbMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('geodbMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('geodbMSP.admin')"
+
+Capabilities:
+  Global: &ChannelCapabilities
+    V1_3: true
+  Orderer: &OrdererCapabilities
+    V1_1: true
+  Application: &ApplicationCapabilities
+    V1_3: true
+
+Application: &ApplicationDefaults
+  Policies: &ApplicationDefaultPolicies
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Organizations:
+
+Orderer: &OrdererDefaults
+  OrdererType: solo
+  Addresses:
+    - orderer0.operations.geodb.com:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 500
+    AbsoluteMaxBytes: 10 MB
+    PreferredMaxBytes: 2 MB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    <<: *OrdererCapabilities
+
+Channel: &ChannelDefaults
+  Policies:
+    # Who may invoke the 'Deliver' API
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    # Who may invoke the 'Broadcast' API
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    # By default, who may modify elements at this config level
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  GeoDBOrdererGenesis:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *GeoDB
+    Consortiums:
+      GeoDB:
+        Organizations:
+          - *GeoDB
+
+  RewardsChannel:
+    <<: *ChannelDefaults
+    Consortium: GeoDB
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *GeoDB
+      Capabilities:
+        <<: *ApplicationCapabilities

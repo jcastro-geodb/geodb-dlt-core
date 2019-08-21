@@ -1,0 +1,69 @@
+version: "2"
+
+networks:
+  geodb:
+
+services:
+  orderer0.operations.geodb.com:
+    extends:
+      file: ../bases/orderer-base.yaml
+      service: orderer
+    container_name: orderer0.operations.geodb.com
+    environment:
+      - ORDERER_GENERAL_LOCALMSPID=geodbMSP
+    volumes:
+      - ../crypto-config/operations.geodb.com/orderers/orderer0.operations.geodb.com/msp:/var/hyperledger/orderer/msp
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    ports:
+      - 7050:7050
+    networks:
+      - geodb
+
+  peer0.operations.geodb.com:
+    extends:
+      file: ../bases/peer-base.yaml
+      service: peer
+    container_name: peer0.operations.geodb.com
+    environment:
+      - CORE_PEER_ID=peer0.operations.geodb.com
+      - CORE_PEER_ADDRESS=peer0.operations.geodb.com:7051
+      - CORE_PEER_LOCALMSPID=geodbMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.operations.geodb.com:7051
+    volumes:
+      - ../crypto-config/operations.geodb.com/peers/peer0.operations.geodb.com/msp:/etc/hyperledger/msp/peer
+      # - ../crypto-config/peerOrganizations/operations.geodb.com/peers/peer.operations.geodb.com/msp:/etc/hyperledger/msp/peer
+    ports:
+      - 7051:7051
+      - 7053:7053
+    depends_on:
+      - orderer0.operations.geodb.com
+    networks:
+      - geodb
+
+  clipeer0.operations.geodb.com:
+    extends:
+      file: ../bases/cli-base.yaml
+      service: cli
+    container_name: clipeer0.operations.geodb.com
+    environment:
+      - CORE_PEER_ID=clipeer0.operations.geodb.com
+      - CORE_PEER_ADDRESS=peer0.operations.geodb.com:7051
+      - CORE_PEER_LOCALMSPID=geodbMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@operations.geodb.com/msp
+    volumes:
+      - ../crypto-config/operations.geodb.com:/etc/hyperledger/msp
+    depends_on:
+      - peer0.operations.geodb.com
+    networks:
+      - geodb
+
+  couchdb:
+    container_name: couchdb
+    image: hyperledger/fabric-couchdb
+    environment:
+      DB_URL: http://localhost:5984/
+    ports:
+      - "5984:5984"
+    networks:
+      - geodb
