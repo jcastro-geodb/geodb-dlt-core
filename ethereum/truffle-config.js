@@ -36,6 +36,7 @@ if (!secrets || !secrets.mnemonic || !secrets.endpoints) {
 
 const endpoints = secrets.endpoints;
 const mnemonic = secrets.mnemonic.trim();
+const etherscanAPI = secrets.etherscanAPI;
 
 module.exports = {
   networks: {
@@ -108,16 +109,15 @@ module.exports = {
       gasPrice: toWei("2", "gwei")
     }
   },
-
-  // Set default mocha options here, use special reporters etc.
-  mocha: {
-    // timeout: 100000
+  // Plugins
+  plugins: ["truffle-plugin-verify"],
+  api_keys: {
+    etherscan: etherscanAPI
   },
-
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.5.7", // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.5.7+commit.6da8b019", // Fetch exact version from solc-bin (default: truffle's version)
       optimizer: {
         enabled: true,
         runs: 200
