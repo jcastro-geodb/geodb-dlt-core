@@ -1,12 +1,8 @@
-pragma solidity >= 0.5.0 <6.0.0;
+pragma solidity 0.5.7;
 
-import "../externals/openzeppelin-solidity/contracts/token/ERC777/ERC777.sol";
+import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 import "./utils/Pausable.sol";
-import "../externals/openzeppelin-solidity/contracts/math/SafeMath.sol";
-// Replace the two above for:
-// import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
-// import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-// in production
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract GeoToken is Pausable, ERC777 {
   using SafeMath for uint256;
