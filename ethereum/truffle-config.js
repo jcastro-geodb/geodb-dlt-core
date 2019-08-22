@@ -89,10 +89,15 @@ module.exports = {
       gas: 5500000,
       websockets: true
     },
+    mainnet: {
+      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.mainnet),
+      confirmations: 2,
+      network_id: "1"
+    },
     rinkeby: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.rinkeby),
       confirmations: 2,
-      network_id: "1"
+      network_id: "4"
     },
     ropsten: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten),
