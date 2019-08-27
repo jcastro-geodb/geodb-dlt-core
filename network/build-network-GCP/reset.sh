@@ -86,17 +86,17 @@ restoreCA(){
 downCA
 check_returnCode $?
 
-# downAll
-# check_returnCode $?
+downAll
+check_returnCode $?
 
-# regenerateCryptoMaterial
-# check_returnCode $?
+regenerateCryptoMaterial
+check_returnCode $?
 
-# cleanDirectories
-# check_returnCode $?
+cleanDirectories
+check_returnCode $?
 
-# restoreCA
-# check_returnCode $?
+restoreCA
+check_returnCode $?
 
 echo
 echo "========================================================="

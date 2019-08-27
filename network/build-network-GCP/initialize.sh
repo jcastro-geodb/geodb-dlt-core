@@ -185,13 +185,13 @@ check_returnCode $?
 sleep 3s
 
 # Create the channel on the peer from the genesis block
-# operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations.geodb.com:7050' 
-# check_returnCode $?
+operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations.geodb.com:7050' 
+check_returnCode $?
 
-# # Join the channel
-# operationsWithPeer 'peer channel join -b rewards.block'
-# check_returnCode $?
+# Join the channel
+operationsWithPeer 'peer channel join -b rewards.block'
+check_returnCode $?
 
-# # Update anchor peer
-# operationsWithPeer 'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
-# check_returnCode $?
+# Update anchor peer
+operationsWithPeer 'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
+check_returnCode $?
