@@ -35,10 +35,10 @@ checkSomeCA(){
   instances=$(gcloud compute instances list | grep ca-root)
 
   if [ -z "$instances" ]; then
-    echo "No detectada ninguna red, se procede a desplegar"
+    echo "Any rootCA has been detected, deployment in proccess"
     startRootCA
   else
-    echo "Se ha detectado una red, se salta el paso actual"
+    echo "A rootCA has been detected, skipping this step"
   fi
 
 }
@@ -168,7 +168,7 @@ check_returnCode $?
 introduceIP
 
 cd ..
-buildCertificates operations.geodb.com:1:1:7500:geodb:password:7501 ######### Revisar proceso de alta de nueva entidad, da error al registrar.
+buildCertificates operations.geodb.com:1:1:7500:geodb:password:7501
 check_returnCode $?
 sleep 3s
 

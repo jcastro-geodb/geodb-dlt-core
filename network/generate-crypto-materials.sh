@@ -229,7 +229,7 @@ function setupOrg {
       # Register and enroll this node's identity
       echo
       echo "#################################################################"
-      echo "###########  Registering and Enrolling Orderer node ################"
+      echo "###########  Registering and Enrolling Orderer node #############"
       echo "#################################################################"
       echo
       registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
@@ -353,10 +353,6 @@ function enrollIntermediate {
    logFile=$homeDir/enroll.log
 
    # Get an enrollment certificate
-   sleep 2s
-   echo ""
-   echo "$CLIENT enroll -d -u $url --tls.certfiles $tlsCert --csr.hosts ca-root.geodbInt1.com --enrollment.profile tls -H $homeDir"
-   echo ""
    $CLIENT enroll -d -u $url --tls.certfiles $tlsCert --csr.hosts ca-root.geodbInt1.com --enrollment.profile tls -H $homeDir > $logFile 2>&1
 
    if [ $? -ne 0 ]; then
@@ -480,10 +476,6 @@ function getcacertsInit {
   mkdir -p $dir
   export FABRIC_CA_CLIENT_HOME=$dir
   logFile=$dir/getcacert.out
-  echo ""
-  echo "$CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert -H $homeTLS"
-  echo ""
-  echo $(pwd)
   $CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert > $logFile 2>&1
   if [ $? -ne 0 ]; then
     fatal "Failed to get CA certificates $dir with CA at $caUrl; see $logFile"
