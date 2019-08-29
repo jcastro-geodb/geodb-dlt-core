@@ -8,7 +8,7 @@ check_returnCode() {
         else
                 >&2 echo -e "ERROR:.... Proccess ERROR: $1"
 		cd $dir
-		#./reset.sh
+		./reset.sh
 		echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
                 exit $1
         fi
