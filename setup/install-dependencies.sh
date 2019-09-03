@@ -12,7 +12,7 @@ check_returnCode() {
 
 installDependencies() {
   apt-get update
-  programs=(curl make docker docker-compose jq)
+  programs=(curl make docker docker-compose jq go-dep)
 
   for program in "${programs[@]}"; do
       if ! command -v "$program" > /dev/null 2>&1; then

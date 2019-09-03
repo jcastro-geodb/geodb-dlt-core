@@ -24,17 +24,32 @@ downAll(){
   docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down
 }
 
-downCA(){
+clearContainers() {
   echo
   echo "========================================================="
-  echo "Killing all dockers and reset system"
+  echo "Cleanning Containers"
   echo "========================================================="
   echo
+  CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*.*/) {print $1}')
+    if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" == " " ]; then
+      echo "---- No containers available for deletion ----"
+    else
+      docker rm -f $CONTAINER_IDS
+    fi
+}
 
-  sleep 2s
-
-  terraform init
-  terraform destroy -var-file="./secret/secret.tfvars" -auto-approve
+removeUnwantedImages() { 
+  echo
+  echo "========================================================="
+  echo "Removing Unwanted Images"
+  echo "========================================================="
+  echo
+  DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*.*/) {print $3}')
+    if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" == " " ]; then
+      echo "---- No images available for deletion ----"
+    else
+      docker rmi -f $DOCKER_IMAGE_IDS
+    fi
 }
 
 regenerateCryptoMaterial(){
@@ -66,6 +81,19 @@ cleanDirectories(){
   fi
 }
 
+downCA(){
+  echo
+  echo "========================================================="
+  echo "Killing all dockers and reset system"
+  echo "========================================================="
+  echo
+
+  sleep 2s
+
+  terraform init
+  terraform destroy -var-file="./secret/secret.tfvars" -auto-approve
+}
+
 restoreCA(){
   echo
   echo "========================================================="
@@ -87,6 +115,12 @@ downCA
 check_returnCode $?
 
 downAll
+check_returnCode $?
+
+clearContainers
+check_returnCode $?
+
+removeUnwantedImages
 check_returnCode $?
 
 regenerateCryptoMaterial

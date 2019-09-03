@@ -13,6 +13,8 @@ build-network-GCP/msp
 build-network-GCP/terraform.tfstate
 build-network-GCP/terraform.tfstate.backup
 build-network-GCP/fabric-ca-server.db
+chaincode/github.com/geodb/go/vendor/
+chaincode/github.com/geodb/javascript-low-level/ethereum/
 
 # secrets
 crypto-config/
