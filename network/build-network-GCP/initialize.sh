@@ -145,6 +145,17 @@ operationsWithPeer(){
   docker exec clipeer0.operations.geodb.com bash -c "$@"
 }
 
+installChaincode(){
+  echo
+  echo "========================================================="
+  echo "Installing ChainCode"
+  echo "========================================================="
+  echo
+
+  ./install-upg-chaincode.sh
+
+}
+
 export COMPOSE_PROJECT_NAME=geodb
 
 dir=`pwd`
@@ -195,3 +206,20 @@ check_returnCode $?
 # Update anchor peer
 operationsWithPeer 'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
 check_returnCode $?
+
+echo
+echo "========================================================="
+echo "You can deploy automatically default chaincode"
+echo "========================================================="
+echo
+
+cd ..
+
+while true; do
+    read -p "Do you want to deploy default chaincode? " yn
+    case $yn in
+     [Yy]* ) installChaincode; check_returnCode $?; break;;
+     [Nn]* ) echo "Federation is ready."; break;;
+     *) echo "Please answer local (Ll) or GCP (Gg).";
+    esac
+done
