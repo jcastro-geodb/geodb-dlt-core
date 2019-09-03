@@ -40,12 +40,44 @@
 
   `$ sudo apt-get update && sudo apt-get install google-cloud-sdk`
 
-  
+
+#Launching Federation: Local or GCP
 
 ## Local testnet setup
 
 1- ca-root.geodb.com should be recognized by the host as 127.0.0.1 (edit your hosts file to add this).
 2- cd to /build-local-testnet and run initialize.sh. This will spawn the needed cryptomaterials.
+
+> If you see this message:
+>
+> ```verilog
+> =========================================================
+> Buildng certificates
+> =========================================================
+> 
+> Setting RECREATE=false
+> Running script with args:
+> ORGS: operations.geodb.com:1:1:7500:geodb:password:7501
+> RECREATE: false
+> 
+> #################################################################
+> #######    Generating crypto material using Fabric CA  ##########
+> #################################################################
+> 
+> Checking executables ...
+> INFO:.... Proccess Succeed
+> Root CA is running
+> INFO:.... Proccess Succeed
+> Setting up organizations ...
+> Org operations.geodb.com has 1 peer nodes and 1 orderer nodes
+> Starting CA server in crypto-config/operations.geodb.com/ca/intermediate on port 7501 ...
+> CA server is started in crypto-config/operations.geodb.com/ca/intermediate and listening on port 7501
+> FATAL: Failed to enroll crypto-config/operations.geodb.com/ca/intermediate/tls with CA at https://admin:adminpw@localhost:7501; see crypto-config/operations.geodb.com/ca/intermediate/tls/enroll.log
+> ERROR:.... Proccess ERROR: 1
+> ```
+>
+> Probably you have not added `ca-root.geodb.com` to `/etc/hosts`.
+
 3- Optionally, check that everything is fine running start.sh. This step can be done from the client GUI application.
 
 From there you should be able to run the client GUI application.
@@ -60,7 +92,7 @@ To setup application you must `cd ` into directory `network/build-network-GCP` a
 
 This script will check if network and / or RootCA already exists:
 
-```bash
+```verilog
 =========================================================
 Checking if network exists
 =========================================================
@@ -71,7 +103,7 @@ If this message appear, it means that a network is running or problably it must 
 
 In addition, you can see this message:
 
-```bash
+```verilog
 =========================================================
 Checking if exists some CA active at GCP
 =========================================================
@@ -93,7 +125,7 @@ Process will call to `main.tf` that is a Terraform script where is included conf
 - Network and Firewall
 - Setup Script to launch root CA service
 
-```bash
+```verilog
 =========================================================
 Starting Root CA
 =========================================================
@@ -138,7 +170,7 @@ Waiting for FabricCA server. Please Wait
 
 To ensure that all services are operational, a waiting time of 2 minutes has been established. After this idle time, the public certificate from rootCA:
 
-```bash
+```verilog
 =========================================================
 Downloading cert, please insert passphrase.
 =========================================================
@@ -155,7 +187,7 @@ Download complete
 
 This certificate will be useful to set up an *Intermediate CA server* and enroll it to *rootCA*. But, before building certificates FabricCA should be recognized by the host, so `/etc/hosts` must be edited. Next alert informs about that:
 
-```bash
+```verilog
 =========================================================
 FabricCA should be recognized by the host. Edit your hosts file to add this.
 IP address --> [u'35.225.24.187']
@@ -167,7 +199,7 @@ Have you edit your host file (y/n)?
 
 You have to include:
 
-```
+```verilog
 <IP_address>		ca-root.geodb.com 	#This is root CA that is deployed on GCP instance
 127.0.0.1       ca-root.geodbInt1.com 	#This is the new CA Intermediate that will be deployed locally
 ```

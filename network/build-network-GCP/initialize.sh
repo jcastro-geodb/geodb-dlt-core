@@ -99,7 +99,7 @@ buildCertificates(){
   echo "========================================================="
   echo
 
-  ./generate-crypto-materials.sh --orgs $1
+  ./generate-crypto-materials-GCP.sh --orgs $1
 }
 
 genesisBlock(){

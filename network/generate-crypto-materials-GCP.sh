@@ -28,7 +28,7 @@ function main {
   checkExecutables
   check_returnCode $?
   cd $mydir
-  checkRootCA
+  checkGCPRootCA
   check_returnCode $?
   cd $mydir
   if [ -d $CDIR ]; then
@@ -144,20 +144,48 @@ function setupOrg {
    # Start the intermediate CA server
    # startCA $orgDir/ca/intermediate $intermediateCAPort $orgName http://admin:adminpw@localhost:$rootCAPort
 
-   startCA $orgDir/ca/intermediate $intermediateCAPort $orgName https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort
+  echo
+  echo "#################################################################"
+  echo "############    Generating CA Certs from rootCA  ################"
+  echo "#################################################################"
+  echo
 
+   getcacertsInit $orgDir https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort $TLSROOTCERT $orgDir/ca/intermediate
+
+  echo
+  echo "#################################################################"
+  echo "###########    Starting CA Intermediate Server  #################"
+  echo "#################################################################"
+  echo
+   startCA $orgDir/ca/intermediate $intermediateCAPort $orgName https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort
+   
    # Enroll an admin user with the intermediate CA
    adminHome=$usersDir/intermediateAdmin
-   intermediateCAURL=https://admin:adminpw@localhost:$intermediateCAPort
+   intermediateCAURL=https://admin:adminpw@ca-root.geodbInt1.com:$intermediateCAPort
    intermediateCATlsCert=$(realpath $orgDir/ca/intermediate/tls-cert.pem)
-   enroll $adminHome $intermediateCAURL $orgName $intermediateCATlsCert
+  echo
+  echo "#################################################################"
+  echo "###########    Enrolling Intermediate CA Server  ################"
+  echo "#################################################################"
+  echo
+   enrollIntermediate $adminHome $intermediateCAURL $orgName $intermediateCATlsCert
 
 
    # Register and enroll admin with the intermediate CA
    adminUserHome=$usersDir/Admin@${orgName}
+  echo
+  echo "#################################################################"
+  echo "###########    Registering and Enrolling Admin  #################"
+  echo "#################################################################"
+  echo
    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName $intermediateCATlsCert nodeAdmin
    # Register and enroll user1 with the intermediate CA
    user1UserHome=$usersDir/User1@${orgName}
+  echo
+  echo "#################################################################"
+  echo "###########    Registering and Enrolling User1  #################"
+  echo "#################################################################"
+  echo
    registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName $intermediateCATlsCert
    # Create peer nodes
    peerCount=0
@@ -167,8 +195,18 @@ function setupOrg {
 
       mkdir -p $nodeDir
       # Get TLS crypto for this node
+      echo
+      echo "#################################################################"
+      echo "###########    Getting TLS crypto for Peer node  ################"
+      echo "#################################################################"
+      echo
       tlsEnroll $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
       # Register and enroll this node's identity
+      echo
+      echo "#################################################################"
+      echo "###########  Registering and Enrolling Peer node ################"
+      echo "#################################################################"
+      echo
       registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
       normalizeMSP $nodeDir $orgName $adminUserHome
       peerCount=$(expr $peerCount + 1)
@@ -182,8 +220,18 @@ function setupOrg {
 
       mkdir -p $nodeDir
       # Get TLS crypto for this node
+      echo
+      echo "#################################################################"
+      echo "###########    Getting TLS crypto for Orderer node  #############"
+      echo "#################################################################"
+      echo
       tlsEnroll $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
       # Register and enroll this node's identity
+      echo
+      echo "#################################################################"
+      echo "###########  Registering and Enrolling Orderer node #############"
+      echo "#################################################################"
+      echo
       registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
       normalizeMSP $nodeDir $orgName $adminUserHome
       ordererCount=$(expr $ordererCount + 1)
@@ -212,7 +260,7 @@ function startCA {
    mkdir -p $homeDir
    export FABRIC_CA_SERVER_HOME=$homeDir
 
-   $SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --tls.enabled --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
+   $SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --csr.hosts ca-root.geodbInt1.com --tls.enabled --intermediate.tls.certfiles ../../msp/cacerts/ca-root-geodb-com-7500.pem> $homeDir/server.log 2>&1&
 
    echo $! > $homeDir/server.pid
    if [ $? -ne 0 ]; then
@@ -258,8 +306,7 @@ function tlsEnroll {
 
    srcMSP=$tlsDir/msp
    dstMSP=$homeDir/msp
-   echo "enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls"
-   enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
+   enroll $tlsDir https://admin:adminpw@ca-root.geodbInt1.com:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
    cp $srcMSP/signcerts/* $tlsDir/server.crt
    cp $srcMSP/keystore/* $tlsDir/server.key
    mkdir -p $dstMSP/keystore
@@ -293,7 +340,26 @@ function registerAndEnroll {
   fi
 
   register $userName "secret" $registrarHomeDir $tlsCert
-  enroll $registreeHomeDir https://${userName}:secret@localhost:$caPort $orgName $tlsCert
+  enroll $registreeHomeDir https://admin:adminpw@ca-root.geodbInt1.com:$caPort $orgName $tlsCert
+}
+
+function enrollIntermediate {
+   homeDir=$1; shift
+   url=$1; shift
+   orgName=$1; shift
+   tlsCert=$1; shift
+   mkdir -p $homeDir
+   #export FABRIC_CA_CLIENT_HOME=$homeDir
+   logFile=$homeDir/enroll.log
+
+   # Get an enrollment certificate
+   $CLIENT enroll -d -u $url --tls.certfiles $tlsCert --csr.hosts ca-root.geodbInt1.com --enrollment.profile tls -H $homeDir > $logFile 2>&1
+
+   if [ $? -ne 0 ]; then
+      fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
+   fi
+   # Get a TLS certificate
+   echo "Enrolled $homeDir with CA at $url"
 }
 
 # Enroll an identity
@@ -308,6 +374,7 @@ function enroll {
    logFile=$homeDir/enroll.log
 
    # Get an enrollment certificate
+   sleep 2s
    $CLIENT enroll -d -u $url --tls.certfiles $tlsCert > $logFile 2>&1
 
    if [ $? -ne 0 ]; then
@@ -401,13 +468,34 @@ function getcacerts {
   echo "Loaded CA certificates into $dir from CA at $caUrl"
 }
 
-function checkRootCA {
-  if [ ! "$(docker ps -q -f name=ca-root.geodb.com)" ]; then
-    fatal "Root CA container is not running"
+function getcacertsInit {
+  dir=$1; shift
+  caUrl=$1; shift
+  tlsCert=$1; shift
+  homeTLS=$1; shift
+  mkdir -p $dir
+  export FABRIC_CA_CLIENT_HOME=$dir
+  logFile=$dir/getcacert.out
+  $CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert > $logFile 2>&1
+  if [ $? -ne 0 ]; then
+    fatal "Failed to get CA certificates $dir with CA at $caUrl; see $logFile"
+  fi
+  mkdir -p $dir/msp/tlscacerts
+  sleep 5s
+  
+  cp $dir/ca/intermediate/msp/cacerts/* $dir/msp/tlscacerts
+  echo "Loaded CA Init certificates into $dir from CA at $caUrl"
+}
+
+function checkGCPRootCA(){
+  
+  instances=$(gcloud compute instances list | grep ca-root)
+
+  if [ -z "$instances" ]; then
+    fatal "Root CA is not running"
   else
     echo "Root CA is running"
   fi
-
 }
 
 function wipeout {
