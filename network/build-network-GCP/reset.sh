@@ -60,7 +60,7 @@ regenerateCryptoMaterial(){
   echo
 
   cd ../
-  ./generate-crypto-materials.sh -d
+  ./generate-crypto-materials-GCP.sh -d
 }
 
 cleanDirectories(){
