@@ -21,7 +21,7 @@ downAll(){
 
   sleep 2s
 
-  docker-compose -f docker-compose-2Orgs.yaml kill && docker-compose -f docker-compose-2Orgs.yaml down
+  docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down
 }
 
 clearContainers() {

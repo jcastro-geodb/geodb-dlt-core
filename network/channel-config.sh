@@ -59,3 +59,6 @@ echo "##################################################################"
 echo
 configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor.tx -channelID rewards -asOrg GeoDB
 check_returnCode $?
+
+configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor2.tx -channelID rewards -asOrg GeoDB2
+check_returnCode $?
