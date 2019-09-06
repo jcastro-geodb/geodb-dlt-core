@@ -15,6 +15,22 @@ Organizations:
         Type: Signature
         Rule: "OR('geodbMSP.admin')"
 
+  - &GeoDB2
+    Name: GeoDB2
+    ID: geodbMSP2
+    # MSPDir: crypto-config/ordererOrganizations/operations.geodb.com/msp
+    MSPDir: ../crypto-config/operations2.geodb.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('geodbMSP2.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('geodbMSP2.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('geodbMSP2.admin')"
+
 Capabilities:
   Global: &ChannelCapabilities
     V1_3: true
@@ -62,6 +78,32 @@ Orderer: &OrdererDefaults
   Capabilities:
     <<: *OrdererCapabilities
 
+Orderer: &OrdererDefaults
+  OrdererType: solo
+  Addresses:
+    - orderer1.operations2.geodb.com:7150
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 500
+    AbsoluteMaxBytes: 10 MB
+    PreferredMaxBytes: 2 MB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    <<: *OrdererCapabilities
+
 Channel: &ChannelDefaults
   Policies:
     # Who may invoke the 'Deliver' API
@@ -78,6 +120,11 @@ Channel: &ChannelDefaults
       Rule: "MAJORITY Admins"
   Capabilities:
     <<: *ChannelCapabilities
+  Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *GeoDB
+                - *GeoDB2
 
 Profiles:
   GeoDBOrdererGenesis:
@@ -86,10 +133,12 @@ Profiles:
       <<: *OrdererDefaults
       Organizations:
         - *GeoDB
+        - *GeoDB2
     Consortiums:
       GeoDB:
         Organizations:
           - *GeoDB
+          - *GeoDB2
 
   RewardsChannel:
     <<: *ChannelDefaults
@@ -98,5 +147,6 @@ Profiles:
       <<: *ApplicationDefaults
       Organizations:
         - *GeoDB
+        - *GeoDB2
       Capabilities:
         <<: *ApplicationCapabilities

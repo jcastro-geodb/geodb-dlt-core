@@ -8,7 +8,7 @@ check_returnCode() {
         else
                 >&2 echo -e "ERROR:.... Proccess ERROR: $1"
 		cd $dir
-		#./reset.sh
+		./reset.sh
 		echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
                 exit $1
         fi
@@ -132,7 +132,7 @@ bringUpNetwork(){
   echo "========================================================="
   echo
   pwd
-  docker-compose -f docker-compose.yaml up -d
+  docker-compose -f docker-compose-2Orgs.yaml up -d
 }
 
 operationsWithPeer(){
@@ -179,9 +179,12 @@ check_returnCode $?
 introduceIP
 
 cd ..
-buildCertificates operations.geodb.com:10:2:7500:geodb:password:7501
+buildCertificates operations.geodb.com:4:1:7500:geodb:password:7501
 check_returnCode $?
 sleep 3s
+
+buildCertificates operations2.geodb.com:4:1:7500:geodb:password:7501
+check_returnCode $?
 
 # Generate genesis block
 
@@ -203,9 +206,21 @@ check_returnCode $?
 operationsWithPeer 'peer channel join -b rewards.block'
 check_returnCode $?
 
+docker exec clipeer1.operations.geodb.com bash -c 'peer channel join -b rewards.block'
+docker exec clipeer2.operations.geodb.com bash -c 'peer channel join -b rewards.block'
+docker exec clipeer3.operations.geodb.com bash -c 'peer channel join -b rewards.block'
+docker exec clipeer0.operations2.geodb.com bash -c 'peer channel join -b rewards.block'
+docker exec clipeer1.operations2.geodb.com bash -c 'peer channel join -b rewards.block'
+docker exec clipeer2.operations2.geodb.com bash -c 'peer channel join -b rewards.block'
+docker exec clipeer3.operations2.geodb.com bash -c 'peer channel join -b rewards.block'
+
 # Update anchor peer
 operationsWithPeer 'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
 check_returnCode $?
+
+docker exec clipeer0.operations2.geodb.com bash -c 'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
+
+# docker exec clipeer0.operations2.geodb.com bash -c 'peer channel update -o orderer1.operations2.geodb.com:7150 -c rewards -f ./channels/geodbanchor.tx'
 
 echo
 echo "========================================================="
