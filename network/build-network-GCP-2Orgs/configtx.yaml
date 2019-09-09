@@ -78,32 +78,6 @@ Orderer: &OrdererDefaults
   Capabilities:
     <<: *OrdererCapabilities
 
-Orderer: &OrdererDefaults
-  OrdererType: solo
-  Addresses:
-    - orderer0.operations1.geodb.com:7150
-  BatchTimeout: 2s
-  BatchSize:
-    MaxMessageCount: 500
-    AbsoluteMaxBytes: 10 MB
-    PreferredMaxBytes: 2 MB
-  Organizations:
-  Policies:
-    Readers:
-      Type: ImplicitMeta
-      Rule: "ANY Readers"
-    Writers:
-      Type: ImplicitMeta
-      Rule: "ANY Writers"
-    Admins:
-      Type: ImplicitMeta
-      Rule: "MAJORITY Admins"
-    BlockValidation:
-      Type: ImplicitMeta
-      Rule: "ANY Writers"
-  Capabilities:
-    <<: *OrdererCapabilities
-
 Channel: &ChannelDefaults
   Policies:
     # Who may invoke the 'Deliver' API

@@ -183,7 +183,7 @@ buildCertificates operations0.geodb.com:4:1:7500:geodb:password:7501
 check_returnCode $?
 sleep 3s
 
-buildCertificates operations1.geodb.com:4:1:7500:geodb:password:7501
+buildCertificates operations1.geodb.com:4:0:7500:geodb:password:7501
 check_returnCode $?
 
 # Generate genesis block

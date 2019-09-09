@@ -21,23 +21,6 @@ services:
     networks:
       - geodb
   
-  orderer0.operations1.geodb.com:
-    extends:
-      file: ../bases/orderer-base.yaml
-      service: orderer
-    container_name: orderer0.operations1.geodb.com
-    environment:
-      - ORDERER_GENERAL_LOCALMSPID=geodbMSP2
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0 
-      - ORDERER_GENERAL_LISTENPORT=7150
-    volumes:
-      - ../crypto-config/operations1.geodb.com/orderers/orderer0.operations1.geodb.com/msp:/var/hyperledger/orderer/msp
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
-    ports:
-      - 7150:7150
-    networks:
-      - geodb
-
   peer0.operations0.geodb.com:
     extends:
       file: ../bases/peer-base.yaml
