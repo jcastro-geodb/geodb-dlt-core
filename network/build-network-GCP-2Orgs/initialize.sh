@@ -224,7 +224,7 @@ done
 operationsWithPeer 'peer channel update -o orderer0.operations0.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
 check_returnCode $?
 
-docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer0.operations1.geodb.com:7150 -c rewards -f ./channels/geodbanchor2.tx'
+docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer0.operations0.geodb.com:7050 -c rewards -f ./channels/geodbanchor2.tx'
 
 # docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer1.operations1.geodb.com:7150 -c rewards -f ./channels/geodbanchor.tx'
 

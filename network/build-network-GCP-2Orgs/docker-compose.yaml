@@ -57,8 +57,6 @@ services:
     ports:
       - 7051:7051
       - 7053:7053
-    depends_on:
-      - orderer0.operations0.geodb.com
     networks:
       - geodb
 
@@ -69,20 +67,18 @@ services:
     container_name: peer1.operations0.geodb.com
     environment:
       - CORE_PEER_ID=peer1.operations0.geodb.com
-      - CORE_PEER_ADDRESS=peer1.operations0.geodb.com:10051
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:10051
+      - CORE_PEER_ADDRESS=peer1.operations0.geodb.com:7151
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7151
       - CORE_PEER_LOCALMSPID=geodbMSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.operations0.geodb.com:10051
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer2.operations0.geodb.com:7151
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.operations0.geodb.com:7151
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer2.operations0.geodb.com:7251
     volumes:
       - ../crypto-config/operations0.geodb.com/peers/peer1.operations0.geodb.com/msp:/etc/hyperledger/msp/peer
       # - ../crypto-config/peerOrganizations/operations0.geodb.com/peers/peer.operations0.geodb.com/msp:/etc/hyperledger/msp/peer
     ports:
-      - 10051:10051
-      - 10053:10053
-    depends_on:
-      - orderer0.operations0.geodb.com
+      - 7151:7151
+      - 7153:7153
     networks:
       - geodb
 
@@ -105,8 +101,6 @@ services:
     ports:
       - 7251:7251
       - 7253:7253
-    depends_on:
-      - orderer0.operations0.geodb.com
     networks:
       - geodb
 
@@ -122,15 +116,13 @@ services:
       - CORE_PEER_LOCALMSPID=geodbMSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.operations0.geodb.com:7351
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations0.geodb.com:10051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations0.geodb.com:7051
     volumes:
       - ../crypto-config/operations0.geodb.com/peers/peer3.operations0.geodb.com/msp:/etc/hyperledger/msp/peer
       # - ../crypto-config/peerOrganizations/operations0.geodb.com/peers/peer.operations0.geodb.com/msp:/etc/hyperledger/msp/peer
     ports:
       - 7351:7351
       - 7353:7353
-    depends_on:
-      - orderer0.operations0.geodb.com
     networks:
       - geodb
 
@@ -158,7 +150,7 @@ services:
     container_name: clipeer1.operations0.geodb.com
     environment:
       - CORE_PEER_ID=clipeer1.operations0.geodb.com
-      - CORE_PEER_ADDRESS=peer1.operations0.geodb.com:10051
+      - CORE_PEER_ADDRESS=peer1.operations0.geodb.com:7151
       - CORE_PEER_LOCALMSPID=geodbMSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@operations0.geodb.com/msp
     volumes:
@@ -220,8 +212,6 @@ services:
     ports:
       - 8051:8051
       - 8053:8053
-    depends_on:
-      - orderer0.operations1.geodb.com
     networks:
       - geodb
 
@@ -243,8 +233,6 @@ services:
     ports:
       - 8151:8151
       - 8153:8153
-    depends_on:
-      - orderer0.operations1.geodb.com
     networks:
       - geodb
 
@@ -266,8 +254,6 @@ services:
     ports:
       - 8251:8251
       - 8253:8253
-    depends_on:
-      - orderer0.operations1.geodb.com
     networks:
       - geodb
 
@@ -289,8 +275,6 @@ services:
     ports:
       - 8351:8351
       - 8353:8353
-    depends_on:
-      - orderer0.operations1.geodb.com
     networks:
       - geodb
 
