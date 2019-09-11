@@ -65,7 +65,6 @@
     "test": "rescripts test",
     "eject": "react-scripts eject",
     "electron-dev": "concurrently \"BROWSER=none yarn start\" \"wait-on http://localhost:3000 && electron .\"",
-    "postinstall": "electron-builder install-app-deps",
     "preelectron-pack": "yarn build",
     "electron-pack": "build -l"
   },
@@ -93,6 +92,10 @@
     "electron-builder": "^20.39.0",
     "typescript": "^3.4.5",
     "wait-on": "^3.2.0"
+  },
+  "engines": {
+    "node": "11.11.0",
+    "npm": "6.7.0"
   },
   "prettier": {
     "printWidth": 120

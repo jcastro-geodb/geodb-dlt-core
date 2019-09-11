@@ -21,7 +21,12 @@ downAll(){
 
   sleep 2s
 
-  docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down
+  docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down --remove-orphans
+
+  if [ -d "./node-artifacts" ]; then
+    docker-compose -f ../node-artifacts/node-docker-compose.yaml kill && docker-compose -f ../node-artifacts/node-docker-compose.yaml down --remove-orphans
+  fi
+
 }
 
 regenerateCryptoMaterial(){
@@ -50,6 +55,16 @@ cleanDirectories(){
   if [ -d "./orderer" ]; then
     echo "Removing ./orderer"
     rm -rf rm -rf ./orderer
+  fi
+
+  if [ -d "./node-artifacts" ]; then
+    echo "Removing ./node-artifacts"
+    rm -rf rm -rf ./node-artifacts
+  fi
+
+  if [ -d "./configtxlator-artifacts" ]; then
+    echo "Removing ./configtxlator-artifacts"
+    rm -rf rm -rf ./configtxlator-artifacts
   fi
 }
 

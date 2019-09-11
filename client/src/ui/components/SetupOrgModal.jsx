@@ -27,7 +27,7 @@ class SetupOrgModal extends React.Component {
         const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/${params.domain}`);
         if (fs.pathExistsSync(mspPath) !== true) throw new Error("mspPath was not created correctly");
 
-        return db.update({ _id: "msp-path" }, { _id: "msp-path", mspPath, domain }, { upsert: true });
+        return db.update({ _id: "fabricMspInfo" }, { _id: "fabricMspInfo", mspPath, domain }, { upsert: true });
       })
       .then(dbUpdateResult => {
         return setupNode(params)
@@ -49,9 +49,8 @@ class SetupOrgModal extends React.Component {
   onClose = () => {
     const { onHide } = this.props;
 
-    const { setupSuccess } = this.state.setupSuccess;
+    const { setupSuccess } = this.state;
     this.setState({ setupStarted: false, setupFinished: false, setupSuccess: false });
-
     onHide(setupSuccess);
   };
 

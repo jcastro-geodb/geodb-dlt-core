@@ -1,5 +1,5 @@
 {
   "rootCAUrl": "127.0.0.1",
   "rootCAPort": "7500",
-  "localTestnetCredentials": "geodb:shouldChangeThisPass1234"
+  "localTestnetCredentials": "geodb:password"
 }
