@@ -1,7 +1,7 @@
 # TODOs
 
 - [ ] Revamp Fabric checks flow
-- [ ] Revamp README to account for dependencies and instructions on how to run the app
+- [x] Revamp README to account for dependencies and instructions on how to run the app
 - [ ] Implement encrypted and safe keystore for ether wallet.
 - [ ] Implement smart contract call-backs
 - [ ] Include scripts for building production app. The old method was including a script entry in `package.json`, but it was deprecated. The script entry was `{..., scripts: {...,"postinstall": "electron-builder install-app-deps", ...},...}`.
@@ -29,6 +29,8 @@ To install yarn there are two alternatives:
 Then, in the root of this app (/client), open a terminal and run `yarn install`. To run the app, issue the following command: `npm run electron-dev`.
 
 # Create-React-App Electron README
+
+=> Don't follow this unless you know what you are doing. The above should be enough
 
 # Prerrequisites
 

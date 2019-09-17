@@ -61,6 +61,10 @@ case $key in
     shift
     shift
     ;;
+    --commit)
+    COMMIT=true
+    shift
+    ;;
     *)
     POSITIONAL+=("$1")
     shift
@@ -85,6 +89,10 @@ if [ -z "$ORG_CONFIG_FILE" ]; then
   fatal "No org config json was specified"
 fi
 
+if [ -z "$COMMIT" ]; then
+  COMMIT=false
+fi
+
 if [ ! "$(docker ps -q -f name=$CLI)" ]; then
   fatal "The specified CLI was not found. Is your local peer node running?"
 fi
@@ -100,7 +108,7 @@ startConfigtxlator
 export CONFIGTXLATOR_URL=http://127.0.0.1:7059
 export CHANNEL_ID=$CHANNEL_ID_LOCAL
 
-docker exec -it $CLI bash -c "peer channel fetch config ./channels/config_block.pb -o $ORDERER_URL -c ${CHANNEL_ID}; chmod 755 ./channels/config_block.pb"
+docker exec -i $CLI bash -c "peer channel fetch config ./channels/config_block.pb -o $ORDERER_URL -c ${CHANNEL_ID}; chmod 755 ./channels/config_block.pb"
 
 curl -X POST --data-binary @channels/config_block.pb "$CONFIGTXLATOR_URL/protolator/decode/common.Block" | jq . > $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-pre-update.json
 jq .data.data[0].payload.data.config $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-pre-update.json > $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-pre-update-processed.json
@@ -117,5 +125,8 @@ cp $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-delta-wrapped.pb ./channels/config_
 
 stopConfigtxlator
 
-docker exec -it $CLI bash -c "peer channel signconfigtx -f ./channels/config_block-delta-wrapped.pb"
-docker exec -it $CLI bash -c "peer channel update -f ./channels/config_block-delta-wrapped.pb -c $CHANNEL_ID -o $ORDERER_URL"
+if [ $COMMIT == true ]; then
+  docker exec -i $CLI bash -c "peer channel update -f ./channels/config_block-delta-wrapped.pb -c $CHANNEL_ID -o $ORDERER_URL"
+else
+  docker exec -i $CLI bash -c "peer channel signconfigtx -f ./channels/config_block-delta-wrapped.pb"
+fi

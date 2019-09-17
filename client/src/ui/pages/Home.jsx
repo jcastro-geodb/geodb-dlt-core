@@ -30,16 +30,12 @@ class Home extends React.Component {
     let containers = [];
 
     try {
-      const dockerFile = yaml.safeLoad(
-        fs.readFileSync("../network/docker-compose.yaml", "utf8")
-      );
+      const dockerFile = yaml.safeLoad(fs.readFileSync("../network/build-local-testnet/docker-compose.yaml", "utf8"));
 
       if (dockerFile && dockerFile.services) {
         for (const [key, value] of Object.entries(dockerFile.services)) {
           try {
-            let running = await shell(
-              `docker inspect -f '{{.State.Running}}' ${key}`
-            );
+            let running = await shell(`docker inspect -f '{{.State.Running}}' ${key}`);
             running = running.trim() === "true" ? true : false;
             containers.push({ name: key, running, config: value });
           } catch (e) {
@@ -75,10 +71,7 @@ class Home extends React.Component {
           this.setState({ runningCommand: false });
         })
         .then(() => {
-          NotificationManager.success(
-            `Successfully run command ${command}`,
-            "Success"
-          );
+          NotificationManager.success(`Successfully run command ${command}`, "Success");
           this.checkFabricStatus();
         })
         .catch(error => {
@@ -125,10 +118,7 @@ class Home extends React.Component {
                 {containers.map(prop => {
                   return (
                     <ListGroup.Item key={prop.name}>
-                      <ContainerStatus
-                        name={prop.name}
-                        running={prop.running}
-                      />
+                      <ContainerStatus name={prop.name} running={prop.running} />
                     </ListGroup.Item>
                   );
                 })}

@@ -1,40 +1,31 @@
 import React from "react";
 import path from "path";
-import fs from "fs-extra";
 import { Modal, Spinner, Button } from "react-bootstrap";
 import SetupOrgForm from "./SetupOrgForm.jsx";
 
-import setupCertificates from "./../../setups/certificates.jsx";
 import setupNode from "./../../setups/node.jsx";
 
 class SetupOrgModal extends React.Component {
   state = {
     setupStarted: false,
+    loadingMsg: "",
     setupFinished: false,
     setupSuccess: false
   };
 
   startSetup = params => {
     this.setState({ setupStarted: true });
-    const { db } = this.props;
+    const { db, mode } = this.props;
 
-    setupCertificates(params)
+    const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/${params.domain}`);
+    params.mspPath = mspPath;
+
+    setupNode(params, db, mode)
+      .on("updateProgress", loadingMsg => this.setState({ loadingMsg }))
       .on("stdout", data => console.log(`${data}`))
       .on("stderr", data => console.error(`${data}`))
       .run()
       .then(() => {
-        const domain = params.domain;
-        const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/${params.domain}`);
-        if (fs.pathExistsSync(mspPath) !== true) throw new Error("mspPath was not created correctly");
-
-        return db.update({ _id: "fabricMspInfo" }, { _id: "fabricMspInfo", mspPath, domain }, { upsert: true });
-      })
-      .then(dbUpdateResult => {
-        return setupNode(params)
-          .on("stderr", data => console.error(`${data}`))
-          .run();
-      })
-      .then(nodeSetupResult => {
         this.setState({ setupSuccess: true });
       })
       .catch(error => {
@@ -55,13 +46,13 @@ class SetupOrgModal extends React.Component {
   };
 
   render() {
-    const { setupStarted, setupFinished, setupSuccess } = this.state;
+    const { setupStarted, setupFinished } = this.state;
 
     return (
       <Modal {...this.props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered backdrop="static">
         <Modal.Header>
           <Modal.Title id="contained-modal-title-vcenter" className="w-100 text-center">
-            Federation setup
+            Add organization
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -81,11 +72,7 @@ class SetupOrgModal extends React.Component {
   renderForm = () => {
     return (
       <div>
-        <p>
-          To join the federation, it is needed to generate X.509 certificates that will uniquely identify your
-          membership to other actors. The node manager has not been able to detect these certificates and is now going
-          to start the setup process
-        </p>
+        <p>This process will generate X.509 certificates that will uniquely identify your membership to the network.</p>
         <p>Please, fill the following form to before starting the process</p>
 
         <SetupOrgForm handleCancel={this.onClose} startSetup={this.startSetup} />
@@ -97,6 +84,9 @@ class SetupOrgModal extends React.Component {
     return (
       <div className="text-center">
         <p>Please wait while the setup process finishes</p>
+        <p>
+          <small>{this.state.loadingMsg}</small>
+        </p>
         <Spinner animation="grow" variant="primary" />
         <Spinner animation="grow" variant="success" />
         <Spinner animation="grow" variant="danger" />

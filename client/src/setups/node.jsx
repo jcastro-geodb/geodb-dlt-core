@@ -2,12 +2,16 @@ import path from "path";
 import fs from "fs-extra";
 import YAML from "json2yaml";
 import shell from "./../cli/spawn/shell";
+import portastic from "portastic";
+const { rootCAPort, localTestnetCredentials } = require("./../constants/ca.json");
 
-const NODE_ARTIFACTS_PATH = path.resolve(process.cwd(), "../network/node-artifacts");
+const NODE_ARTIFACTS_BASE_RELATIVE_PATH = `../network/node-artifacts`;
 
 class SetupNode {
-  constructor(params) {
+  constructor(params, db, mode) {
     this.params = params;
+    this.db = db;
+    this.mode = mode;
   }
 
   on(event, callback) {
@@ -16,16 +20,56 @@ class SetupNode {
     return this;
   }
 
-  generateYamlFiles(domain, orgName) {
+  generateCryptoMaterials = params => {
+    if (this.events["updateProgress"]) this.events.updateProgress("Generating crypto-materials");
+
+    return new Promise((resolve, reject) => {
+      portastic
+        .find({
+          min: 7600,
+          max: 7699
+        })
+        .then(ports => {
+          const intermediateCAPort = ports[Math.floor(Math.random() * ports.length)];
+
+          const cwd = path.resolve(process.cwd(), "./../network");
+
+          const args = [
+            `--orgs`,
+            `${params.domain}:1:0:${rootCAPort}:${localTestnetCredentials}:${intermediateCAPort}`
+          ];
+
+          if (params.overwrite) args.push(`--recreate`, `${params.overwrite}`);
+
+          const p = shell("./generate-crypto-materials.sh", args, cwd);
+
+          if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
+
+          if (this.events["stderr"]) p.stderr.on("data", this.events["stderr"]);
+
+          p.on("close", code => {
+            if (code === 0) resolve(code);
+            else reject(code);
+          });
+        })
+        .catch(error => {
+          reject(error);
+        });
+    });
+  };
+
+  generateYamlFiles = (domain, orgName, artifactsPath) => {
+    if (this.events["updateProgress"]) this.events.updateProgress("Generating node YAML files");
+
     return new Promise((resolve, reject) => {
       try {
-        const mspDir = `../crypto-config/${domain}/peers/peer0.${domain}/msp`;
+        const mspDir = `../../../crypto-config/${domain}/peers/peer0.${domain}/msp`;
 
-        if (fs.existsSync(NODE_ARTIFACTS_PATH) === false) {
-          fs.mkdirSync(NODE_ARTIFACTS_PATH, { recursive: true });
+        if (fs.existsSync(artifactsPath) === false) {
+          fs.mkdirSync(artifactsPath, { recursive: true });
         }
 
-        const composerPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_PATH}/node-docker-compose.yaml`);
+        const composerPath = path.resolve(process.cwd(), `${artifactsPath}/node-docker-compose.yaml`);
 
         let services = {};
 
@@ -44,7 +88,7 @@ class SetupNode {
 
         services[`peer0.${domain}`] = {
           container_name: `peer0.${domain}`,
-          extends: { file: "../bases/peer-base.yaml", service: "peer" },
+          extends: { file: "../../../bases/peer-base.yaml", service: "peer" },
           environment,
           volumes,
           ports
@@ -57,11 +101,11 @@ class SetupNode {
         environment.push(`CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@${domain}/msp`);
 
         volumes = [];
-        volumes.push(`../crypto-config/${domain}:/etc/hyperledger/msp`);
+        volumes.push(`../../../crypto-config/${domain}:/etc/hyperledger/msp`);
 
         services[`clipeer0.${domain}`] = {
           container_name: `clipeer0.${domain}`,
-          extends: { file: "../bases/cli-base.yaml", service: "cli" },
+          extends: { file: "../../../bases/cli-base.yaml", service: "cli" },
           depends_on: [`peer0.${domain}`],
           environment,
           volumes
@@ -77,7 +121,7 @@ class SetupNode {
 
         fs.writeFileSync(composerPath, composerYaml);
 
-        const configtxPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_PATH}/configtx.yaml`);
+        const configtxPath = path.resolve(process.cwd(), `${artifactsPath}/configtx.yaml`);
 
         const anchorPeers = [{ Host: `peer0.${domain}`, Port: 7051 }];
         const policies = {
@@ -102,20 +146,27 @@ class SetupNode {
 
         fs.writeFileSync(configtxPath, configtxYaml);
 
-        resolve(true);
-      } catch (e) {
-        reject(e);
+        resolve({
+          success: true,
+          composerJSON: JSON.stringify(composerJSON),
+          configtxJSON: JSON.stringify(configtxJSON)
+        });
+      } catch (error) {
+        console.error(error);
+        reject(error);
       }
     });
-  }
+  };
 
-  generateJsonOrgFromConfigtx(events, orgName) {
+  generateJsonOrgFromConfigtx = (events, orgName, artifactsPath) => {
+    if (this.events["updateProgress"]) this.events.updateProgress("Generating node configtx JSON");
+
     let generatedJSON = undefined;
 
     return new Promise((resolve, reject) => {
-      const cwd = path.resolve(process.cwd(), NODE_ARTIFACTS_PATH);
+      const cwd = path.resolve(process.cwd(), artifactsPath);
 
-      const args = [`-configPath`, `${NODE_ARTIFACTS_PATH}`, `-printOrg`, `${orgName}`];
+      const args = [`-configPath`, `${artifactsPath}`, `-printOrg`, `${orgName}`];
 
       const p = shell("configtxgen", args, cwd);
 
@@ -123,7 +174,7 @@ class SetupNode {
 
       p.stdout.on("data", data => {
         generatedJSON = data;
-        const orgJsonPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_PATH}/${orgName}-print.json`);
+        const orgJsonPath = path.resolve(process.cwd(), `${artifactsPath}/configtx-print.json`);
         fs.writeFileSync(orgJsonPath, data);
       });
 
@@ -132,11 +183,9 @@ class SetupNode {
         else reject(code);
       });
     });
-  }
+  };
 
-  run() {
-    const { params, generateYamlFiles, generateJsonOrgFromConfigtx, events } = this;
-    const { domain } = params;
+  extractOrgNameFromDomain = domain => {
     let orgName;
 
     for (let i = domain.length - 1; i >= 0; i--) {
@@ -148,26 +197,71 @@ class SetupNode {
       }
     }
 
-    return new Promise((resolve, reject) => {
-      generateYamlFiles(domain, orgName)
-        .then(result => {
-          if (result !== true) throw new Error(result);
+    return orgName;
+  };
 
-          return generateJsonOrgFromConfigtx(events, orgName);
+  run() {
+    const {
+      params,
+      db,
+      mode,
+      generateCryptoMaterials,
+      generateYamlFiles,
+      generateJsonOrgFromConfigtx,
+      extractOrgNameFromDomain,
+      events
+    } = this;
+    const { domain, mspPath } = params;
+    const artifactsPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_BASE_RELATIVE_PATH}/${mode}/${domain}`);
+
+    let orgName = extractOrgNameFromDomain(domain);
+
+    let composerJSON, configtxJSON;
+
+    return new Promise((resolve, reject) => {
+      generateCryptoMaterials(params)
+        .then(result => {
+          if (result === 0) return generateYamlFiles(domain, orgName, artifactsPath);
+          else throw new Error(result);
         })
         .then(result => {
-          if (result === 0) resolve(true);
-          else reject(result);
+          if (result.success !== true) throw new Error(result);
+
+          composerJSON = result.composerJSON;
+          configtxJSON = result.configtxJSON;
+
+          return generateJsonOrgFromConfigtx(events, orgName, artifactsPath);
+        })
+        .then(result => {
+          if (result === 0) {
+            const timestamp = new Date();
+
+            db["events"].update(
+              { type: "join-request", mode, timestamp, resolved: [], values: { domain, mspPath, artifactsPath } },
+              { type: "join-request", mode, timestamp, resolved: [], values: { domain, mspPath, artifactsPath } },
+              { upsert: true }
+            );
+
+            return db[mode].update(
+              { _id: `${domain}` },
+              { _id: `${domain}`, domain, mspPath, composerJSON, configtxJSON },
+              { upsert: true }
+            );
+          } else throw new Error(result);
+        })
+        .then(() => {
+          resolve(true);
         })
         .catch(error => {
+          console.error(error);
           reject(error);
         });
     });
   }
 }
 
-const setupNode = params => {
-  return new SetupNode(params);
+const setupNode = (params, db, mode) => {
+  return new SetupNode(params, db, mode);
 };
 
 export default setupNode;

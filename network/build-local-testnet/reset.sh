@@ -23,8 +23,14 @@ downAll(){
 
   docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down --remove-orphans
 
-  if [ -d "./node-artifacts" ]; then
-    docker-compose -f ../node-artifacts/node-docker-compose.yaml kill && docker-compose -f ../node-artifacts/node-docker-compose.yaml down --remove-orphans
+  if [ -d "../node-artifacts/local" ]; then
+    array=()
+    while IFS=  read -r -d $'\0'; do
+
+      echo $REPLY
+      docker-compose -f $REPLY kill \
+      && docker-compose -f $REPLY down --remove-orphans
+    done < <(find ../node-artifacts/local -name "*docker-compose*" -print0)
   fi
 
 }
