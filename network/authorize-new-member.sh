@@ -61,10 +61,6 @@ case $key in
     shift
     shift
     ;;
-    --commit)
-    COMMIT=true
-    shift
-    ;;
     *)
     POSITIONAL+=("$1")
     shift
@@ -125,8 +121,9 @@ cp $CONFIGTXLATOR_ARTIFACTS_DIR/config_block-delta-wrapped.pb ./channels/config_
 
 stopConfigtxlator
 
-if [ $COMMIT == true ]; then
-  docker exec -i $CLI bash -c "peer channel update -f ./channels/config_block-delta-wrapped.pb -c $CHANNEL_ID -o $ORDERER_URL"
-else
+# Try to commit the config update. This is only possible if there is majority of admins approving it
+docker exec -i $CLI bash -c "peer channel update -f ./channels/config_block-delta-wrapped.pb -c $CHANNEL_ID -o $ORDERER_URL"
+if [ $? -ne 0 ]; then # If there are not enough approvals, then just sign it and wait for others to commit it
+  echo "Could not commit the transaction. Trying to sign it"
   docker exec -i $CLI bash -c "peer channel signconfigtx -f ./channels/config_block-delta-wrapped.pb"
 fi

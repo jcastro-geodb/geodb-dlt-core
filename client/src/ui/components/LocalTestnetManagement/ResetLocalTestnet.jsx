@@ -22,7 +22,7 @@ class ResetLocalTestnet extends React.Component {
       .run()
       .then(() => {
         NotificationManager.success("Command ran successfully");
-        db[mode].remove();
+        db[mode].remove({}, { multi: true });
         db["events"].remove({ mode }, { multi: true });
       })
       .catch(error => {

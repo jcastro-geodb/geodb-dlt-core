@@ -141,6 +141,7 @@ class Home extends React.Component {
             block
             onClick={this.onClickActions}
             loading={runningCommand}
+            disabled={true}
           >
             Stop
           </LoadingButton>
@@ -154,6 +155,7 @@ class Home extends React.Component {
             block
             onClick={this.onClickActions}
             loading={runningCommand}
+            disabled={true}
           >
             Install / Upgrade chaincode
           </LoadingButton>

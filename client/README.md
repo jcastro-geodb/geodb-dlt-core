@@ -4,6 +4,9 @@
 - [x] Revamp README to account for dependencies and instructions on how to run the app
 - [ ] Implement encrypted and safe keystore for ether wallet.
 - [ ] Implement smart contract call-backs
+- [ ] Use Hyperledger Fabric 's Service Discovery to live fetch participating orgs in the testnet
+- [ ] Use HFC to connect and perform operations on the testnet without relying on scripts.
+- [ ] For the local testnet, save peer's config in the database (ports). Ensure that different organizations use different ports for their peers.
 - [ ] Include scripts for building production app. The old method was including a script entry in `package.json`, but it was deprecated. The script entry was `{..., scripts: {...,"postinstall": "electron-builder install-app-deps", ...},...}`.
 
 # Dependencies and installation
