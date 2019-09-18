@@ -12,6 +12,8 @@ class ResetLocalTestnet extends React.Component {
   };
 
   handleResetLocalTestnet = () => {
+    const { db, mode } = this.props;
+    console.log("Mode: ", mode);
     this.setState({ loading: true });
 
     resetLocalTestnet()
@@ -20,6 +22,8 @@ class ResetLocalTestnet extends React.Component {
       .run()
       .then(() => {
         NotificationManager.success("Command ran successfully");
+        db[mode].remove();
+        db["events"].remove({ mode }, { multi: true });
       })
       .catch(error => {
         console.error(error);

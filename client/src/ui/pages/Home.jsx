@@ -95,6 +95,8 @@ class Home extends React.Component {
   render() {
     const { loading, containers, refreshing, runningCommand } = this.state;
 
+    const { db, mode } = this.props;
+
     if (loading) return <Loading />;
 
     return (
@@ -130,7 +132,7 @@ class Home extends React.Component {
         </Col>
         <Col xs={12} sm={6}>
           <h3 className="display-4 text-center">Actions</h3>
-          <InitLocalTestnet />
+          <InitLocalTestnet db={db} mode={mode} />
           <br />
           <LoadingButton
             value="stop"
@@ -143,7 +145,7 @@ class Home extends React.Component {
             Stop
           </LoadingButton>
           <br />
-          <ResetLocalTestnet />
+          <ResetLocalTestnet db={db} mode={mode} />
           <br />
           <LoadingButton
             value="install-upg-chaincode"
