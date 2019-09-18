@@ -23,15 +23,17 @@ downAll(){
 
   docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down --remove-orphans
 
-  if [ -d "../node-artifacts/local" ]; then
-    array=()
-    while IFS=  read -r -d $'\0'; do
-
-      echo $REPLY
-      docker-compose -f $REPLY kill \
-      && docker-compose -f $REPLY down --remove-orphans
-    done < <(find ../node-artifacts/local -name "*docker-compose*" -print0)
-  fi
+  # Remove docker containers created after the testnet and remove their artifacts
+  while [ -d "$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)" ]; do
+    composeDir="$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)"
+    docker-compose -f $composeDir/node-docker-compose.yaml kill \
+    && docker-compose -f $composeDir/node-docker-compose.yaml down --remove-orphans
+    rm -rf $composeDir
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Could not delete directory $composeDir, skipping further deletions"
+      break;
+    fi
+  done
 
 }
 
@@ -64,8 +66,8 @@ cleanDirectories(){
   fi
 
   if [ -d "./node-artifacts" ]; then
-    echo "Removing ./node-artifacts"
-    rm -rf rm -rf ./node-artifacts
+    echo "Removing ./node-artifacts/local"
+    rm -rf rm -rf ./node-artifacts/local
   fi
 
   if [ -d "./configtxlator-artifacts" ]; then

@@ -24,8 +24,9 @@ class InitNetwork extends React.Component {
     this.setState({ loading: true });
 
     resetLocalTestnet()
+      .run()
       .then(() => {
-        return initLocalTestnet();
+        return initLocalTestnet().run();
       })
       .then(result => {
         this.setState({ loading: false, initializeLocalTestnetCompleted: true, showSetupOrgModal: true });

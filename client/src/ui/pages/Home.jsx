@@ -13,6 +13,8 @@ import { NotificationManager } from "react-notifications";
 import Loading from "../components/Loading.jsx";
 import LoadingButton from "../components/LoadingButton.jsx";
 import ContainerStatus from "../components/ContainerStatus";
+import ResetLocalTestnet from "../components/LocalTestnetManagement/ResetLocalTestnet";
+import InitLocalTestnet from "../components/LocalTestnetManagement/InitLocalTestnet";
 
 class Home extends React.Component {
   constructor(props) {
@@ -128,16 +130,8 @@ class Home extends React.Component {
         </Col>
         <Col xs={12} sm={6}>
           <h3 className="display-4 text-center">Actions</h3>
-          <LoadingButton
-            value="start"
-            variant="success"
-            size="lg"
-            block
-            onClick={this.onClickActions}
-            loading={runningCommand}
-          >
-            Start
-          </LoadingButton>
+          <InitLocalTestnet />
+          <br />
           <LoadingButton
             value="stop"
             variant="danger"
@@ -148,16 +142,9 @@ class Home extends React.Component {
           >
             Stop
           </LoadingButton>
-          <LoadingButton
-            value="restart"
-            variant="primary"
-            size="lg"
-            block
-            onClick={this.onClickActions}
-            loading={runningCommand}
-          >
-            Reset and restart
-          </LoadingButton>
+          <br />
+          <ResetLocalTestnet />
+          <br />
           <LoadingButton
             value="install-upg-chaincode"
             variant="info"

@@ -2,10 +2,10 @@ class BaseScriptRunner {
   constructor(db, mode) {
     this.db = db;
     this.mode = mode;
+    this.events = {};
   }
 
   on(event, callback) {
-    if (this.events === undefined) this.events = {};
     this.events[event] = callback;
     return this;
   }
