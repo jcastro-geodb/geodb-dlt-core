@@ -9,8 +9,8 @@ class AuthorizeNewMember extends BaseScriptRunner {
   }
 
   run = () => {
-    const { db, mode } = this;
-    const { cli, orderer, channel, artifactsPath, commit } = this.params;
+    // const { db, mode } = this;
+    const { cli, orderer, channel, updateDeltaOutputFileName } = this.params;
 
     if (this.events["updateProgress"]) this.events.updateProgress("Authorizing member");
 
@@ -18,8 +18,7 @@ class AuthorizeNewMember extends BaseScriptRunner {
       try {
         const cwd = path.resolve(process.cwd(), "./../network");
 
-        let args = ["-c", cli, "-u", orderer, "-C", channel, "-o", `${artifactsPath}/configtx-print.json`];
-        if (commit === true) args.push("--commit");
+        let args = ["-c", cli, "-u", orderer, "-C", channel, "-d", `${updateDeltaOutputFileName}`];
 
         const p = shell("./authorize-new-member.sh", args, cwd);
 
@@ -28,7 +27,7 @@ class AuthorizeNewMember extends BaseScriptRunner {
         if (this.events["stderr"]) p.stderr.on("data", this.events["stderr"]);
 
         p.on("close", code => {
-          if (code === 0) resolve(code);
+          if (code === 0 || code === 10) resolve(code);
           else reject(code);
         });
       } catch (error) {

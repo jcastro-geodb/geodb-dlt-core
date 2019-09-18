@@ -19,7 +19,7 @@ class FederationDashboard extends React.Component {
     this.fetchEvents();
     this.intervalId = setInterval(() => {
       this.fetchEvents();
-    }, 1000);
+    }, 5000);
   }
 
   componentWillUnmount() {
@@ -31,10 +31,7 @@ class FederationDashboard extends React.Component {
 
     db.events
       .find({
-        mode,
-        $where: function() {
-          return this.resolved.includes(organization.domain) === false;
-        }
+        mode
       })
       .sort({ timestamp: 1 })
       .then(events => {
@@ -63,6 +60,8 @@ class FederationDashboard extends React.Component {
             </thead>
             <tbody>
               {events.map(_event => {
+                if (_event.approvedBy.includes(organization.domain) === true || _event.resolved === true) return null;
+
                 return (
                   <tr key={_event._id}>
                     <td>{_event.type ? _event.type : "Unknown"}</td>

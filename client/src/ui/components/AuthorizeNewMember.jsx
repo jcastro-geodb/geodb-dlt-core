@@ -14,8 +14,12 @@ class AuthorizeNewMember extends React.Component {
   handleAuthorizeNewMember = () => {
     this.setState({ loading: true });
     const { cli, orderer, channel, artifactsPath, organization, db, mode, _event } = this.props;
-    const commit = true; // TODO detectar numero de aprobados
-    const params = { cli, orderer, channel, artifactsPath: _event.values.artifactsPath, commit };
+    const params = {
+      cli,
+      orderer,
+      channel,
+      updateDeltaOutputFileName: _event.values.updateDeltaOutputFileName
+    };
 
     authorizeNewMember(params, db, mode)
       .on("updateProgress", loadingMsg => {
@@ -24,8 +28,11 @@ class AuthorizeNewMember extends React.Component {
       .on("stdout", data => console.log(`${data}`))
       .on("stderr", data => console.error(`${data}`))
       .run()
-      .then(() => {
-        db.events.update({ _id: _event._id }, { $push: { resolved: organization.domain } });
+      .then(code => {
+        db.events.update(
+          { _id: _event._id },
+          { $push: { approvedBy: organization.domain }, $set: { resolved: code === 0 } }
+        );
         NotificationManager.success("Command ran successfully");
       })
       .catch(error => {

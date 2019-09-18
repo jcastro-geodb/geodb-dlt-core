@@ -61,7 +61,7 @@ class SetupNode {
   generateYamlFiles = (domain, orgName, artifactsPath) => {
     if (this.events["updateProgress"]) this.events.updateProgress("Generating node YAML files");
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const mspDir = `../../../crypto-config/${domain}/peers/peer0.${domain}/msp`;
 
@@ -82,9 +82,16 @@ class SetupNode {
 
         let volumes = [];
         volumes.push(`${mspDir}:/etc/hyperledger/msp/peer`);
+
+        const availablePorts = await portastic.find({
+          min: 8000,
+          max: 9000
+        });
+
         let ports = [];
-        ports.push("8051:7051");
-        ports.push("8053:7053");
+
+        ports.push(`${availablePorts[Math.floor(Math.random() * availablePorts.length)]}:7051`);
+        ports.push(`${availablePorts[Math.floor(Math.random() * availablePorts.length)]}:7053`);
 
         services[`peer0.${domain}`] = {
           container_name: `peer0.${domain}`,
@@ -158,7 +165,7 @@ class SetupNode {
     });
   };
 
-  generateJsonOrgFromConfigtx = (events, orgName, artifactsPath) => {
+  generateJsonOrgFromConfigtx = (orgName, artifactsPath) => {
     if (this.events["updateProgress"]) this.events.updateProgress("Generating node configtx JSON");
 
     let generatedJSON = undefined;
@@ -170,7 +177,7 @@ class SetupNode {
 
       const p = shell("configtxgen", args, cwd);
 
-      if (events["stderr"]) p.stderr.on("data", events["stderr"]);
+      if (this.events["stderr"]) p.stderr.on("data", this.events["stderr"]);
 
       p.stdout.on("data", data => {
         generatedJSON = data;
@@ -180,6 +187,38 @@ class SetupNode {
 
       p.on("close", code => {
         if (code === 0 && typeof generatedJSON === "object") resolve(code);
+        else reject(code);
+      });
+    });
+  };
+
+  buildUpdateDeltaWithConfigTxlator = (updateDeltaOutputFileName, artifactsPath) => {
+    if (this.events["updateProgress"]) this.events.updateProgress("Building update delta for config channel");
+
+    return new Promise((resolve, reject) => {
+      const cwd = path.resolve(process.cwd(), "./../network");
+
+      let args = [
+        "-c", // CLI url to fetch current channel configuration
+        "clipeer0.operations.geodb.com",
+        "-u", // Orderer URL to fetch current channel configuration
+        "orderer0.operations.geodb.com:7050",
+        "-C", // Channel that we are requesting to join
+        "rewards",
+        "-i", // Path of the input file containing our organization's public crypto material
+        `${artifactsPath}/configtx-print.json`,
+        "-o", // Path of the output file containing the update delta to be signed by the rest of the federation
+        `${cwd}/channels/${updateDeltaOutputFileName}`
+      ];
+
+      const p = shell("./configtxlator-delta-generator.sh", args, cwd);
+
+      if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
+
+      if (this.events["stderr"]) p.stderr.on("data", this.events["stderr"]);
+
+      p.on("close", code => {
+        if (code === 0) resolve(code);
         else reject(code);
       });
     });
@@ -208,13 +247,14 @@ class SetupNode {
       generateCryptoMaterials,
       generateYamlFiles,
       generateJsonOrgFromConfigtx,
-      extractOrgNameFromDomain,
-      events
+      buildUpdateDeltaWithConfigTxlator,
+      extractOrgNameFromDomain
     } = this;
     const { domain, mspPath } = params;
     const artifactsPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_BASE_RELATIVE_PATH}/${mode}/${domain}`);
 
     let orgName = extractOrgNameFromDomain(domain);
+    const updateDeltaOutputFileName = mode === "local" ? `final-update-delta-${domain}.pb` : null;
 
     let composerJSON, configtxJSON;
 
@@ -230,23 +270,34 @@ class SetupNode {
           composerJSON = result.composerJSON;
           configtxJSON = result.configtxJSON;
 
-          return generateJsonOrgFromConfigtx(events, orgName, artifactsPath);
+          return generateJsonOrgFromConfigtx(orgName, artifactsPath);
+        })
+        .then(result => {
+          if (mode === "local" && result === 0) {
+            return buildUpdateDeltaWithConfigTxlator(updateDeltaOutputFileName, artifactsPath);
+          } else {
+            return result;
+          }
         })
         .then(result => {
           if (result === 0) {
             const timestamp = new Date();
 
-            db["events"].update(
-              { type: "join-request", mode, timestamp, resolved: [], values: { domain, mspPath, artifactsPath } },
-              { type: "join-request", mode, timestamp, resolved: [], values: { domain, mspPath, artifactsPath } },
-              { upsert: true }
-            );
-
-            return db[mode].update(
-              { _id: `${domain}` },
-              { _id: `${domain}`, domain, mspPath, composerJSON, configtxJSON },
-              { upsert: true }
-            );
+            return [
+              db["events"].insert({
+                type: "join-request",
+                mode,
+                timestamp,
+                approvedBy: [],
+                resolved: false,
+                values: { domain, mspPath, artifactsPath, updateDeltaOutputFileName }
+              }),
+              db[mode].update(
+                { _id: `${domain}` },
+                { _id: `${domain}`, domain, mspPath, composerJSON, configtxJSON },
+                { upsert: true }
+              )
+            ];
           } else throw new Error(result);
         })
         .then(() => {

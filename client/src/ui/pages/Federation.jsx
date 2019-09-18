@@ -1,10 +1,7 @@
 import React from "react";
-import { Button, Row, Col } from "react-bootstrap";
-import fs from "fs-extra";
-import path from "path";
+import { Button } from "react-bootstrap";
 
 import { NotificationManager } from "react-notifications";
-import Nav from "react-bootstrap/Nav";
 
 import Loading from "../components/Loading.jsx";
 import SetupOrgModal from "../components/SetupOrgModal.jsx";
