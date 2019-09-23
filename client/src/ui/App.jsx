@@ -28,9 +28,6 @@ import "@trendmicro/react-breadcrumbs/dist/react-breadcrumbs.css";
 import routes from "./routes/routes.jsx";
 import { withRouter } from "react-router-dom";
 
-import "react-notifications/lib/notifications.css";
-import { NotificationContainer } from "react-notifications";
-
 /*
  =============== HELPERS (CHECKERS)
 */
@@ -235,7 +232,6 @@ class App extends React.PureComponent {
             <Router mode={mode} db={db} />
           )}
         </Layout>
-        <NotificationContainer />
       </Container>
     );
   }

@@ -12,9 +12,10 @@ class InitLocalTestnet extends React.Component {
   };
 
   handleInitLocalTestnet = () => {
+    const { db } = this.props;
     this.setState({ loading: true });
 
-    initLocalTestnet()
+    initLocalTestnet(db)
       .on("stdout", data => console.log(`${data}`))
       .on("stderr", data => console.error(`${data}`))
       .run()

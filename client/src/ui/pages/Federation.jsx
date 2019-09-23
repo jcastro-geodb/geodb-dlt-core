@@ -20,7 +20,7 @@ class Federation extends React.Component {
     this.state = {
       loadingUserConfig: true,
       showSetupOrgModal: false,
-      selectedOrg: {},
+      selectedOrg: undefined,
       organizations: []
     };
   }
@@ -32,7 +32,6 @@ class Federation extends React.Component {
   handleRemoveOrg = organization => {
     const { db, mode } = this.props;
 
-    console.log(organization);
     if (organization === "operations.geodb.com" && mode === "local") {
       NotificationManager.error("Cannot remove the base local organization.");
       return;
@@ -43,7 +42,7 @@ class Federation extends React.Component {
       .then(result => {
         this.checkCertificates();
       })
-      .catch(error => console.log);
+      .catch(error => console.error(error));
   };
 
   handleShowOrg = selectedOrg => {
@@ -62,7 +61,6 @@ class Federation extends React.Component {
     // };
 
     let organizations = [];
-    if (mode === "local") organizations.push({ _id: "operations.geodb.com", domain: "operations.geodb.com" });
 
     db[mode]
       .find()
@@ -85,7 +83,7 @@ class Federation extends React.Component {
           case errors.noOrgsFound:
             this.setState({
               organizations,
-              selectedOrg: organizations && organizations.length > 0 ? organizations[0] : {},
+              selectedOrg: organizations && organizations.length > 0 ? organizations[0] : undefined,
               showSetupOrgModal: mode === "gcp"
             });
             break;

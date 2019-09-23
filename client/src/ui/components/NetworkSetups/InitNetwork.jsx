@@ -2,6 +2,7 @@ import React from "react";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Button from "react-bootstrap/Button";
+import { NotificationManager } from "react-notifications";
 import LoadingButton from "../LoadingButton.jsx";
 
 import initLocalTestnet from "../../../helpers/initLocalTestnet.jsx";
@@ -23,16 +24,22 @@ class InitNetwork extends React.Component {
   initializeLocalTestnet = () => {
     this.setState({ loading: true });
 
-    resetLocalTestnet()
+    const { db } = this.props;
+
+    resetLocalTestnet(db)
       .run()
       .then(() => {
-        return initLocalTestnet().run();
+        return initLocalTestnet(db).run();
       })
       .then(result => {
-        this.setState({ loading: false, initializeLocalTestnetCompleted: true, showSetupOrgModal: true });
+        this.setState({ initializeLocalTestnetCompleted: true, showSetupOrgModal: true });
       })
       .catch(error => {
         console.error(error);
+        NotificationManager.error("An error occurred. Check the logs");
+      })
+      .finally(() => {
+        this.setState({ loading: false });
       });
   };
 

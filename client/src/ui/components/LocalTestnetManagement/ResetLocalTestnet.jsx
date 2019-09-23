@@ -16,14 +16,12 @@ class ResetLocalTestnet extends React.Component {
     console.log("Mode: ", mode);
     this.setState({ loading: true });
 
-    resetLocalTestnet()
+    resetLocalTestnet(db)
       .on("stdout", data => console.log(`${data}`))
       .on("stderr", data => console.error(`${data}`))
       .run()
       .then(() => {
         NotificationManager.success("Command ran successfully");
-        db[mode].remove({}, { multi: true });
-        db["events"].remove({ mode }, { multi: true });
       })
       .catch(error => {
         console.error(error);

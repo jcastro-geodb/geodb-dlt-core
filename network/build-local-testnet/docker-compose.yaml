@@ -58,8 +58,8 @@ services:
     networks:
       - geodb
 
-  couchdb:
-    container_name: couchdb
+  couchdb.operations.geodb.com:
+    container_name: couchdb.operations.geodb.com
     image: hyperledger/fabric-couchdb
     environment:
       DB_URL: http://localhost:5984/

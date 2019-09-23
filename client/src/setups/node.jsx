@@ -155,6 +155,7 @@ class SetupNode {
 
         resolve({
           success: true,
+          composerPath,
           composerJSON: JSON.stringify(composerJSON),
           configtxJSON: JSON.stringify(configtxJSON)
         });
@@ -224,6 +225,36 @@ class SetupNode {
     });
   };
 
+  updateLocalDatabase = (
+    db,
+    mode,
+    domain,
+    mspPath,
+    artifactsPath,
+    updateDeltaOutputFileName,
+    composerPath,
+    composerJSON,
+    configtxJSON
+  ) => {
+    const timestamp = new Date();
+
+    return [
+      db["events"].insert({
+        type: "join-request",
+        mode,
+        timestamp,
+        approvedBy: [],
+        resolved: false,
+        values: { domain, mspPath, artifactsPath, updateDeltaOutputFileName }
+      }),
+      db[mode].update(
+        { _id: `${domain}` },
+        { _id: `${domain}`, domain, mspPath, composerPath, composerJSON, configtxJSON },
+        { upsert: true }
+      )
+    ];
+  };
+
   extractOrgNameFromDomain = domain => {
     let orgName;
 
@@ -248,6 +279,7 @@ class SetupNode {
       generateYamlFiles,
       generateJsonOrgFromConfigtx,
       buildUpdateDeltaWithConfigTxlator,
+      updateLocalDatabase,
       extractOrgNameFromDomain
     } = this;
     const { domain, mspPath } = params;
@@ -256,7 +288,7 @@ class SetupNode {
     let orgName = extractOrgNameFromDomain(domain);
     const updateDeltaOutputFileName = mode === "local" ? `final-update-delta-${domain}.pb` : null;
 
-    let composerJSON, configtxJSON;
+    let composerPath, composerJSON, configtxJSON;
 
     return new Promise((resolve, reject) => {
       generateCryptoMaterials(params)
@@ -267,6 +299,7 @@ class SetupNode {
         .then(result => {
           if (result.success !== true) throw new Error(result);
 
+          composerPath = result.composerPath;
           composerJSON = result.composerJSON;
           configtxJSON = result.configtxJSON;
 
@@ -281,23 +314,17 @@ class SetupNode {
         })
         .then(result => {
           if (result === 0) {
-            const timestamp = new Date();
-
-            return [
-              db["events"].insert({
-                type: "join-request",
-                mode,
-                timestamp,
-                approvedBy: [],
-                resolved: false,
-                values: { domain, mspPath, artifactsPath, updateDeltaOutputFileName }
-              }),
-              db[mode].update(
-                { _id: `${domain}` },
-                { _id: `${domain}`, domain, mspPath, composerJSON, configtxJSON },
-                { upsert: true }
-              )
-            ];
+            return updateLocalDatabase(
+              db,
+              mode,
+              domain,
+              mspPath,
+              artifactsPath,
+              updateDeltaOutputFileName,
+              composerPath,
+              composerJSON,
+              configtxJSON
+            );
           } else throw new Error(result);
         })
         .then(() => {

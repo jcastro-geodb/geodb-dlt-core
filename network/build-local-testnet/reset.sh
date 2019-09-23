@@ -12,28 +12,51 @@ check_returnCode() {
         fi
 }
 
-downAll(){
+# Remove docker containers created after the testnet and their artifacts
+removeNodeArtifacts() {
   echo
   echo "========================================================="
-  echo "Killing all dockers and reset system"
+  echo "Killing docker containers defined in /node-artifacts/local"
+  echo "========================================================="
+  echo
+
+  sleep 2s
+
+  while [ -d "$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)" ]; do
+
+    composeDir="$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)"
+    dirname="${DOCKER_FILE%"${DOCKER_FILE##*[!/]}"}"
+    dirname="${result##*/}"
+
+    COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml kill \
+    && COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml down --remove-orphans
+
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Could not stop containers defined in $composeDir, skipping further deletions"
+      return 1
+    fi
+
+    rm -rf $composeDir
+
+    if [ $? -ne 0 ]; then
+      echo "ERROR: Could not delete directory $composeDir, skipping further deletions"
+      return 1
+    fi
+
+  done
+}
+
+# Remove the basic (operations.geodb.com) containers that bootstrap the network
+removeLocalTestnetBaseContainers() {
+  echo
+  echo "========================================================="
+  echo "Killing base docker containers"
   echo "========================================================="
   echo
 
   sleep 2s
 
   docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down --remove-orphans
-
-  # Remove docker containers created after the testnet and remove their artifacts
-  while [ -d "$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)" ]; do
-    composeDir="$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)"
-    docker-compose -f $composeDir/node-docker-compose.yaml kill \
-    && docker-compose -f $composeDir/node-docker-compose.yaml down --remove-orphans
-    rm -rf $composeDir
-    if [ $? -ne 0 ]; then
-      echo "ERROR: Could not delete directory $composeDir, skipping further deletions"
-      break;
-    fi
-  done
 
 }
 
@@ -65,11 +88,6 @@ cleanDirectories(){
     rm -rf rm -rf ./orderer
   fi
 
-  if [ -d "./node-artifacts" ]; then
-    echo "Removing ./node-artifacts/local"
-    rm -rf rm -rf ./node-artifacts/local
-  fi
-
   if [ -d "./configtxlator-artifacts" ]; then
     echo "Removing ./configtxlator-artifacts"
     rm -rf rm -rf ./configtxlator-artifacts
@@ -92,7 +110,11 @@ restoreCA(){
     rm -rf ./fabric-ca-server
   fi
 }
-downAll
+
+removeNodeArtifacts
+check_returnCode $?
+
+removeLocalTestnetBaseContainers
 check_returnCode $?
 
 regenerateCryptoMaterial

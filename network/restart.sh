@@ -12,5 +12,3 @@ fi
 
 ./stop.sh $DOCKER_FILE
 ./start.sh $DOCKER_FILE
-
-exit 0

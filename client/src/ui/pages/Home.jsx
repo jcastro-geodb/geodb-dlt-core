@@ -4,7 +4,6 @@ import yaml from "js-yaml";
 import fs from "fs-extra";
 
 import Card from "react-bootstrap/Card";
-import ListGroup from "react-bootstrap/ListGroup";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 
@@ -12,6 +11,7 @@ import { NotificationManager } from "react-notifications";
 
 import Loading from "../components/Loading.jsx";
 import LoadingButton from "../components/LoadingButton.jsx";
+import ContainerManager from "../components/ContainerManager";
 import ContainerStatus from "../components/ContainerStatus";
 import ResetLocalTestnet from "../components/LocalTestnetManagement/ResetLocalTestnet";
 import InitLocalTestnet from "../components/LocalTestnetManagement/InitLocalTestnet";
@@ -99,36 +99,38 @@ class Home extends React.Component {
 
     if (loading) return <Loading />;
 
+    // <Card border="primary" className="shadow-lg p-3 mb-5">
+    //   <Card.Header bg="primary">
+    //     <div className="d-flex justify-content-between">
+    //       <b>Fabric containers status</b>
+    //
+    //       <LoadingButton
+    //         variant="primary"
+    //         size="sm"
+    //         onClick={this.onClickRefreshFabricStatus}
+    //         loading={refreshing}
+    //       >
+    //         <i className="fas fa-sync-alt" />
+    //       </LoadingButton>
+    //     </div>
+    //   </Card.Header>
+    //   <Card.Body>
+    //     <ListGroup variant="flush">
+    //       {containers.map(prop => {
+    //         return (
+    //           <ListGroup.Item key={prop.name}>
+    //             <ContainerStatus name={prop.name} running={prop.running} />
+    //           </ListGroup.Item>
+    //         );
+    //       })}
+    //     </ListGroup>
+    //   </Card.Body>
+    // </Card>
+
     return (
       <Row>
         <Col xs={12} sm={6}>
-          <Card border="primary" className="shadow-lg p-3 mb-5">
-            <Card.Header bg="primary">
-              <div className="d-flex justify-content-between">
-                <b>Fabric containers status</b>
-
-                <LoadingButton
-                  variant="primary"
-                  size="sm"
-                  onClick={this.onClickRefreshFabricStatus}
-                  loading={refreshing}
-                >
-                  <i className="fas fa-sync-alt" />
-                </LoadingButton>
-              </div>
-            </Card.Header>
-            <Card.Body>
-              <ListGroup variant="flush">
-                {containers.map(prop => {
-                  return (
-                    <ListGroup.Item key={prop.name}>
-                      <ContainerStatus name={prop.name} running={prop.running} />
-                    </ListGroup.Item>
-                  );
-                })}
-              </ListGroup>
-            </Card.Body>
-          </Card>
+          <ContainerManager db={db} mode={mode} />
         </Col>
         <Col xs={12} sm={6}>
           <h3 className="display-4 text-center">Actions</h3>

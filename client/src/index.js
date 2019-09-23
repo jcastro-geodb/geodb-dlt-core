@@ -1,12 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { BrowserRouter } from "react-router-dom";
+import { NotificationContainer } from "react-notifications";
+import "react-notifications/lib/notifications.css";
 import App from "./ui/App";
 import * as serviceWorker from "./serviceWorker";
 
 ReactDOM.render(
   <BrowserRouter>
     <App />
+    <NotificationContainer />
   </BrowserRouter>,
   document.getElementById("react-target")
 );

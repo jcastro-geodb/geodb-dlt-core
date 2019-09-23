@@ -3,13 +3,11 @@ import shell from "./../cli/spawn/shell";
 import BaseScriptRunner from "./BaseScriptRunner.jsx";
 
 class ResetLocalTestnet extends BaseScriptRunner {
-  constructor() {
-    super(null, null);
+  constructor(db) {
+    super(db, "local");
   }
 
-  run = () => {
-    if (this.events["updateProgress"]) this.events.updateProgress("Resetting network");
-
+  runReset = () => {
     return new Promise((resolve, reject) => {
       try {
         const cwd = path.resolve(process.cwd(), "../network/build-local-testnet");
@@ -23,9 +21,35 @@ class ResetLocalTestnet extends BaseScriptRunner {
         p.on("close", code => {
           resolve(code);
         });
-      } catch (e) {
-        reject(e);
+      } catch (error) {
+        console.error(error);
+        reject(error);
       }
+    });
+  };
+
+  updateLocalDatabase = () => {
+    const { db, mode } = this;
+    return [db[mode].remove({}, { multi: true }), db["events"].remove({ mode }, { multi: true })];
+  };
+
+  run = () => {
+    if (this.events["updateProgress"]) this.events.updateProgress("Resetting network");
+
+    const { db, runReset, updateLocalDatabase } = this;
+
+    return new Promise((resolve, reject) => {
+      runReset()
+        .then(() => {
+          return updateLocalDatabase();
+        })
+        .then(() => {
+          resolve(true);
+        })
+        .catch(error => {
+          console.error(error);
+          reject(error);
+        });
     });
   };
 }
