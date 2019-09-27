@@ -13,5 +13,15 @@ else
   export COMPOSE_PROJECT_NAME=$dirname
 fi
 
-# Bring up the network
-docker-compose -f $DOCKER_FILE up -d
+# Bring down the network
+docker-compose -f $DOCKER_FILE kill && docker-compose -f $DOCKER_FILE down
+
+# # Delete EVERYTHING related to chaincode in docker
+# docker rmi --force $(docker images -q dev-peer*)
+# docker rm -f $(docker ps -aq)
+
+# if [ $(docker images dev-* -q) ]; then
+#   echo "Chaincode exists"
+# else
+#   echo "No chaincode exists"
+# fi
