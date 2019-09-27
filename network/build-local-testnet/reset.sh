@@ -28,8 +28,9 @@ removeNodeArtifacts() {
     dirname="${DOCKER_FILE%"${DOCKER_FILE##*[!/]}"}"
     dirname="${result##*/}"
 
-    COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml kill \
-    && COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml down --remove-orphans
+    COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml down --remove-orphans \
+    && COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml kill
+
 
     if [ $? -ne 0 ]; then
       echo "ERROR: Could not stop containers defined in $composeDir, skipping further deletions"
@@ -56,7 +57,7 @@ removeLocalTestnetBaseContainers() {
 
   sleep 2s
 
-  docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down --remove-orphans
+  docker-compose -f docker-compose.yaml down --remove-orphans && docker-compose -f docker-compose.yaml kill
 
 }
 

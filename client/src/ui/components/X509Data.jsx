@@ -14,7 +14,7 @@ class X509Data extends React.Component {
     show: false
   };
 
-  renderData = () => {
+  renderData = props => {
     //   // Peer's private key
     //   // return fs.readFile(
     //   //   path.resolve(
@@ -22,8 +22,6 @@ class X509Data extends React.Component {
     //   //     `./peers/peer0.${domain}/msp/keystore/33fffc02e30614b562ecece790b3b7868b2b03ab8ed5c84f0e960316a9ca91f3_sk`
     //   //   )
     //   // );
-
-    const { props } = this.props;
 
     try {
       const { mspPath, domain } = props.organization;
@@ -106,7 +104,7 @@ class X509Data extends React.Component {
         </div>
       );
     } catch (e) {
-      // console.error(e);
+      console.error(e);
     }
 
     return <div>Could not load the organization's data</div>;
@@ -120,8 +118,8 @@ class X509Data extends React.Component {
     const { show } = this.state;
 
     return (
-      <div>
-        <Button size="lg" variant="dark" onClick={() => this.setState({ show: true })}>
+      <span>
+        <Button size="sm" variant="dark" onClick={() => this.setState({ show: true })}>
           Show certificate data
         </Button>
         <Modal
@@ -136,9 +134,9 @@ class X509Data extends React.Component {
               Certificate data
             </Modal.Title>
           </Modal.Header>
-          <Modal.Body>{this.renderData()}</Modal.Body>
+          <Modal.Body>{this.renderData(this.props)}</Modal.Body>
         </Modal>
-      </div>
+      </span>
     );
   }
 }

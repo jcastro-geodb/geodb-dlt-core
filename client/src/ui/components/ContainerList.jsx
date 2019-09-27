@@ -2,6 +2,7 @@ import React from "react";
 import ContainerListItem from "./ContainerListItem";
 import ListGroup from "react-bootstrap/ListGroup";
 import fs from "fs-extra";
+import { namesFromDatabaseEntry } from "../../helpers/extractServicesFromComposer";
 const yaml = require("js-yaml");
 const path = require("path");
 
@@ -19,21 +20,14 @@ class ContainerList extends React.Component {
       db[mode]
         .findOne({ _id: organization })
         .then(result => {
-          if (result && result.composerPath) {
-            const { composerPath } = result;
-            return fs.readFile(path.resolve(composerPath), "utf8");
+          if (result) {
+            return namesFromDatabaseEntry(result);
           } else {
             throw new Error("Could not find the YAML configuration file for the nodes");
           }
         })
-        .then(rawYaml => {
-          const composerInJSON = yaml.safeLoad(rawYaml);
-          if (composerInJSON && composerInJSON.services && Object.keys(composerInJSON).length > 0) {
-            const containers = Object.keys(composerInJSON.services);
-            this.setState({ containers });
-          } else {
-            throw new Error("Could not find any defined services for the provided YAML config file");
-          }
+        .then(containers => {
+          this.setState({ containers });
         })
         .catch(error => {
           console.error(error);
@@ -49,6 +43,8 @@ class ContainerList extends React.Component {
     const { loading, containers } = this.state;
 
     if (loading === true) return "Reading containers...";
+
+    if (organization === false) return null;
 
     if (!containers || containers.length === 0) return "No containers found";
 

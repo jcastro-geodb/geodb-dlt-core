@@ -38,10 +38,16 @@ class ContainerManager extends React.Component {
 
   componentDidMount() {
     this.fetchOrganizations();
+    this.intervalId = setInterval(() => {
+      this.fetchOrganizations();
+    }, 1000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.intervalId);
   }
 
   render() {
-    const { db, mode } = this.props;
     const { loading, organizations, selectedOrganization } = this.state;
 
     return (

@@ -32,8 +32,21 @@ class CheckOrganizationContainers extends BaseScriptRunner {
         if (this.events["stderr"]) p.stderr.on("data", this.events["stderr"]);
 
         p.on("close", code => {
-          if (code === 0) resolve(output);
-          else reject(code);
+          if (code === 0) {
+            let containers = [];
+
+            for (let i = 0; i < output.length; i++) {
+              let container = output[i].split(":");
+              container = {
+                _id: container && container.length > 0 ? container[0] : "unknown",
+                status: container && container.length > 1 ? container[1] : "unknown"
+              };
+
+              containers.push(container);
+            }
+
+            resolve(containers);
+          } else reject(code);
         });
       } catch (error) {
         console.error(error);

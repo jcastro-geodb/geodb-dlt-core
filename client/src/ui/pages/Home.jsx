@@ -134,7 +134,9 @@ class Home extends React.Component {
         </Col>
         <Col xs={12} sm={6}>
           <h3 className="display-4 text-center">Actions</h3>
-          <InitLocalTestnet db={db} mode={mode} />
+          <InitLocalTestnet db={db} mode={mode} callBack={this.checkFabricStatus} />
+          <br />
+          <ResetLocalTestnet db={db} mode={mode} callBack={this.checkFabricStatus} />
           <br />
           <LoadingButton
             value="stop"
@@ -145,10 +147,8 @@ class Home extends React.Component {
             loading={runningCommand}
             disabled={true}
           >
-            Stop
+            Pause
           </LoadingButton>
-          <br />
-          <ResetLocalTestnet db={db} mode={mode} />
           <br />
           <LoadingButton
             value="install-upg-chaincode"

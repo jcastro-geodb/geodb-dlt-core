@@ -8,21 +8,18 @@ import checkOrganizationContainers from "../../../helpers/checkOrganizationConta
 import runBashScript from "../../../helpers/runBashScript";
 import { NotificationManager } from "react-notifications";
 
-class ResetLocalTestnet extends React.Component {
+export default class Up extends React.Component {
   state = {
     loading: false,
-    disabled: false,
-    composerPath: null,
     loadingMsg: ""
   };
 
   handleUp = () => {
-    const { db, mode } = this.props;
-    const { composerPath } = this.state;
+    const { db, mode, checkContainersStatus, composerPath } = this.props;
 
     this.setState({ loading: true });
 
-    runBashScript({ command: `start.sh`, args: [composerPath] })
+    runBashScript({ command: `docker-up.sh`, args: [composerPath] })
       .on("updateProgress", loadingMsg => this.setState({ loadingMsg }))
       .on("stdout", data => console.log(`${data}`))
       .on("stderr", data => console.error(`${data}`))
@@ -35,78 +32,27 @@ class ResetLocalTestnet extends React.Component {
         NotificationManager.error("An error occurred. Check the logs");
       })
       .finally(() => {
-        this.checkContainersRunning();
+        checkContainersStatus();
         this.setState({ loading: false });
       });
-
-    // runBashScript(`docker-compose -f ${organization.composerPath}`)
-    //   .on("stdout", data => console.log(`${data}`))
-    //   .on("stderr", data => console.error(`${data}`))
-    //   .run()
-    //   .then(() => {
-    // NotificationManager.success("Command ran successfully");
-    //   })
-    //   .catch(error => {
-    //     console.error(error);
-    //     NotificationManager.error("An error occurred. Check the logs");
-    //   })
-    //   .finally(() => {
-    //     this.setState({ loading: false });
-    //   });
   };
 
-  buildCommand = () => {};
-
-  checkContainersRunning = () => {
-    const { db, mode, organization } = this.props;
-    this.setState({ disabled: false });
-
-    db[mode]
-      .findOne({ _id: organization })
-      .then(result => {
-        if (result && result.composerPath) {
-          this.setState({ composerPath: result.composerPath });
-          return checkOrganizationContainers({ organization })
-            .on("stderr", data => console.error(`${data}`))
-            .run();
-        } else throw new Error("Could not find composer path");
-      })
-      .then(result => {
-        for (let i = 0; i < result.length; i++) {
-          let container = result[i].split(":");
-          container = {
-            _id: container && container.length > 0 ? container[0] : "unknown",
-            status: container && container.length > 1 ? container[1] : "unknown"
-          };
-
-          if (
-            container.status &&
-            typeof container.status === "string" &&
-            container.status.toLowerCase().includes("up")
-          ) {
-            this.setState({ disabled: true });
-            break;
-          }
-        }
-      })
-      .catch(error => console.error(error));
+  disabled = () => {
+    for (let container of this.props.containers) {
+      if (container.status && typeof container.status === "string" && container.status.toLowerCase().includes("up")) {
+        return true;
+      }
+    }
+    return false;
   };
-
-  componentDidMount() {
-    this.checkContainersRunning();
-  }
-
-  componentDidUpdate(prevProps, prevState, snapshot) {
-    if (this.props.organization !== prevProps.organization) this.checkContainersRunning();
-  }
 
   render() {
-    const { loading, disabled } = this.state;
+    const { loading } = this.state;
     const { organization } = this.props;
 
     return (
       <span>
-        <LoadingButton onClick={this.handleUp} loading={loading} disabled={disabled}>
+        <LoadingButton className="m-1" onClick={this.handleUp} loading={loading} disabled={this.disabled()}>
           <i className="fas fa-play" /> Up
         </LoadingButton>
         <Modal show={loading} size="lg" aria-labelledby="contained-modal-title-vcenter" centered backdrop="static">
@@ -128,5 +74,3 @@ class ResetLocalTestnet extends React.Component {
     );
   }
 }
-
-export default ResetLocalTestnet;

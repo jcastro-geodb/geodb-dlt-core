@@ -29,6 +29,8 @@ class ResetLocalTestnet extends React.Component {
       })
       .finally(() => {
         this.setState({ loading: false });
+        console.log(typeof this.props.callBack);
+        if (this.props.callBack) this.props.callBack();
       });
   };
 
@@ -37,8 +39,8 @@ class ResetLocalTestnet extends React.Component {
 
     return (
       <div>
-        <LoadingButton size="lg" block onClick={this.handleResetLocalTestnet} loading={loading}>
-          Reset local testnet
+        <LoadingButton variant="dark" size="lg" block onClick={this.handleResetLocalTestnet} loading={loading}>
+          Stop and reset local testnet
         </LoadingButton>
         <Modal show={loading} size="lg" aria-labelledby="contained-modal-title-vcenter" centered backdrop="static">
           <Modal.Body>

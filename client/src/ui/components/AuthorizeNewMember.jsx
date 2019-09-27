@@ -3,6 +3,8 @@ import LoadingButton from "./LoadingButton";
 import Modal from "react-bootstrap/Modal";
 import Spinner from "react-bootstrap/Spinner";
 import authorizeNewMember from "../../helpers/authorizeNewMember";
+import { dataFromDatabaseEntry } from "../../helpers/extractServicesFromComposer";
+import { findTypeFromJSON } from "../../helpers/getDockerServiceType";
 import { NotificationManager } from "react-notifications";
 
 class AuthorizeNewMember extends React.Component {
@@ -13,21 +15,31 @@ class AuthorizeNewMember extends React.Component {
 
   handleAuthorizeNewMember = () => {
     this.setState({ loading: true });
-    const { cli, orderer, channel, artifactsPath, organization, db, mode, _event } = this.props;
-    const params = {
-      cli,
-      orderer,
-      channel,
-      updateDeltaOutputFileName: _event.values.updateDeltaOutputFileName
-    };
+    const { organization, db, mode, _event } = this.props;
 
-    authorizeNewMember(params, db, mode)
-      .on("updateProgress", loadingMsg => {
-        this.setState({ loadingMsg });
+    dataFromDatabaseEntry(organization)
+      .then(services => {
+        const cli = findTypeFromJSON(services, "cli").container_name;
+        const orderer = "orderer0.operations.geodb.com:7050";
+        const channel = "rewards";
+        // const ordererData = findTypeFromJSON(services, "orderer");
+        // const orderer = `${ordererData.container_name}:${ordererData.ports[0].split(":")[0]}`; // Build URL:port
+
+        const params = {
+          cli,
+          orderer,
+          channel,
+          updateDeltaOutputFileName: _event.values.updateDeltaOutputFileName
+        };
+
+        return authorizeNewMember(params, db, mode)
+          .on("updateProgress", loadingMsg => {
+            this.setState({ loadingMsg });
+          })
+          .on("stdout", data => console.log(`${data}`))
+          .on("stderr", data => console.error(`${data}`))
+          .run();
       })
-      .on("stdout", data => console.log(`${data}`))
-      .on("stderr", data => console.error(`${data}`))
-      .run()
       .then(code => {
         db.events.update(
           { _id: _event._id },

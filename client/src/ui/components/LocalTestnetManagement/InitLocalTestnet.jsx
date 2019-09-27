@@ -28,6 +28,8 @@ class InitLocalTestnet extends React.Component {
       })
       .finally(() => {
         this.setState({ loading: false });
+        console.log(typeof this.props.callBack);
+        if (this.props.callBack) this.props.callBack();
       });
   };
 

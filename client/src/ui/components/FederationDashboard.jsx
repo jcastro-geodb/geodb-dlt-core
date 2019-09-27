@@ -107,14 +107,75 @@ class FederationDashboard extends React.Component {
 
   render() {
     const { organization, mode, db } = this.props;
+    const { events } = this.state;
 
-    if (organization && organization.domain === "operations.geodb.com" && mode === "local")
-      // Render the dashboard for the base local testnet
-      return this.renderLocalTestnetBaseOrg();
+    // if (organization && organization.domain === "operations.geodb.com" && mode === "local")
+    //   // Render the dashboard for the base local testnet
+    //   return this.renderLocalTestnetBaseOrg();
 
     return (
       <div>
-        Organization dashboard <hr /> <X509Data organization={organization} />
+        <div className="d-flex bd-highlight mb-3">
+          <div className="p-2 bd-highlight">Dashboard</div>
+          <div className="p-2 bd-highlight">Containers status</div>
+          <div className="ml-auto p-2 bd-highlight">
+            <X509Data organization={organization} />
+          </div>
+        </div>
+        <hr />
+        <Row>
+          <Col>
+            <h4>Events requiring action</h4>
+            <Table striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Organization</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map(_event => {
+                  console.log(_event);
+                  if (
+                    _event.approvedBy.includes(organization.domain) === true ||
+                    _event.resolved === true ||
+                    _event.values.domain === organization.domain
+                  )
+                    return null;
+
+                  return (
+                    <tr key={_event._id}>
+                      <td>{_event.type ? _event.type : "Unknown"}</td>
+                      <td>{_event.values && _event.values.domain ? _event.values.domain : "Unknown"}</td>
+                      <td>
+                        <AuthorizeNewMember organization={organization} db={db} mode={mode} _event={_event} />
+                        <br />
+                        <Button
+                          block
+                          variant="danger"
+                          onClick={() => {
+                            db.events.remove({ _id: _event._id });
+                          }}
+                        >
+                          <i className="fa fa-trash" aria-hidden="true" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {events.length === 0 ? (
+                  <tr>
+                    <td>No events to show</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </Table>
+          </Col>
+          <Col>
+            <h4>Actions</h4>
+          </Col>
+        </Row>
       </div>
     );
   }
