@@ -43,6 +43,31 @@
 
 #Launching Federation: Local or GCP
 
+## Select deployment mode
+
+You can launch network with three different modes:
+
+- Local --> `./start.sh local`
+- 1 Orgs and CA root allocated in GCP instance --> `start.sh 1Org`
+- 2 Orgs and CA root allocated in GCP instance --> `start.sh 2Orgs`
+
+You can select one of this deployment mode with `start.sh` script:
+
+```verilog
+Usage: 
+  start.sh <mode> 
+    <mode> - one of 'local', '1Org', '2Orgs' or 'restart'
+      - 'local' - bring up the network local mode
+      - '1Orgs' - bring up the network with CA root in GCP instance and 1 Organization with: 1 orderer, 1 peer
+      - '2Orgs' - bring up the network with CA root in GCP instance and 2 Organizations with: 1 orderer, 4 peer each one
+      - 'restart' - restart the network
+  start -h (print this message)
+```
+
+
+
+
+
 ## Local testnet setup
 
 1- ca-root.geodb.com should be recognized by the host as 127.0.0.1 (edit your hosts file to add this).

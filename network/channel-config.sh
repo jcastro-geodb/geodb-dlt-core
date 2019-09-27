@@ -1,5 +1,7 @@
 #!/bin/bash +x
 
+source ./env-vars
+
 check_returnCode() {
         if [ $1 -eq 0 ]; then
                 echo -e "INFO:.... Proccess Succeed"
@@ -34,6 +36,10 @@ if [ -z "$CONFIG_PATH" ]; then
   CONFIG_PATH=./
 fi
 
+deploy=$(echo $1 | cut -d / -f 9)
+echo "----------------------------------------------------->"$deploy
+echo $1
+
 export FABRIC_CFG_PATH=$CONFIG_PATH
 
 echo
@@ -59,3 +65,8 @@ echo "##################################################################"
 echo
 configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor.tx -channelID rewards -asOrg GeoDB
 check_returnCode $?
+
+if [ $deploy == $ORGSTYPE ]; then
+  configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor2.tx -channelID rewards -asOrg GeoDB2
+  check_returnCode $?
+fi
