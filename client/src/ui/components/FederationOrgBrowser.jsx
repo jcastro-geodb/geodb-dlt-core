@@ -18,7 +18,7 @@ class FederationOrgBrowser extends React.Component {
   };
 
   render() {
-    const { mode, organizations, handleAddOrg, handleRemoveOrg, handleShowOrg } = this.props;
+    const { organizations, handleAddOrg, handleRemoveOrg, handleShowOrg } = this.props;
     const { showRemoveButton } = this.state;
 
     return (

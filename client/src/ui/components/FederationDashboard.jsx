@@ -27,7 +27,7 @@ class FederationDashboard extends React.Component {
   }
 
   fetchEvents = () => {
-    const { db, mode, organization } = this.props;
+    const { db, mode } = this.props;
 
     db.events
       .find({

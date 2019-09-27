@@ -32,16 +32,15 @@ import { withRouter } from "react-router-dom";
  =============== HELPERS (CHECKERS)
 */
 
-import { checkNetwork, NO_MODE_SPECIFIED, NETWORK_RUNNING, NETWORK_NOT_RUNNING } from "../helpers/checkNetwork.jsx";
-import checkNetworkConfig from "../helpers/checkNetworkConfig.jsx";
-import checkCryptoConfig from "../helpers/checkCryptoConfig.jsx";
-import Database from "../database/Database.jsx";
+import { checkNetwork, NETWORK_RUNNING, NETWORK_NOT_RUNNING } from "../helpers/checkNetwork.jsx";
+// import checkNetworkConfig from "../helpers/checkNetworkConfig.jsx";
+// import checkCryptoConfig from "../helpers/checkCryptoConfig.jsx";
 
 /*
  =============== DATABASE
 */
 
-const Datastore = require("nedb-promises");
+import Database from "../database/Database.jsx";
 
 /*
  =============== APP RENDER

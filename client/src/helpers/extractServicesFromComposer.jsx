@@ -16,8 +16,6 @@ export const namesFromJSONString = str => {
 };
 
 export const namesFromYAMLFile = filePath => {
-  let services = [];
-
   return fs
     .readFile(path.resolve(filePath))
     .then(rawYaml => {
@@ -58,8 +56,6 @@ export const dataFromJSONString = str => {
 };
 
 export const dataFromYAMLFile = filePath => {
-  let services = [];
-
   return fs
     .readFile(path.resolve(filePath))
     .then(rawYaml => {

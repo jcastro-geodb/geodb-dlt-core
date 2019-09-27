@@ -1,10 +1,7 @@
 import React from "react";
 import ContainerListItem from "./ContainerListItem";
 import ListGroup from "react-bootstrap/ListGroup";
-import fs from "fs-extra";
 import { namesFromDatabaseEntry } from "../../helpers/extractServicesFromComposer";
-const yaml = require("js-yaml");
-const path = require("path");
 
 class ContainerList extends React.Component {
   state = {
@@ -13,7 +10,7 @@ class ContainerList extends React.Component {
   };
 
   componentDidUpdate(prevProps, prevState, snapshot) {
-    if (prevProps.organization != this.props.organization) {
+    if (prevProps.organization !== this.props.organization) {
       this.setState({ loading: true });
       const { db, mode, organization } = this.props;
 

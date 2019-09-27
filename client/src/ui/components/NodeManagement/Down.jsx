@@ -1,10 +1,7 @@
 import React from "react";
 import LoadingButton from "../LoadingButton";
-import OverlayTrigger from "react-bootstrap/OverlayTrigger";
-import Tooltip from "react-bootstrap/Tooltip";
 import Modal from "react-bootstrap/Modal";
 import Spinner from "react-bootstrap/Spinner";
-import checkOrganizationContainers from "../../../helpers/checkOrganizationContainers";
 import runBashScript from "../../../helpers/runBashScript";
 import { NotificationManager } from "react-notifications";
 
@@ -15,7 +12,7 @@ export default class Down extends React.Component {
   };
 
   handleUp = () => {
-    const { db, mode, composerPath, checkContainersStatus } = this.props;
+    const { composerPath, checkContainersStatus } = this.props;
 
     this.setState({ loading: true });
 
@@ -42,8 +39,7 @@ export default class Down extends React.Component {
   };
 
   render() {
-    const { loading, disabled } = this.state;
-    const { organization } = this.props;
+    const { loading } = this.state;
 
     return (
       <span>

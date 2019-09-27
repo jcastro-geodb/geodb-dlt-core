@@ -36,7 +36,7 @@ class ResetLocalTestnet extends BaseScriptRunner {
   run = () => {
     if (this.events["updateProgress"]) this.events.updateProgress("Resetting network");
 
-    const { db, runReset, updateLocalDatabase } = this;
+    const { runReset, updateLocalDatabase } = this;
 
     return new Promise((resolve, reject) => {
       runReset()
