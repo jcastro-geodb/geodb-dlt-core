@@ -12,21 +12,10 @@ import InitLocalTestnet from "../components/LocalTestnetManagement/InitLocalTest
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      loading: true
-    };
-  }
-
-  async componentDidMount() {
-    await this.checkFabricStatus();
   }
 
   render() {
-    const { loading } = this.state;
-
     const { db, mode } = this.props;
-
-    if (loading) return <Loading />;
 
     return (
       <Row>

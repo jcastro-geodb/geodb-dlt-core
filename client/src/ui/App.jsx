@@ -180,7 +180,7 @@ class App extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.onSelect("federation"); // Default selected item for the lateral menu
+    this.onSelect("home"); // Default selected item for the lateral menu
     Database.getInstance()
       .then(db => {
         this.setState({ db });
