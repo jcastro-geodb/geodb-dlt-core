@@ -22,7 +22,10 @@ class ContainerManager extends React.Component {
         for (let i = 0; i < results.length; i++) {
           organizations.push(results[i]._id);
         }
-        this.setState({ organizations, selectedOrganization: organizations.length > 0 ? organizations[0] : false });
+        this.setState({ organizations });
+        if (this.state.selectedOrganization === false && organizations.length > 0)
+          this.setState({ selectedOrganization: organizations[0] });
+        if (organizations.length === 0) this.setState({ selectedOrganization: false });
       })
       .catch(error => {
         console.error(error);
