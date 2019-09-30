@@ -1,3 +1,9 @@
+# Setup
+
+On a bash shell, run:
+
+`sudo curl -sSL https://raw.githubusercontent.com/devgeodb/geodb-dlt-core/master/setup/setup.sh | bash`
+
 # GeoDB Bootstrap Repo
 
 ## Client
