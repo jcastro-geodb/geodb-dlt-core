@@ -251,24 +251,31 @@ fi
 
 
 checkAndInstallDependencies
+
 checkError $?
 
 setupEnvironment
+
 checkError $?
 
 addCaRootToHosts
+
 checkError $?
 
 addUserToDockerGroup
+
 checkError $?
 
 checkGo
+
 checkError $?
 
 installFabric
+
 checkError $?
 
 installGeodb
+
 checkError $?
 
 echo

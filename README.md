@@ -2,7 +2,7 @@
 
 On a bash shell, run:
 
-`sudo curl -sSL https://raw.githubusercontent.com/devgeodb/geodb-dlt-core/development/setup/setup.sh | bash`
+`curl -sSL https://raw.githubusercontent.com/devgeodb/geodb-dlt-core/development/setup/setup.sh | sudo bash`
 
 # GeoDB Bootstrap Repo
 
