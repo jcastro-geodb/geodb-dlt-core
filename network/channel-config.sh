@@ -66,7 +66,7 @@ echo
 configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor.tx -channelID rewards -asOrg GeoDB
 check_returnCode $?
 
-if [ $deploy == $ORGSTYPE ]; then
+if [ "$deploy" == "$ORGSTYPE" ]; then
   configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor2.tx -channelID rewards -asOrg GeoDB2
   check_returnCode $?
 fi
