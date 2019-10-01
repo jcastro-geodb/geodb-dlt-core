@@ -1,0 +1,2 @@
+# !/bin/bash +x
+LOCAL_TESTNET_COMPOSE_PROJECT_NAME=geodb

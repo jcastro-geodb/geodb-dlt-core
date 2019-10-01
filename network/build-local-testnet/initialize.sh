@@ -1,117 +1,99 @@
-#!/bin/bash +x
+#!/bin/bash
 
-check_returnCode() {
-        if [ $1 -eq 0 ]; then
-                echo -e "INFO:.... Proccess Succeed"
-        else
-                >&2 echo -e "ERROR:.... Proccess ERROR: $1"
-		cd $dir
-		./reset.sh
-		echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
-                exit $1
-        fi
-}
+###############################################################################
 
-startRootCA(){
-  echo
-  echo "========================================================="
-  echo "Starting Root CA"
-  echo "========================================================="
-  echo
+# This should be a stand-alone working script.
+# As such, some checks are performed before running it
 
-  ./startRootCA.sh
-}
+if [ -z "$GDBROOT" ]; then
+  echo "GDBROOT is not set as environment variable. Please set it"
+  exit 1
+fi
 
-buildCertificates(){
-  echo
-  echo "========================================================="
-  echo "Buildng certificates"
-  echo "========================================================="
-  echo
+source $GDBROOT/network/global-env-vars.sh
+source $GDBROOT/network/utils/utils.sh
 
-  ./generate-crypto-materials.sh --orgs $1
-}
+checkMandatoryEnvironmentVariable "LOCAL_TESTNET_DIR"
+checkMandatoryEnvironmentVariable "CA_ROOT_DIR"
+checkMandatoryEnvironmentVariable "NETWORK_DIR"
 
-genesisBlock(){
-  echo
-  echo "========================================================="
-  echo "Generating Genesis Block"
-  echo "========================================================="
-  echo
+source $LOCAL_TESTNET_DIR/local-testnet-env-vars.sh
+source $LOCAL_TESTNET_DIR/utils/utils.sh
 
-  ./channel-config.sh $1
+checkMandatoryEnvironmentVariable "LOCAL_TESTNET_COMPOSE_PROJECT_NAME"
+
+###############################################################################
+
+# This is the summarized functionality of the script
+main() {
+  # Check if an old network instance exists. If it exists, it will error
+  checkIfNetworkExists
+  # If network does not exists, then we can continue with
+  startRootCA && sleep 1s
+  # If root CA was started successfully then
+  buildCertificates operations.geodb.com:1:1:7500:geodb:password:7501 && sleep 3s
+  # If the certificates building process succeeded, then
+  generateGenesisBlock
+  # Once all the cryptomaterials are generated, start the docker containers
+  bringUpNetwork && sleep 3s
+  # With the network online, create the channel rewards
+  setupRewardsChannel
 }
 
 checkIfNetworkExists(){
-  echo
-  echo "========================================================="
-  echo "Checking if network exists"
-  echo "========================================================="
-  echo
-
-  if [ "$(docker network ls | grep ${COMPOSE_PROJECT_NAME}_geodb)" ]; then
-    >&2 echo "Network already exists. Stop the network first"
-    exit 1
+  printSection "Checking for older network instances"
+  if [ "$(docker network ls | grep ${LOCAL_TESTNET_COMPOSE_PROJECT_NAME}_geodb)" ]; then
+    fatal "Network already exists. Stop the network first"
+  else
+    printInfo "There are no network instances, the process continues"
   fi
 }
 
+startRootCA() {
+  . $CA_ROOT_DIR/startRootCA.sh
+  checkFatalError $?
+}
+
+buildCertificates(){
+  printSection "Building certificates"
+  pushd $NETWORK_DIR
+  . generate-crypto-materials.sh --orgs $1
+  checkFatalError $?
+  popd
+}
+
+generateGenesisBlock(){
+  printSection "Generating genesis block"
+  pushd $NETWORK_DIR
+  . channel-config.sh $LOCAL_TESTNET_DIR
+  checkFatalError $?
+  popd
+}
+
 bringUpNetwork(){
-  echo
-  echo "========================================================="
-  echo "Bringing up the network"
-  echo "========================================================="
-  echo
-  pwd
-  docker-compose -f docker-compose.yaml up -d
+  printSection "Bringing up the network"
+  COMPOSE_PROJECT_NAME=$LOCAL_TESTNET_COMPOSE_PROJECT_NAME \
+    docker-compose --file $LOCAL_TESTNET_DIR/docker-compose.yaml up -d
+  checkFatalError $?
+}
+
+setupRewardsChannel() {
+  printSection "Configuring rewards channel"
+
+  operationsWithPeer clipeer0.operations.geodb.com \
+    'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations.geodb.com:7050'
+
+  operationsWithPeer clipeer0.operations.geodb.com 'peer channel join -b rewards.block'
+
+  operationsWithPeer clipeer0.operations.geodb.com \
+    'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
 }
 
 operationsWithPeer(){
-  echo
-  echo "========================================================="
-  echo $@ | cut -f2,3 -d" "
-  echo "========================================================="
-  echo
-
+  printSection `$@ | cut -f2,3 -d" "`
   docker exec clipeer0.operations.geodb.com bash -c "$@"
+  checkFatalError $?
 }
 
-export COMPOSE_PROJECT_NAME=geodb
 
-dir=`pwd`
-
-checkIfNetworkExists
-
-# Start root CA
-cd ../CA
-startRootCA
-check_returnCode $?
-sleep 1s
-# Build certificates
-cd ..
-buildCertificates operations.geodb.com:1:1:7500:geodb:password:7501
-check_returnCode $?
-sleep 3s
-
-# Generate genesis block
-
-genesisBlock $dir
-check_returnCode $?
-
-# Bring up the network
-
-cd $dir
-bringUpNetwork
-check_returnCode $?
-sleep 3s
-
-# Create the channel on the peer from the genesis block
-operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations.geodb.com:7050' 
-check_returnCode $?
-
-# Join the channel
-operationsWithPeer 'peer channel join -b rewards.block'
-check_returnCode $?
-
-# Update anchor peer
-operationsWithPeer 'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
-check_returnCode $?
+main
