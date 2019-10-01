@@ -19,6 +19,7 @@ function checkFatalError() {
 # Print a fatal error message and exit
 function fatal {
    printError $*
+   >&2 echo "at function ${FUNCNAME[1]}, line ${BASH_LINENO[0]}"
    exit 1
 }
 

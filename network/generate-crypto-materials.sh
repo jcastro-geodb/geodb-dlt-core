@@ -4,6 +4,8 @@
 # en entornos de producción
 ##############################################################################
 
+source $GDBROOT/network/utils/utils.sh
+
 function check_returnCode {
         if [ $1 -eq 0 ]; then
                 echo -e "INFO:.... Proccess Succeed"
@@ -31,11 +33,11 @@ function main {
   checkRootCA
   check_returnCode $?
   cd $mydir
-  if [ -d $CDIR ]; then
+  if [ -d $CRYPTO_CONFIG_DIR ]; then
     echo "Cleaning up CAs ..."
     stopAllCAs
     check_returnCode $?
-    # rm -rf $CDIR
+    # rm -rf $CRYPTO_CONFIG_DIR
   fi
   echo "Setting up organizations ..."
   setupOrgs
@@ -47,30 +49,30 @@ function main {
 
 # Check and build executables as needed
 function checkExecutables {
-   if [ ! -d $FCAHOME ]; then
-      fatal "Directory does not exist: $FCAHOME"
+   if [ ! -d $HLF_CA_HOME ]; then
+      fatal "Directory does not exist: $HLF_CA_HOME"
    fi
 
-   if [ ! -x $SERVER ]; then
-      cd $FCAHOME
+   if [ ! -x $HLF_CA_SERVER ]; then
+      cd $HLF_CA_HOME
       make fabric-ca-server
       if [ $? -ne 0 ]; then
-         fatal "Failed to build $SERVER"
+         fatal "Failed to build $HLF_CA_SERVER"
       fi
    fi
 
-   if [ ! -x $CLIENT ]; then
-      cd $FCAHOME
+   if [ ! -x $HLF_CA_CLIENT ]; then
+      cd $HLF_CA_HOME
       make fabric-ca-client
       if [ $? -ne 0 ]; then
-         fatal "Failed to build $CLIENT"
+         fatal "Failed to build $HLF_CA_CLIENT"
       fi
    fi
 }
 
 # Stop all CA servers
 function stopAllCAs {
-   for pidFile in `find $CDIR -name server.pid`
+   for pidFile in `find $CRYPTO_CONFIG_DIR -name server.pid`
    do
       if [ ! -f $pidFile ]; then
          fatal "\"$pidFile\" is not a file"
@@ -109,12 +111,14 @@ function setupOrg {
 
    orgName=${args[0]}
 
-   orgDir=$CDIR/$orgName
+
+   orgDir=$CRYPTO_CONFIG_DIR/$orgName
 
    if [ -d $orgDir -a "$RECREATE" = false ]; then
-      echo "$orgName already exists, skipping"
+      printWarning "$orgName already exists, skipping"
       return 0
    fi
+
 
    if [ -d $orgDir -a "$RECREATE" = true ]; then
      echo "Removing ${orgName} certificates and recreating"
@@ -125,7 +129,7 @@ function setupOrg {
    numOrderers=${args[2]}
 
    echo "Org ${orgName} has ${numPeers} peer nodes and ${numOrderers} orderer nodes"
-   orgDir=${CDIR}/${orgName}
+   orgDir=${CRYPTO_CONFIG_DIR}/${orgName}
    rootCAPort=${args[3]}
    rootCAUser=${args[4]}
    rootCAPass=${args[5]}
@@ -212,7 +216,7 @@ function startCA {
    mkdir -p $homeDir
    export FABRIC_CA_SERVER_HOME=$homeDir
 
-   $SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --tls.enabled --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
+   $HLF_CA_SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --tls.enabled --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
 
    echo $! > $homeDir/server.pid
    if [ $? -ne 0 ]; then
@@ -308,7 +312,7 @@ function enroll {
    logFile=$homeDir/enroll.log
 
    # Get an enrollment certificate
-   $CLIENT enroll -d -u $url --tls.certfiles $tlsCert > $logFile 2>&1
+   $HLF_CA_CLIENT enroll -d -u $url --tls.certfiles $tlsCert > $logFile 2>&1
 
    if [ $? -ne 0 ]; then
       fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
@@ -330,7 +334,7 @@ function register {
   mkdir -p $homeDir
   logFile=$homeDir/register.log
 
-  $CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d > $logFile 2>&1
+  $HLF_CA_CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d > $logFile 2>&1
   if [ $? -ne 0 ]; then
     fatal "Failed to register $userName with CA as $homeDir; see $logFile"
   fi
@@ -392,7 +396,7 @@ function getcacerts {
   mkdir -p $dir
   export FABRIC_CA_CLIENT_HOME=$dir
   logFile=$dir/getcacert.out
-  $CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert > $logFile 2>&1
+  $HLF_CA_CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert > $logFile 2>&1
   if [ $? -ne 0 ]; then
     fatal "Failed to get CA certificates $dir with CA at $caUrl; see $logFile"
   fi
@@ -411,39 +415,28 @@ function checkRootCA {
 }
 
 function wipeout {
-  echo
-  echo "#################################################################"
-  echo "#######                 Cleaning up                    ##########"
-  echo "#################################################################"
-  echo
+  printSection "Cleaning up"
 
-  if [ -d $CDIR ]; then
+  if [ -d $CRYPTO_CONFIG_DIR ]; then
     stopAllCAs
-    rm -rf $CDIR
+    rm -rf $CRYPTO_CONFIG_DIR
   fi
 
   exit 0
 }
 
-# Print a fatal error message and exit
-function fatal {
-   echo "FATAL: $*"
-   exit 1
-}
-
-
-##############
-# Constants  #
-##############
-
-# Path to fabric CA executables - Remember to configure it correctly for each fabric version
-FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
-CLIENT=$FCAHOME/bin/fabric-ca-client
-SERVER=$FCAHOME/bin/fabric-ca-server
-TLSROOTCERT=$(realpath "./CA/fabric-ca-server/tls-cert.pem")
-
-# Crypto-config directory
-CDIR="crypto-config"
+# ##############
+# # Constants  #
+# ##############
+#
+# # Path to fabric CA executables - Remember to configure it correctly for each fabric version
+# FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
+# CLIENT=$FCAHOME/bin/fabric-ca-client
+# SERVER=$FCAHOME/bin/fabric-ca-server
+# TLSROOTCERT=$(realpath "./CA/fabric-ca-server/tls-cert.pem")
+#
+# # Crypto-config directory
+# CDIR="crypto-config"
 
 
 ##############

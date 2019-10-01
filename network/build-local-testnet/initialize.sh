@@ -18,7 +18,6 @@ checkMandatoryEnvironmentVariable "CA_ROOT_DIR"
 checkMandatoryEnvironmentVariable "NETWORK_DIR"
 
 source $LOCAL_TESTNET_DIR/local-testnet-env-vars.sh
-source $LOCAL_TESTNET_DIR/utils/utils.sh
 
 checkMandatoryEnvironmentVariable "LOCAL_TESTNET_COMPOSE_PROJECT_NAME"
 
@@ -33,7 +32,7 @@ main() {
   # If root CA was started successfully then
   buildCertificates operations.geodb.com:1:1:7500:geodb:password:7501 && sleep 3s
   # If the certificates building process succeeded, then
-  generateGenesisBlock
+  generateGenesisBlock && sleep 3s
   # Once all the cryptomaterials are generated, start the docker containers
   bringUpNetwork && sleep 3s
   # With the network online, create the channel rewards
@@ -63,7 +62,7 @@ buildCertificates(){
 }
 
 generateGenesisBlock(){
-  printSection "Generating genesis block"
+  printSection "Genesis block"
   pushd $NETWORK_DIR
   . channel-config.sh $LOCAL_TESTNET_DIR
   checkFatalError $?

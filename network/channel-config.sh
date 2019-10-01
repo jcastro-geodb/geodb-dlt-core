@@ -3,6 +3,7 @@
 source ./env-vars
 
 check_returnCode() {
+  echo `pwd`
         if [ $1 -eq 0 ]; then
                 echo -e "INFO:.... Proccess Succeed"
         else
