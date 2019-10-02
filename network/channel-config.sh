@@ -21,9 +21,7 @@ if [ -z "$CONFIG_PATH" ]; then
   CONFIG_PATH=$NETWORK_DIR
 fi
 
-deploy=$(echo $1 | cut -d / -f 9)
-echo "----------------------------------------------------->"$deploy
-echo $1
+deploy=$2
 
 export FABRIC_CFG_PATH=$CONFIG_PATH
 

@@ -33,22 +33,28 @@ checkSomeCA(){
   if [ -z "$instances" ]; then
     echo "Any rootCA has been detected, deployment in proccess"
     startRootCA
+    getCertsCA 1
   else
     echo "A rootCA has been detected, skipping this step"
+    getCertsCA 1
   fi
 
 }
 
 getCertsCA(){
-  echo
-  echo "========================================================="
-  echo "Waiting for FabricCA server. Please Wait"
-  echo "========================================================="
-  echo
 
+  wait=$1
+  
   instanceName=$(gcloud compute instances list --filter=labels.hl-f:ca-root --format="value(name.scope())")
 
-  sleep 120s
+  if [ $wait == 1 ]; then
+    echo
+    echo "========================================================="
+    echo "Waiting for FabricCA server. Please Wait"
+    echo "========================================================="
+    echo
+    sleep 120s
+  fi 
 
   echo
   echo "========================================================="
@@ -105,7 +111,7 @@ genesisBlock(){
   echo "========================================================="
   echo
 
-  ./channel-config.sh $1
+  ./channel-config.sh $1 $2
 }
 
 checkIfNetworkExists(){
@@ -148,6 +154,6 @@ installChaincode(){
   echo "========================================================="
   echo
 
-  ./install-upg-chaincode.sh
+  ./install-upg-chaincode.sh $1
 
 }

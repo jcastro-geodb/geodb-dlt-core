@@ -1,6 +1,7 @@
 #!/bin/bash +x
 
 source ./env-vars
+source ../env-vars
 
 . utils/utils.sh
 
@@ -21,8 +22,8 @@ sleep 2s
 
 # Build certificates
 
-getCertsCA
-check_returnCode $?
+#getCertsCA
+#check_returnCode $?
 
 introduceIP
 
@@ -36,7 +37,7 @@ check_returnCode $?
 
 # Generate genesis block
 
-genesisBlock $dir
+genesisBlock $dir $ORGSTYPE
 check_returnCode $?
 
 # Bring up the network
@@ -87,7 +88,7 @@ cd ..
 while true; do
     read -p "Do you want to deploy default chaincode? " yn
     case $yn in
-     [Yy]* ) installChaincode; check_returnCode $?; break;;
+     [Yy]* ) installChaincode $ORGSTYPE; check_returnCode $?; break;;
      [Nn]* ) echo "Federation is ready."; break;;
      *) echo "Please answer local (Ll) or GCP (Gg).";
     esac
