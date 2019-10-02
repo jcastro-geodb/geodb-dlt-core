@@ -1,4 +1,5 @@
 #!/bin/bash +x
+
 ###############################################################################
 # Usar este script como sustitución de cryptogen
 # en entornos de producción
@@ -8,26 +9,20 @@ source $GDBROOT/network/utils/utils.sh
 
 function main {
 
-  echo
-  echo "#################################################################"
-  echo "#######    Generating crypto material using Fabric CA  ##########"
-  echo "#################################################################"
-  echo
-  echo "Checking executables ..."
+  printSection "Generating crypto material using Fabric CA"
+  printInfo "Checking executables ..."
   mydir=`pwd`
   checkExecutables
   checkFatalError $?
-  cd $mydir
   checkRootCA
   checkFatalError $?
-  cd $mydir
   if [ -d $CRYPTO_CONFIG_DIR ]; then
-    echo "Cleaning up CAs ..."
+    printInfo "Cleaning up CAs"
     stopAllCAs
     checkFatalError $?
     # rm -rf $CRYPTO_CONFIG_DIR
   fi
-  echo "Setting up organizations ..."
+  printInfo "Setting up organizations"
   setupOrgs
   checkFatalError $?
   # echo "Finishing ..."
@@ -38,23 +33,25 @@ function main {
 # Check and build executables as needed
 function checkExecutables {
    if [ ! -d $HLF_CA_HOME ]; then
-      fatal "Directory does not exist: $HLF_CA_HOME"
+     fatal "Directory does not exist: $HLF_CA_HOME"
    fi
 
    if [ ! -x $HLF_CA_SERVER ]; then
-      cd $HLF_CA_HOME
+      pushd $HLF_CA_HOME
       make fabric-ca-server
       if [ $? -ne 0 ]; then
          fatal "Failed to build $HLF_CA_SERVER"
       fi
+      popd
    fi
 
    if [ ! -x $HLF_CA_CLIENT ]; then
-      cd $HLF_CA_HOME
+      pushd $HLF_CA_HOME
       make fabric-ca-client
       if [ $? -ne 0 ]; then
          fatal "Failed to build $HLF_CA_CLIENT"
       fi
+      popd
    fi
 }
 
@@ -67,13 +64,13 @@ function stopAllCAs {
       fi
       pid=`cat $pidFile`
       dir=$(dirname $pidFile)
-      echo "Stopping CA server in $dir with PID $pid ..."
+      printInfo "Stopping CA server in $dir with PID $pid ..."
       if ps -p $pid > /dev/null
       then
          kill -9 $pid
          wait $pid 2>/dev/null
          rm -f $pidFile
-         echo "Stopped CA server in $dir with PID $pid"
+         printDebug "Stopped CA server in $dir with PID $pid"
       fi
    done
 }
@@ -105,14 +102,14 @@ function setupOrg {
 
 
    if [ -d $orgDir -a "$RECREATE" = true ]; then
-     echo "Removing ${orgName} certificates and recreating"
+     printInfo "Removing ${orgName} certificates and recreating"
      rm -rf $orgDir
    fi
 
    numPeers=${args[1]}
    numOrderers=${args[2]}
 
-   echo "Org ${orgName} has ${numPeers} peer nodes and ${numOrderers} orderer nodes"
+   printInfo "Generating organization ${orgName} with ${numPeers} peer(s) and ${numOrderers} orderer(s)"
    orgDir=${CRYPTO_CONFIG_DIR}/${orgName}
    rootCAPort=${args[3]}
    rootCAUser=${args[4]}
@@ -185,6 +182,8 @@ function setupOrg {
    normalizeMSP $adminHome $orgName
    normalizeMSP $adminUserHome $orgName
    normalizeMSP $user1UserHome $orgName
+
+   printDebug "Successfully generated crypto materials for organization $orgName"
 }
 
 # Start a root CA server:
@@ -205,7 +204,7 @@ function startCA {
    echo $! > $homeDir/server.pid
    checkFatalError $?
 
-   echo "Starting CA server in $homeDir on port $port ..."
+   printInfo "Starting CA server in $homeDir on port $port ..."
    sleep 1
    checkCA $homeDir $port
    # Get the TLS crypto for this CA
@@ -222,7 +221,7 @@ function checkCA {
    pid=`cat $pidFile`
    if ps -p $pid > /dev/null
    then
-      echo "CA server is started in $1 and listening on port $2"
+      printInfo "CA server is started in $1 and listening on port $2"
    else
       fatal "CA server is not running at $1; see logs at $1/server.log"
    fi
@@ -245,7 +244,7 @@ function tlsEnroll {
 
    srcMSP=$tlsDir/msp
    dstMSP=$homeDir/msp
-   echo "enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls"
+   printDebug "enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls"
    enroll $tlsDir https://admin:adminpw@localhost:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
    cp $srcMSP/signcerts/* $tlsDir/server.crt
    cp $srcMSP/keystore/* $tlsDir/server.key
@@ -300,8 +299,7 @@ function enroll {
    if [ $? -ne 0 ]; then
       fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
    fi
-   # Get a TLS certificate
-   echo "Enrolled $homeDir with CA at $url"
+   printDebug "Enrolled $homeDir with CA at $url"
 }
 
 # Register a new user
@@ -321,7 +319,7 @@ function register {
   if [ $? -ne 0 ]; then
     fatal "Failed to register $userName with CA as $homeDir; see $logFile"
   fi
-  echo "Registered user $userName with intermediate CA as $homeDir"
+  printDebug "Registered user $userName with intermediate CA as $homeDir"
 }
 
 # Rename MSP files as is expected by the e2e example
@@ -385,14 +383,14 @@ function getcacerts {
   fi
   mkdir $dir/msp/tlscacerts
   cp $dir/msp/cacerts/* $dir/msp/tlscacerts
-  echo "Loaded CA certificates into $dir from CA at $caUrl"
+  printDebug "Loaded CA certificates into $dir from CA at $caUrl"
 }
 
 function checkRootCA {
   if [ ! "$(docker ps -q -f name=ca-root.geodb.com)" ]; then
     fatal "Root CA container is not running"
   else
-    echo "Root CA is running"
+    printDebug "Root CA is running"
   fi
 
 }
@@ -467,7 +465,7 @@ else
 
   if [ -z "$RECREATE" ]; then
     # If true, recreate crypto if it already exists
-    echo "Setting RECREATE=false"
+    printDebug "Setting RECREATE=false"
     RECREATE=false
   fi
 
@@ -477,9 +475,9 @@ else
   #   INTERMEDIATE_CA=true
   # fi
 
-  echo "Running script with args:"
-  echo "ORGS: ${ORGS}"
-  echo "RECREATE: ${RECREATE}"
+  printInfo "Running script with args:"
+  printInfo "ORGS: ${ORGS}"
+  printInfo "RECREATE: ${RECREATE}"
 
   main
 fi

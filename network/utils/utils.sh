@@ -18,7 +18,7 @@ function mkdirIfNotExists() {
 }
 
 function checkFatalError() {
-  if [ $1 -ne 0 ]; then
+  if [ "$1" -ne "0" ]; then
     >&2 echo "at function ${FUNCNAME[1]}, line ${BASH_LINENO[0]}"
     fatal "Operation returned code $1 instead of 0. Cannot continue"
   fi
@@ -50,6 +50,12 @@ function printWarning() {
 # Message with yellow color
 function printInfo() {
   echo -e "\e[36mINFO:\e[0m $*"
+}
+
+function printDebug() {
+  if [ ! -z "$GEODB_DEBUG_MODE" ]; then
+    echo -e "\e[1;95mDEBUG:\e[0m $*"
+  fi
 }
 
 operationsWithPeer() {

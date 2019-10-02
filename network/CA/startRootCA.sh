@@ -7,7 +7,7 @@ checkMandatoryEnvironmentVariable "CA_ROOT_COMPOSE_PROJECT_NAME"
 printSection "Starting root certificate authority"
 
 if [ ! -d "$CA_ROOT_DIR/fabric-ca-server" ]; then
-  echo "Spawning ./fabric-ca-server directory"
+  printInfo "Spawning $CA_ROOT_DIR/fabric-ca-server directory"
   mkdir $CA_ROOT_DIR/fabric-ca-server
   mkdir $CA_ROOT_DIR/fabric-ca-server/msp
   mkdir $CA_ROOT_DIR/fabric-ca-server/msp/cacerts
