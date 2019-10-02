@@ -12,6 +12,7 @@ function checkMandatoryEnvironmentVariable() {
 
 function checkFatalError() {
   if [ $1 -ne 0 ]; then
+    >&2 echo "at function ${FUNCNAME[1]}, line ${BASH_LINENO[0]}"
     fatal "Operation returned code $1 instead of 0. Cannot continue"
   fi
 }

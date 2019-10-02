@@ -7,22 +7,14 @@ fi
 
 source $GDBROOT/network/global-env-vars.sh
 source $GDBROOT/network/utils/utils.sh
+checkMandatoryEnvironmentVariable "NETWORK_DIR"
 checkMandatoryEnvironmentVariable "LOCAL_TESTNET_DIR"
+checkMandatoryEnvironmentVariable "CA_ROOT_DIR"
+checkMandatoryEnvironmentVariable "CA_ROOT_COMPOSE_PROJECT_NAME"
+
 source $LOCAL_TESTNET_DIR/local-testnet-env-vars.sh
+checkMandatoryEnvironmentVariable "LOCAL_TESTNET_COMPOSE_PROJECT_NAME"
 
-export COMPOSE_PROJECT_NAME=geodb
-
-
-
-check_returnCode() {
-        if [ $1 -eq 0 ]; then
-                echo -e "INFO:.... El proceso se ha ejecutado con éxito"
-        else
-                >&2 echo -e "ERROR:.... El proceso se ha ejecutado con error: $1"
-                echo -e "INFO:Saliendo..."
-                exit $1
-        fi
-}
 
 # Remove docker containers created after the testnet and their artifacts
 removeNodeArtifacts() {
@@ -94,17 +86,13 @@ cleanDirectories(){
 restoreCA(){
   printSection "Restoring root CA"
 
-  pushd $CA_ROOT_DIR
+  COMPOSE_PROJECT_NAME=$CA_ROOT_COMPOSE_PROJECT_NAME docker-compose --file $CA_ROOT_DIR/docker-compose.yaml kill && \
+  COMPOSE_PROJECT_NAME=$CA_ROOT_COMPOSE_PROJECT_NAME docker-compose --file $CA_ROOT_DIR/docker-compose.yaml down
 
-  COMPOSE_PROJECT_NAME=CA docker-compose -f docker-compose.yaml kill && \
-  COMPOSE_PROJECT_NAME=CA docker-compose -f docker-compose.yaml down
-
-  if [ -d "./fabric-ca-server" ]; then
-    echo "Removing ./CA/fabric-ca-server"
-    rm -rf ./fabric-ca-server
+  if [ -d "$CA_ROOT_DIR/fabric-ca-server" ]; then
+    echo "Removing $CA_ROOT_DIR/fabric-ca-server"
+    rm -rf $CA_ROOT_DIR/fabric-ca-server
   fi
-
-  popd
 }
 
 removeNodeArtifacts

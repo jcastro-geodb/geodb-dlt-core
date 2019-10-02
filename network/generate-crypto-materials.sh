@@ -101,8 +101,6 @@ function setupOrgs {
 # Start an organization's root and intermediate CA servers
 #   setupOrg <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:rootCAUser:rootCAPass:<intermediateCAPort>
 function setupOrg {
-
-
    IFSBU=$IFS
    IFS=: args=($1)
    if [ ${#args[@]} -ne 7 ]; then
@@ -110,8 +108,6 @@ function setupOrg {
    fi
 
    orgName=${args[0]}
-
-
    orgDir=$CRYPTO_CONFIG_DIR/$orgName
 
    if [ -d $orgDir -a "$RECREATE" = false ]; then
@@ -219,9 +215,8 @@ function startCA {
    $HLF_CA_SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --tls.enabled --intermediate.tls.certfiles $TLSROOTCERT > $homeDir/server.log 2>&1&
 
    echo $! > $homeDir/server.pid
-   if [ $? -ne 0 ]; then
-      fatal "Failed to start server in $homeDir"
-   fi
+   checkFatalError $?
+
    echo "Starting CA server in $homeDir on port $port ..."
    sleep 1
    checkCA $homeDir $port
