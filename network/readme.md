@@ -47,11 +47,11 @@
 
 You can launch network with three different modes:
 
-- Local --> `./start.sh local`
-- 1 Orgs and CA root allocated in GCP instance --> `start.sh 1Org`
-- 2 Orgs and CA root allocated in GCP instance --> `start.sh 2Orgs`
+- Local --> `./start_functionality.sh local`
+- 1 Orgs and CA root allocated in GCP instance --> `start_functionality.sh 1Org`
+- 2 Orgs and CA root allocated in GCP instance --> `start_functionality.sh 2Orgs`
 
-You can select one of this deployment mode with `start.sh` script:
+You can select one of this deployment mode with `start_functionality.sh` script:
 
 ```verilog
 Usage: 

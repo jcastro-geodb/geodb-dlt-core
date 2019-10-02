@@ -21,8 +21,8 @@ sleep 2s
 
 # Build certificates
 
-getCertsCA
-check_returnCode $?
+#getCertsCA
+#check_returnCode $?
 
 introduceIP
 

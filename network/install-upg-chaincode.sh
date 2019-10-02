@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./env-vars
+
 check_returnCode() {
         if [ $1 -eq 0 ]; then
                 echo -e "INFO:.... Proccess Succeed"
@@ -28,7 +30,13 @@ mv ./go /$pwd
 # Chaincode: install and instantiate
 echo "INSTALLING CHAINCODE"
 
-chaincodeInfo=`docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode list --installed" | tail -n +2 | tr -d ' '`
+deployType=$1
+
+if [ "$deployType" == "$ORGSTYPE" ]; then
+  chaincodeInfo=`docker exec -i clipeer0.operations0.geodb.com bash -c "peer chaincode list --installed" | tail -n +2 | tr -d ' '`
+else
+  chaincodeInfo=`docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode list --installed" | tail -n +2 | tr -d ' '`
+fi
 
 declare -a versions=()
 i=0
