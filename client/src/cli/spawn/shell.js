@@ -2,7 +2,7 @@
 const spawn = require("child_process").spawn;
 
 function shell(command, args, cwd) {
-  let options = {};
+  let options = { shell: "/bin/bash" };
   options.cwd = cwd ? cwd : null;
 
   console.log("Running", command, args.toString().replace(/,/g, " "));

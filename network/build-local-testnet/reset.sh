@@ -53,7 +53,9 @@ removeLocalTestnetBaseContainers() {
   sleep 2s
 
   COMPOSE_PROJECT_NAME=$LOCAL_TESTNET_COMPOSE_PROJECT_NAME \
-    docker-compose -f docker-compose.yaml down --remove-orphans && docker-compose -f docker-compose.yaml kill
+    docker-compose -f docker-compose.yaml down --remove-orphans && \
+    COMPOSE_PROJECT_NAME=$LOCAL_TESTNET_COMPOSE_PROJECT_NAME \
+    docker-compose -f docker-compose.yaml kill
 
 }
 
