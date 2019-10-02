@@ -55,16 +55,14 @@ startRootCA() {
 
 buildCertificates(){
   printSection "Building certificates"
-  . generate-crypto-materials.sh --orgs $1
+  . $LOCAL_TESTNET_DIR/generate-crypto-materials.sh --orgs $1
   checkFatalError $?
 }
 
 generateGenesisBlock(){
   printSection "Genesis block"
-  pushd $NETWORK_DIR
-  . channel-config.sh $LOCAL_TESTNET_DIR
+  . $NETWORK_DIR/channel-config.sh $LOCAL_TESTNET_DIR
   checkFatalError $?
-  popd
 }
 
 bringUpNetwork(){

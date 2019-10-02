@@ -10,6 +10,13 @@ function checkMandatoryEnvironmentVariable() {
   fi
 }
 
+function mkdirIfNotExists() {
+  if [ ! -d "$1" ]; then
+    echo "Spawning $1 directory"
+    mkdir $1
+  fi
+}
+
 function checkFatalError() {
   if [ $1 -ne 0 ]; then
     >&2 echo "at function ${FUNCNAME[1]}, line ${BASH_LINENO[0]}"

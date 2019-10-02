@@ -1,40 +1,24 @@
 #!/bin/bash +x
 
-source ./env-vars
+source $GDBROOT/network/global-env-vars.sh
+source $GDBROOT/network/utils/utils.sh
+checkMandatoryEnvironmentVariable "NETWORK_DIR"
 
-check_returnCode() {
-  echo `pwd`
-        if [ $1 -eq 0 ]; then
-                echo -e "INFO:.... Proccess Succeed"
-        else
-                >&2 echo -e "ERROR:.... Proccess ERROR: $1"
-                cd $dir
-                ./build-local-testnet/reset.sh
-                echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
-                exit $1
-        fi
-}
+source $NETWORK_DIR/env-vars
 
-checkIfExists(){
-  if [ ! -d "$1" ]; then
-    echo "Spawning $1 directory"
-    mkdir $1
-  fi
-}
+mkdirIfNotExists $NETWORK_DIR/orderer
+checkFatalError $?
 
-checkIfExists ./orderer
-check_returnCode $?
+mkdirIfNotExists $NETWORK_DIR/channels
+checkFatalError $?
 
-checkIfExists ./channels
-check_returnCode $?
-
-checkIfExists ./chaincode
-check_returnCode $?
+mkdirIfNotExists $NETWORK_DIR/chaincode
+checkFatalError $?
 
 CONFIG_PATH=$1
 
 if [ -z "$CONFIG_PATH" ]; then
-  CONFIG_PATH=./
+  CONFIG_PATH=$NETWORK_DIR
 fi
 
 deploy=$(echo $1 | cut -d / -f 9)
@@ -43,31 +27,22 @@ echo $1
 
 export FABRIC_CFG_PATH=$CONFIG_PATH
 
-echo
-echo "##################################################################"
-echo "#######    Generating orderer genesis block             ##########"
-echo "##################################################################"
-echo
-configtxgen -profile GeoDBOrdererGenesis -outputBlock ./orderer/genesis.block -channelID systemchannel
-check_returnCode $?
+printSection "Generating orderer genesis block"
+configtxgen -profile GeoDBOrdererGenesis -outputBlock $NETWORK_DIR/orderer/genesis.block -channelID systemchannel
+checkFatalError $?
 
-echo
-echo "##################################################################"
-echo "####### Generating orderer rewards channel genesis block #########"
-echo "##################################################################"
-echo
-configtxgen -profile RewardsChannel -outputCreateChannelTx ./channels/rewards.tx -channelID rewards
-check_returnCode $?
+printSection "Generating orderer rewards channel genesis block"
+configtxgen -profile RewardsChannel -outputCreateChannelTx $NETWORK_DIR/channels/rewards.tx -channelID rewards
+checkFatalError $?
 
-echo
-echo "##################################################################"
-echo "####### Setting GeoDB anchor peer for the channel       ##########"
-echo "##################################################################"
-echo
-configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor.tx -channelID rewards -asOrg GeoDB
-check_returnCode $?
+printSection "Setting GeoDB anchor peer for the channel"
+configtxgen -profile RewardsChannel \
+  -outputAnchorPeersUpdate $NETWORK_DIR/channels/geodbanchor.tx \
+  -channelID rewards -asOrg GeoDB
+
+checkFatalError $?
 
 if [ "$deploy" == "$ORGSTYPE" ]; then
-  configtxgen -profile RewardsChannel -outputAnchorPeersUpdate ./channels/geodbanchor2.tx -channelID rewards -asOrg GeoDB2
-  check_returnCode $?
+  configtxgen -profile RewardsChannel -outputAnchorPeersUpdate $NETWORK_DIR/channels/geodbanchor2.tx -channelID rewards -asOrg GeoDB2
+  checkFatalError $?
 fi
