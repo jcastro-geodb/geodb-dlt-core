@@ -59,9 +59,7 @@ removeLocalTestnetBaseContainers() {
 
 regenerateCryptoMaterial(){
   printSection "Restoring Crypto material. Stopping all CAs and cleaning up"
-  pushd $NETWORK_DIR
-  ./generate-crypto-materials.sh -d
-  popd
+  . generate-crypto-materials.sh -d
 }
 
 cleanDirectories(){

@@ -55,10 +55,8 @@ startRootCA() {
 
 buildCertificates(){
   printSection "Building certificates"
-  pushd $NETWORK_DIR
   . generate-crypto-materials.sh --orgs $1
   checkFatalError $?
-  popd
 }
 
 generateGenesisBlock(){

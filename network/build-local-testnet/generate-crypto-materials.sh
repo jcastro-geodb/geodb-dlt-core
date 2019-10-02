@@ -6,18 +6,6 @@
 
 source $GDBROOT/network/utils/utils.sh
 
-function check_returnCode {
-        if [ $1 -eq 0 ]; then
-                echo -e "INFO:.... Proccess Succeed"
-        else
-                >&2 echo -e "ERROR:.... Proccess ERROR: $1"
-                cd $dir
-                ./build-local-testnet/reset.sh
-                echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
-                exit $1
-        fi
-}
-
 function main {
 
   echo
@@ -28,20 +16,20 @@ function main {
   echo "Checking executables ..."
   mydir=`pwd`
   checkExecutables
-  check_returnCode $?
+  checkFatalError $?
   cd $mydir
   checkRootCA
-  check_returnCode $?
+  checkFatalError $?
   cd $mydir
   if [ -d $CRYPTO_CONFIG_DIR ]; then
     echo "Cleaning up CAs ..."
     stopAllCAs
-    check_returnCode $?
+    checkFatalError $?
     # rm -rf $CRYPTO_CONFIG_DIR
   fi
   echo "Setting up organizations ..."
   setupOrgs
-  check_returnCode $?
+  checkFatalError $?
   # echo "Finishing ..."
   # stopAllCAs
   # echo "Complete"
