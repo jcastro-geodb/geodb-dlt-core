@@ -57,12 +57,12 @@ removeLocalTestnetBaseContainers() {
 
 }
 
-regenerateCryptoMaterial(){
+regenerateCryptoMaterial() {
   printSection "Restoring Crypto material. Stopping all CAs and cleaning up"
   . generate-crypto-materials.sh -d
 }
 
-cleanDirectories(){
+cleanDirectories() {
   printSection "Cleanning directories"
 
   if [ -d "$NETWORK_DIR/channels" ]; then
@@ -81,7 +81,7 @@ cleanDirectories(){
   fi
 }
 
-restoreCA(){
+restoreCA() {
   printSection "Restoring root CA"
 
   COMPOSE_PROJECT_NAME=$CA_ROOT_COMPOSE_PROJECT_NAME docker-compose --file $CA_ROOT_DIR/docker-compose.yaml kill && \

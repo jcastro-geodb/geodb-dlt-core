@@ -404,8 +404,6 @@ function wipeout {
     stopAllCAs
     rm -rf $CRYPTO_CONFIG_DIR
   fi
-
-  exit 0
 }
 
 # ##############
@@ -460,28 +458,28 @@ fi
 
 if [ $DELETE == true ]; then
   wipeout
+else
+  # Organization info where each line is of the form:
+  #    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:rootCAUser:rootCAPass:<intermediateCAPort>
+  if [ -z "$ORGS" ]; then
+    fatal "--ORGS not found"
+  fi
+
+  if [ -z "$RECREATE" ]; then
+    # If true, recreate crypto if it already exists
+    echo "Setting RECREATE=false"
+    RECREATE=false
+  fi
+
+  # if [ -z "$INTERMEDIATE_CA" ]; then
+  #   # If true, uses both a root and intermediate CA
+  #   echo "Setting INTERMEDIATE_CA=true"
+  #   INTERMEDIATE_CA=true
+  # fi
+
+  echo "Running script with args:"
+  echo "ORGS: ${ORGS}"
+  echo "RECREATE: ${RECREATE}"
+
+  main
 fi
-
-# Organization info where each line is of the form:
-#    <orgName>:<numPeers>:<numOrderers>:<rootCAPort>:rootCAUser:rootCAPass:<intermediateCAPort>
-if [ -z "$ORGS" ]; then
-  fatal "--ORGS not found"
-fi
-
-if [ -z "$RECREATE" ]; then
-  # If true, recreate crypto if it already exists
-  echo "Setting RECREATE=false"
-  RECREATE=false
-fi
-
-# if [ -z "$INTERMEDIATE_CA" ]; then
-#   # If true, uses both a root and intermediate CA
-#   echo "Setting INTERMEDIATE_CA=true"
-#   INTERMEDIATE_CA=true
-# fi
-
-echo "Running script with args:"
-echo "ORGS: ${ORGS}"
-echo "RECREATE: ${RECREATE}"
-
-main
