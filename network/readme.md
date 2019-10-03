@@ -1,16 +1,20 @@
 # GeoDB network bootstrap
 
+>
+>
+>TEMPORAL COMMENT
+>
+>To test RAFT services you have to generate crypto material with cryptogen:
+>
+>`cryptogen generate --config=./crypto-config.yaml`
+>
+>`./channel-config.sh $PWD/build-network-GCP-2Orgs/ build-network-GCP-2Orgs`
+>
+>`COMPOSE_PROJECT_NAME=geodb docker-compose -f docker-compose-orderer.yaml up -d`
+
 ## TODOs
 
-- [x] Add installation script for Fabric prerequisites: docker, docker-compose, docker images.
-- [x] Enable TLS
-- [ ] Implement tests
-- [ ] Customize node names. Implement script for generic node deployment and network peer join.
-- [ ] Implement business logic for smart contract interaction
-- [ ] Implement business logic for datasets addition, purchase, etc.
-- [ ] Initial certificates emission with Openssl
-- [ ] Log Hub
-- [ ] Enable user to select deployment on localhost or on GCP
+- [ ] Generate certificates that enables TLS with RAFT with script, not with cryptogen.
 
 ## Dependencies
 

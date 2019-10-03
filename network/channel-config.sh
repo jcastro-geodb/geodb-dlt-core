@@ -45,7 +45,7 @@ echo "##################################################################"
 echo "#######    Generating orderer genesis block             ##########"
 echo "##################################################################"
 echo
-configtxgen -profile GeoDBOrdererGenesis -outputBlock ./orderer/genesis.block -channelID systemchannel
+configtxgen -profile OrdererGenesis -outputBlock ./orderer/genesis.block -channelID systemchannel
 check_returnCode $?
 
 echo

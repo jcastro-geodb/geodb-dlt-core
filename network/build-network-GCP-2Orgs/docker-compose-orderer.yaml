@@ -1,0 +1,63 @@
+version: "2"
+
+networks:
+  geodb:
+
+volumes:
+        orderer0.orderer.geodb.com:
+
+services:
+  orderer0.orderer.geodb.com:
+    extends:
+      file: ../bases/orderer-base.yaml
+      service: orderer
+    container_name: orderer0.orderer.geodb.com
+    environment:
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0 
+      - ORDERER_GENERAL_LISTENPORT=7050
+    # extra_hosts:
+    #         - "orderer1.orderer.geodb.com:34.68.86.73"
+    #         - "orderer2.orderer.geodb.com:34.68.86.73"
+    #         - "orderer3.orderer.geodb.com:34.68.86.73"
+    #         - "orderer4.orderer.geodb.com:34.68.86.73"
+    #         - "peer0.operations0.geodb.com:35.226.79.220"
+    #         - "peer0.operations1.geodb.com:35.232.199.30"
+    volumes:
+      - ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/msp:/var/hyperledger/orderer/msp
+      - ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/tls:/var/hyperledger/orderer/tls
+      - ../channels/:/var/hyperledger/configs
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    ports:
+      - 7050:7050
+    networks:
+      - geodb
+
+  cli0.orderer.geodb.com:
+    extends:
+      file: ../bases/cli-base.yaml
+      service: cli
+    container_name: cli0.orderer.geodb.com
+    environment:
+      - CORE_PEER_ID=cli0.orderer.geodb.com
+      - CORE_PEER_ADDRESS=orderer0.orderer.geodb.com:7050
+      - CORE_PEER_LOCALMSPID=OrdererMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@orderer.geodb.com/msp
+    # extra_hosts:
+    #   - "orderer1.operations0.geodb.com:34.68.86.73"
+    #   - "orderer2.operations0.geodb.com:34.68.86.73"
+    #   - "orderer3.operations0.geodb.com:34.68.86.73"
+    #   - "orderer4.operations0.geodb.com:34.68.86.73"
+    #   - "peer0.operations0.geodb.com:35.226.79.220"
+    #   - "peer0.operations1.geodb.com:35.232.199.30"
+    volumes:
+      - ../crypto-config/ordererOrganizations/orderer.geodb.com:/etc/hyperledger/msp
+      - /var/run/:/host/var/run/
+      - ../chaincode/:/opt/gopath/src/github.com/chaincode
+      - $GOPATH/src/github.com/hyperledger/fabric/:/opt/gopath/src/github.com/hyperledger/fabric/
+      - ../crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+      - ../channels:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/
+    depends_on:
+      - orderer0.orderer.geodb.com
+    networks:
+      - geodb

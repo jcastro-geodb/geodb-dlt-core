@@ -1,38 +1,54 @@
 Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    # MSPDir: crypto-config/ordererOrganizations/operations0.geodb.com/msp
+    MSPDir: ../crypto-config/ordererOrganizations/orderer.geodb.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+      
   - &GeoDB
     Name: GeoDB
     ID: geodbMSP
     # MSPDir: crypto-config/ordererOrganizations/operations0.geodb.com/msp
-    MSPDir: ../crypto-config/operations0.geodb.com/msp
+    MSPDir: ../crypto-config/peerOrganizations/operations0.geodb.com/msp
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('geodbMSP.member')"
+        Rule: "OR('geodbMSP.member', 'geodbMSP.peer', 'geodbMSP.client')"
       Writers:
         Type: Signature
-        Rule: "OR('geodbMSP.member')"
+        Rule: "OR('geodbMSP.member', 'geodbMSP.client')"
       Admins:
         Type: Signature
         Rule: "OR('geodbMSP.admin')"
 
   - &GeoDB2
     Name: GeoDB2
-    ID: geodbMSP2
+    ID: geodb2MSP
     # MSPDir: crypto-config/ordererOrganizations/operations0.geodb.com/msp
-    MSPDir: ../crypto-config/operations1.geodb.com/msp
+    MSPDir: ../crypto-config/peerOrganizations/operations1.geodb.com/msp
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('geodbMSP2.member')"
+        Rule: "OR('geodb2MSP.member', 'geodb2MSP.peer', 'geodb2MSP.client')"
       Writers:
         Type: Signature
-        Rule: "OR('geodbMSP2.member')"
+        Rule: "OR('geodb2MSP.member', 'geodb2MSP.client')"
       Admins:
         Type: Signature
-        Rule: "OR('geodbMSP2.admin')"
+        Rule: "OR('geodb2MSP.admin')"
 
 Capabilities:
-  Global: &ChannelCapabilities
+  Channel: &ChannelCapabilities
     V1_3: true
   Orderer: &OrdererCapabilities
     V1_1: true
@@ -40,7 +56,8 @@ Capabilities:
     V1_3: true
 
 Application: &ApplicationDefaults
-  Policies: &ApplicationDefaultPolicies
+  Organizations:
+  Policies: 
     Readers:
       Type: ImplicitMeta
       Rule: "ANY Readers"
@@ -50,17 +67,44 @@ Application: &ApplicationDefaults
     Admins:
       Type: ImplicitMeta
       Rule: "MAJORITY Admins"
-  Organizations:
+  Capabilities:
+        <<: *ApplicationCapabilities
 
 Orderer: &OrdererDefaults
   OrdererType: solo
   Addresses:
-    - orderer0.operations0.geodb.com:7050
+      - orderer0.orderer.geodb.com:7050
   BatchTimeout: 2s
   BatchSize:
     MaxMessageCount: 500
-    AbsoluteMaxBytes: 10 MB
+    AbsoluteMaxBytes: 99 MB
     PreferredMaxBytes: 2 MB
+  EtcdRaft:
+        # The set of Raft replicas for this network. For the etcd/raft-based
+        # implementation, we expect every replica to also be an OSN. Therefore,
+        # a subset of the host:port items enumerated in this list should be
+        # replicated under the Orderer.Addresses key above.
+        Consenters:
+            - Host: orderer0.orderer.geodb.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/tls/server.crt
+            - Host: orderer1.orderer.geodb.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer1.orderer.geodb.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer1.orderer.geodb.com/tls/server.crt
+            - Host: orderer2.orderer.geodb.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer2.orderer.geodb.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer2.orderer.geodb.com/tls/server.crt
+            - Host: orderer3.orderer.geodb.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer3.orderer.geodb.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer3.orderer.geodb.com/tls/server.crt
+            - Host: orderer4.orderer.geodb.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer4.orderer.geodb.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer4.orderer.geodb.com/tls/server.crt
   Organizations:
   Policies:
     Readers:
@@ -75,8 +119,8 @@ Orderer: &OrdererDefaults
     BlockValidation:
       Type: ImplicitMeta
       Rule: "ANY Writers"
-  Capabilities:
-    <<: *OrdererCapabilities
+      #Capabilities:
+      #<<: *OrdererCapabilities
 
 Channel: &ChannelDefaults
   Policies:
@@ -94,11 +138,11 @@ Channel: &ChannelDefaults
       Rule: "MAJORITY Admins"
   Capabilities:
     <<: *ChannelCapabilities
-  Application:
-            <<: *ApplicationDefaults
-            Organizations:
-                - *GeoDB
-                - *GeoDB2
+    #Application:
+    #        <<: *ApplicationDefaults
+    #        Organizations:
+    #            - *GeoDB
+    #            - *GeoDB2
 
 Profiles:
   GeoDBOrdererGenesis:
@@ -106,8 +150,9 @@ Profiles:
     Orderer:
       <<: *OrdererDefaults
       Organizations:
-        - *GeoDB
-        - *GeoDB2
+        - *OrdererOrg
+      Capabilities:
+        <<: *OrdererCapabilities
     Consortiums:
       GeoDB:
         Organizations:
@@ -124,3 +169,53 @@ Profiles:
         - *GeoDB2
       Capabilities:
         <<: *ApplicationCapabilities
+  
+  OrdererGenesis:
+        <<: *ChannelDefaults
+        Capabilities:
+            <<: *ChannelCapabilities
+        Orderer:
+            <<: *OrdererDefaults
+            OrdererType: etcdraft
+            EtcdRaft:
+                Consenters:
+                - Host: orderer0.orderer.geodb.com
+                  Port: 7050
+                  ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/tls/server.crt
+                  ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/tls/server.crt
+                - Host: orderer1.orderer.geodb.com
+                  Port: 8050
+                  ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer1.orderer.geodb.com/tls/server.crt
+                  ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer1.orderer.geodb.com/tls/server.crt
+                - Host: orderer2.orderer.geodb.com
+                  Port: 9050
+                  ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer2.orderer.geodb.com/tls/server.crt
+                  ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer2.orderer.geodb.com/tls/server.crt
+                - Host: orderer3.orderer.geodb.com
+                  Port: 10050
+                  ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer3.orderer.geodb.com/tls/server.crt
+                  ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer3.orderer.geodb.com/tls/server.crt
+                - Host: orderer4.orderer.geodb.com
+                  Port: 11050
+                  ClientTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer4.orderer.geodb.com/tls/server.crt
+                  ServerTLSCert: ../crypto-config/ordererOrganizations/orderer.geodb.com/orderers/orderer4.orderer.geodb.com/tls/server.crt
+            Addresses:
+                - orderer0.orderer.geodb.com:7050
+                - orderer1.orderer.geodb.com:8050
+                - orderer2.orderer.geodb.com:9050
+                - orderer3.orderer.geodb.com:10050
+                - orderer4.orderer.geodb.com:11050
+
+            Organizations:
+            - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+            - <<: *OrdererOrg
+        Consortiums:
+           GeoDB:
+                Organizations:
+                        - *GeoDB
+                        - *GeoDB2
