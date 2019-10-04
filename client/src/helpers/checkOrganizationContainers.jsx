@@ -1,6 +1,7 @@
 import path from "path";
 import shell from "./../cli/spawn/shell";
 import BaseScriptRunner from "./BaseScriptRunner.jsx";
+const environment = window.require("electron").remote.process.env;
 
 class CheckOrganizationContainers extends BaseScriptRunner {
   constructor(params) {
@@ -14,11 +15,9 @@ class CheckOrganizationContainers extends BaseScriptRunner {
 
     return new Promise((resolve, reject) => {
       try {
-        const cwd = path.resolve(process.cwd(), "../network");
-
         const args = ["ps", "-aq", "-f", `name=${organization}`, `--format`, `{{.ID}}:{{.Status}}`];
 
-        const p = shell(`docker`, args, cwd);
+        const p = shell(`docker`, args, `${environment.GDBROOT}/network`);
 
         let output = [];
 

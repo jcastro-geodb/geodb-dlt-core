@@ -1,6 +1,7 @@
 import path from "path";
 import shell from "./../cli/spawn/shell";
 import BaseScriptRunner from "./BaseScriptRunner.jsx";
+const environment = window.require("electron").remote.process.env;
 
 class AuthorizeNewMember extends BaseScriptRunner {
   constructor(params, db, mode) {
@@ -20,7 +21,7 @@ class AuthorizeNewMember extends BaseScriptRunner {
 
         let args = ["-c", cli, "-u", orderer, "-C", channel, "-d", `${updateDeltaOutputFileName}`];
 
-        const p = shell("./authorize-new-member.sh", args, cwd);
+        const p = shell(". authorize-new-member.sh", args, `${environment.GDBROOT}/network`);
 
         if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
 

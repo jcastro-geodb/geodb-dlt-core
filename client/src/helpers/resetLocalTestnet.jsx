@@ -1,6 +1,7 @@
 import path from "path";
 import shell from "./../cli/spawn/shell";
 import BaseScriptRunner from "./BaseScriptRunner.jsx";
+const environment = window.require("electron").remote.process.env;
 
 class ResetLocalTestnet extends BaseScriptRunner {
   constructor(db) {
@@ -10,9 +11,8 @@ class ResetLocalTestnet extends BaseScriptRunner {
   runReset = () => {
     return new Promise((resolve, reject) => {
       try {
-        const cwd = path.resolve(process.cwd(), "../network/build-local-testnet");
         const args = [];
-        const p = shell("./reset.sh", args, cwd);
+        const p = shell(". reset.sh", args, `${environment.GDBROOT}/network/build-local-testnet`);
 
         if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
 

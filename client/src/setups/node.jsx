@@ -4,8 +4,7 @@ import YAML from "json2yaml";
 import shell from "./../cli/spawn/shell";
 import portastic from "portastic";
 const { rootCAPort, localTestnetCredentials } = require("./../constants/ca.json");
-
-const NODE_ARTIFACTS_BASE_RELATIVE_PATH = `../network/node-artifacts`;
+const environment = window.require("electron").remote.process.env;
 
 class SetupNode {
   constructor(params, db, mode) {
@@ -32,8 +31,6 @@ class SetupNode {
         .then(ports => {
           const intermediateCAPort = ports[Math.floor(Math.random() * ports.length)];
 
-          const cwd = path.resolve(process.cwd(), "./../network");
-
           const args = [
             `--orgs`,
             `${params.domain}:1:0:${rootCAPort}:${localTestnetCredentials}:${intermediateCAPort}`
@@ -41,7 +38,7 @@ class SetupNode {
 
           if (params.overwrite) args.push(`--recreate`, `${params.overwrite}`);
 
-          const p = shell("./generate-crypto-materials.sh", args, cwd);
+          const p = shell(". generate-crypto-materials.sh", args, `${environment.GDBROOT}/network/build-local-testnet`);
 
           if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
 
@@ -63,7 +60,7 @@ class SetupNode {
 
     return new Promise(async (resolve, reject) => {
       try {
-        const mspDir = `../../../crypto-config/${domain}/peers/peer0.${domain}/msp`;
+        const mspDir = `${environment.GDBROOT}/network/crypto-config/${domain}/peers/peer0.${domain}/msp`;
 
         if (fs.existsSync(artifactsPath) === false) {
           fs.mkdirSync(artifactsPath, { recursive: true });
@@ -73,12 +70,12 @@ class SetupNode {
 
         let services = {};
 
-        let environment = [];
-        environment.push(`CORE_PEER_ID=peer0.${domain}`);
-        environment.push(`CORE_PEER_ADDRESS=peer0.${domain}:7051`);
-        environment.push(`CORE_PEER_LOCALMSPID=${orgName}MSP`);
-        environment.push(`CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/`);
-        environment.push(`CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.${domain}:7051`);
+        let containerEnvVars = [];
+        containerEnvVars.push(`CORE_PEER_ID=peer0.${domain}`);
+        containerEnvVars.push(`CORE_PEER_ADDRESS=peer0.${domain}:7051`);
+        containerEnvVars.push(`CORE_PEER_LOCALMSPID=${orgName}MSP`);
+        containerEnvVars.push(`CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/`);
+        containerEnvVars.push(`CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.${domain}:7051`);
 
         let volumes = [];
         volumes.push(`${mspDir}:/etc/hyperledger/msp/peer`);
@@ -96,16 +93,16 @@ class SetupNode {
         services[`peer0.${domain}`] = {
           container_name: `peer0.${domain}`,
           extends: { file: "../../../bases/peer-base.yaml", service: "peer" },
-          environment,
+          environment: containerEnvVars,
           volumes,
           ports
         };
 
-        environment = [];
-        environment.push(`CORE_PEER_ID=clipeer0.${domain}`);
-        environment.push(`CORE_PEER_ADDRESS=peer0.${domain}:7051`);
-        environment.push(`CORE_PEER_LOCALMSPID=${orgName}MSP`);
-        environment.push(`CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@${domain}/msp`);
+        containerEnvVars = [];
+        containerEnvVars.push(`CORE_PEER_ID=clipeer0.${domain}`);
+        containerEnvVars.push(`CORE_PEER_ADDRESS=peer0.${domain}:7051`);
+        containerEnvVars.push(`CORE_PEER_LOCALMSPID=${orgName}MSP`);
+        containerEnvVars.push(`CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@${domain}/msp`);
 
         volumes = [];
         volumes.push(`../../../crypto-config/${domain}:/etc/hyperledger/msp`);
@@ -114,7 +111,7 @@ class SetupNode {
           container_name: `clipeer0.${domain}`,
           extends: { file: "../../../bases/cli-base.yaml", service: "cli" },
           depends_on: [`peer0.${domain}`],
-          environment,
+          environment: containerEnvVars,
           volumes
         };
 
@@ -197,8 +194,6 @@ class SetupNode {
     if (this.events["updateProgress"]) this.events.updateProgress("Building update delta for config channel");
 
     return new Promise((resolve, reject) => {
-      const cwd = path.resolve(process.cwd(), "./../network");
-
       let args = [
         "-c", // CLI url to fetch current channel configuration
         "clipeer0.operations.geodb.com",
@@ -209,10 +204,10 @@ class SetupNode {
         "-i", // Path of the input file containing our organization's public crypto material
         `${artifactsPath}/configtx-print.json`,
         "-o", // Path of the output file containing the update delta to be signed by the rest of the federation
-        `${cwd}/channels/${updateDeltaOutputFileName}`
+        `${environment.GDBROOT}/network/channels/${updateDeltaOutputFileName}`
       ];
 
-      const p = shell("./configtxlator-delta-generator.sh", args, cwd);
+      const p = shell(". configtxlator-delta-generator.sh", args, `${environment.GDBROOT}/network`);
 
       if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
 
@@ -283,7 +278,7 @@ class SetupNode {
       extractOrgNameFromDomain
     } = this;
     const { domain, mspPath } = params;
-    const artifactsPath = path.resolve(process.cwd(), `${NODE_ARTIFACTS_BASE_RELATIVE_PATH}/${mode}/${domain}`);
+    const artifactsPath = `${environment.GDBROOT}/network/node-artifacts/${mode}/${domain}`;
 
     let orgName = extractOrgNameFromDomain(domain);
     const updateDeltaOutputFileName = mode === "local" ? `final-update-delta-${domain}.pb` : null;

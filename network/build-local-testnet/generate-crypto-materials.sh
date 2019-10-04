@@ -6,6 +6,11 @@
 ##############################################################################
 
 source $GDBROOT/network/utils/utils.sh
+source $GDBROOT/network/global-env-vars.sh
+
+checkMandatoryEnvironmentVariable "LOCAL_TESTNET_DIR"
+source $LOCAL_TESTNET_DIR/local-testnet-env-vars.sh
+checkMandatoryEnvironmentVariable "TLSROOTCERT"
 
 function main {
 

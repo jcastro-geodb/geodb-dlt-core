@@ -1,6 +1,7 @@
 import path from "path";
 import shell from "./../cli/spawn/shell";
 import BaseScriptRunner from "./BaseScriptRunner.jsx";
+const environment = window.require("electron").remote.process.env;
 
 class RunBashScript extends BaseScriptRunner {
   constructor(params) {
@@ -15,9 +16,7 @@ class RunBashScript extends BaseScriptRunner {
 
     return new Promise((resolve, reject) => {
       try {
-        const cwd = path.resolve(process.cwd(), "../network");
-
-        const p = shell(`./${command}`, args, cwd);
+        const p = shell(`. ${command}`, args, `${environment.GDBROOT}/network`);
 
         if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
 

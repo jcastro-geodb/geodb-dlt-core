@@ -1,6 +1,7 @@
 import path from "path";
 import shell from "./../cli/spawn/shell";
 import BaseScriptRunner from "./BaseScriptRunner.jsx";
+const environment = window.require("electron").remote.process.env;
 
 class InitLocalTestnet extends BaseScriptRunner {
   constructor(db) {
@@ -10,9 +11,8 @@ class InitLocalTestnet extends BaseScriptRunner {
   runInitialize = () => {
     return new Promise((resolve, reject) => {
       try {
-        const cwd = path.resolve(process.cwd(), "../network/build-local-testnet");
         const args = [];
-        const p = shell("./initialize.sh", args, cwd);
+        const p = shell(". initialize.sh", args, `${environment.GDBROOT}/network/build-local-testnet`);
 
         if (this.events["stdout"]) p.stdout.on("data", this.events["stdout"]);
 
@@ -32,8 +32,8 @@ class InitLocalTestnet extends BaseScriptRunner {
   updateLocalDatabase = () => {
     const { db, mode } = this;
 
-    const mspPath = path.resolve(process.cwd(), `./../network/crypto-config/operations.geodb.com`);
-    const composerPath = path.resolve(process.cwd(), "../network/build-local-testnet/docker-compose.yaml");
+    const mspPath = `${environment.GDBROOT}/network/crypto-config/operations.geodb.com`;
+    const composerPath = `${environment.GDBROOT}/network/build-local-testnet/docker-compose.yaml`;
 
     return db[mode].update(
       { _id: `operations.geodb.com` },
