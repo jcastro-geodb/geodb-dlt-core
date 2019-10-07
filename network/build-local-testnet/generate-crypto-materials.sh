@@ -5,13 +5,6 @@
 # en entornos de producción
 ##############################################################################
 
-source $GDBROOT/network/utils/utils.sh
-source $GDBROOT/network/global-env-vars.sh
-
-checkMandatoryEnvironmentVariable "LOCAL_TESTNET_DIR"
-source $LOCAL_TESTNET_DIR/local-testnet-env-vars.sh
-checkMandatoryEnvironmentVariable "TLSROOTCERT"
-
 function main {
 
   printSection "Generating crypto material using Fabric CA"
@@ -409,19 +402,20 @@ function wipeout {
   fi
 }
 
-# ##############
-# # Constants  #
-# ##############
-#
-# # Path to fabric CA executables - Remember to configure it correctly for each fabric version
-# FCAHOME=$GOPATH/src/github.com/hyperledger/fabric-ca
-# CLIENT=$FCAHOME/bin/fabric-ca-client
-# SERVER=$FCAHOME/bin/fabric-ca-server
-# TLSROOTCERT=$(realpath "./CA/fabric-ca-server/tls-cert.pem")
-#
-# # Crypto-config directory
-# CDIR="crypto-config"
+###################################
+# Environment variables and utils #
+###################################
 
+source $GDBROOT/network/utils/utils.sh
+source $GDBROOT/network/global-env-vars.sh
+
+checkMandatoryEnvironmentVariable "CRYPTO_CONFIG_DIR"
+checkMandatoryEnvironmentVariable "HLF_CA_HOME"
+checkMandatoryEnvironmentVariable "HLF_CA_CLIENT"
+checkMandatoryEnvironmentVariable "HLF_CA_SERVER"
+checkMandatoryEnvironmentVariable "LOCAL_TESTNET_DIR"
+source $LOCAL_TESTNET_DIR/local-testnet-env-vars.sh
+checkMandatoryEnvironmentVariable "TLSROOTCERT"
 
 ##############
 # Arg parser #
