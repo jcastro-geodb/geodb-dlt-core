@@ -68,17 +68,17 @@ cleanDirectories() {
   printSection "Cleanning directories"
 
   if [ -d "$NETWORK_DIR/channels" ]; then
-    echo "Removing $NETWORK_DIR/channels"
+    printInfo "Removing $NETWORK_DIR/channels"
     rm -rf rm -rf $NETWORK_DIR/channels
   fi
 
   if [ -d "$NETWORK_DIR/orderer" ]; then
-    echo "Removing $NETWORK_DIR/orderer"
+    printInfo "Removing $NETWORK_DIR/orderer"
     rm -rf rm -rf $NETWORK_DIR/orderer
   fi
 
   if [ -d "$NETWORK_DIR/configtxlator-artifacts" ]; then
-    echo "Removing $NETWORK_DIR/configtxlator-artifacts"
+    printInfo "Removing $NETWORK_DIR/configtxlator-artifacts"
     rm -rf rm -rf $NETWORK_DIR/configtxlator-artifacts
   fi
 }
@@ -90,7 +90,7 @@ restoreCA() {
   COMPOSE_PROJECT_NAME=$CA_ROOT_COMPOSE_PROJECT_NAME docker-compose --file $CA_ROOT_DIR/docker-compose.yaml down
 
   if [ -d "$CA_ROOT_DIR/fabric-ca-server" ]; then
-    echo "Removing $CA_ROOT_DIR/fabric-ca-server"
+    printInfo "Removing $CA_ROOT_DIR/fabric-ca-server"
     rm -rf $CA_ROOT_DIR/fabric-ca-server
   fi
 }

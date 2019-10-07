@@ -1,4 +1,14 @@
 # !/bin/bash
+
+DEBUG_LEVEL_MAX=0
+DEBUG_LEVEL_INFO=1
+DEBUG_LEVEL_WARNING=2
+DEBUG_LEVEL_ERROR=3
+
+if [ ! -z "$GEODB_DEBUG_LEVEL" ]; then
+  GEODB_DEBUG_LEVEL="$DEBUG_LEVEL_WARNING"
+fi
+
 function checkMandatoryEnvironmentVariable() {
 
   varName=$1; shift
@@ -12,7 +22,7 @@ function checkMandatoryEnvironmentVariable() {
 
 function mkdirIfNotExists() {
   if [ ! -d "$1" ]; then
-    echo "Spawning $1 directory"
+    printInfo "Spawning $1 directory"
     mkdir $1
   fi
 }
@@ -39,21 +49,27 @@ function printSection() {
 
 # Message with red color
 function printError() {
-  >&2 echo -e "\e[1;91mERROR:\e[0m $*"
+  if [ "$GEODB_DEBUG_LEVEL" -le "$DEBUG_LEVEL_ERROR" ]; then
+    >&2 echo -e "\e[1;91mERROR:\e[0m $*"
+  fi
 }
 
 # Message with yellow color
 function printWarning() {
-  echo -e "\e[33mWARNING:\e[0m $*"
+  if [ "$GEODB_DEBUG_LEVEL" -le "$DEBUG_LEVEL_WARNING" ]; then
+    echo -e "\e[33mWARNING:\e[0m $*"
+  fi
 }
 
 # Message with yellow color
 function printInfo() {
-  echo -e "\e[36mINFO:\e[0m $*"
+  if [ "$GEODB_DEBUG_LEVEL" -le "$DEBUG_LEVEL_INFO" ]; then
+    echo -e "\e[36mINFO:\e[0m $*"
+  fi
 }
 
 function printDebug() {
-  if [ ! -z "$GEODB_DEBUG_MODE" ]; then
+  if [ "$GEODB_DEBUG_LEVEL" -le "$DEBUG_LEVEL_MAX" ]; then
     echo -e "\e[1;95mDEBUG:\e[0m $*"
   fi
 }
