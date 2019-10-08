@@ -91,7 +91,10 @@ module.exports = {
     rinkeby: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.rinkeby),
       confirmations: 2,
-      network_id: "1"
+      network_id: "4",
+      gas: 6721975,
+      gasPrice: toWei("2", "gwei"),
+      skipDryRun: true
     },
     ropsten: {
       provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten, 2),
@@ -106,6 +109,13 @@ module.exports = {
       gas: 8000000,
       network_id: "42",
       gasPrice: toWei("2", "gwei")
+    },
+    stars: {
+      provider: () => new HDWalletProvider(endpoints.private.stars.privateKey, endpoints.private.stars.endpoint),
+      confirmations: 2,
+      network_id: "19080880",
+      gas: 6000000,
+      gasPrice: toWei("1", "gwei")
     }
   },
 
