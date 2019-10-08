@@ -111,7 +111,7 @@ module.exports = {
       gasPrice: toWei("2", "gwei")
     },
     stars: {
-      provider: () => new HDWalletProvider(endpoints.private.stars.privateKey, endpoints.private.stars.endpoint),
+      provider: () => new HDWalletProvider(mnemonic, endpoints.private.stars.endpoint),
       confirmations: 2,
       network_id: "19080880",
       gas: 6000000,
