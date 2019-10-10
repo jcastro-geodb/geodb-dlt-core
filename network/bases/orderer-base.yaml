@@ -21,6 +21,7 @@ services:
       - ORDERER_KAFKA_TOPIC_REPLICATIONFACTOR=1
       - ORDERER_KAFKA_VERBOSE=true
       - ORDERER_GENERAL_TLS_CLIENTAUTHREQUIRED=true
+      - ORDERER_GENERAL_TLS_CLIENTROOTCAS=/var/hyperledger/orderer/msp/tlscacerts/tlsca.orderer.geodb.com-cert.pem
       - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
       - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
       - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
