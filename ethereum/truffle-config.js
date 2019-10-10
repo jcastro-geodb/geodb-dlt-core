@@ -18,24 +18,77 @@
  *
  */
 
+/**
+ * Utils and imports
+ */
+
 const fs = require("fs-extra");
 const path = require("path");
 require("chai/register-should");
 const { toWei } = require("web3-utils");
-
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
+/**
+ * Secrets path. A path containing a JSON with structure:
+ * {
+ * mnemonic: <mnemonic>,
+ * endpoints: {<networkName>: <networkEndpoint>, ...}
+ * }
+ */
+
 const secretsPath = path.resolve(__dirname, ".secrets.json");
-const secrets = fs.readJsonSync(secretsPath, { throws: false });
+let secrets = undefined;
+if (fs.pathExistsSync(secretsPath)) secrets = fs.readJsonSync(secretsPath, { throws: false });
 
-if (!secrets || !secrets.mnemonic || !secrets.endpoints) {
-  console.error(
-    "Error when reading /ethereum/.secrets.json. Either the file does not exist, or lacks mnemonic field, or lacks endpoints field"
-  );
+/**
+ * Configuration for the most popular testnets and GeoDB's own testnet: stars
+ */
+const defaultNetworksConfig = {
+  ropsten: {
+    gas: 5500000,
+    network_id: "3",
+    gasPrice: toWei("2", "gwei")
+  },
+  rinkeby: {
+    network_id: "4",
+    gas: 6721975,
+    gasPrice: toWei("2", "gwei")
+  },
+  kovan: {
+    gas: 8000000,
+    network_id: "42",
+    gasPrice: toWei("2", "gwei")
+  },
+  stars: {
+    gasPrice: 0,
+    network_id: "19080880"
+  }
+};
+
+/**
+ * Parse the secrets file to accomodate for the networks object for truffle-config. Inject the secrets into the
+ * HDWalletProvider and if it is a popular testnet, include its configuration.
+ */
+let networks = {};
+if (secrets && secrets.mnemonic && secrets.endpoints) {
+  const mnemonic = secrets.mnemonic.trim();
+
+  const definedNetworks = Object.keys(secrets.endpoints);
+
+  for (let i = 0; i < definedNetworks.length; i++) {
+    const networkName = definedNetworks[i];
+
+    const defaultConfig = defaultNetworksConfig.hasOwnProperty(networkName)
+      ? { ...defaultNetworksConfig[networkName] }
+      : {};
+
+    networks[`${networkName}`] = {
+      provider: new HDWalletProvider(mnemonic, secrets.endpoints[`${networkName}`]),
+      confirmations: 2,
+      ...defaultConfig
+    };
+  }
 }
-
-const endpoints = secrets.endpoints;
-const mnemonic = secrets.mnemonic.trim();
 
 module.exports = {
   networks: {
@@ -88,25 +141,7 @@ module.exports = {
       gas: 5500000,
       websockets: true
     },
-    rinkeby: {
-      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.rinkeby),
-      confirmations: 2,
-      network_id: "1"
-    },
-    ropsten: {
-      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.ropsten, 2),
-      confirmations: 2,
-      gas: 5500000,
-      network_id: "3",
-      gasPrice: toWei("2", "gwei")
-    },
-    kovan: {
-      provider: () => new HDWalletProvider(mnemonic, endpoints.infura.kovan),
-      confirmations: 2,
-      gas: 8000000,
-      network_id: "42",
-      gasPrice: toWei("2", "gwei")
-    }
+    ...networks
   },
 
   // Set default mocha options here, use special reporters etc.
