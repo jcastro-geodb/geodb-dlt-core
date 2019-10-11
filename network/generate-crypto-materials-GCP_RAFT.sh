@@ -12,6 +12,8 @@
 #    <type>:<orgName>:<rootCAPort>:<intermediateCAPort>:<numOrderersOrPeers>
 ORGS="\
    orderer:orderer.geodb.com:7500:7501:5 \
+   peer:operations0.geodb.com:7500:7501:4 \
+   peer:operations1.geodb.com:7500:7501:4 \
 "
 
 #    peer:operations0.geodb.com:7500:7501:4 \
@@ -130,10 +132,10 @@ function setupOrg {
 #    fi
    # Register and enroll admin with the intermediate CA
     adminUserHome=$usersDir/Admin@${orgName}
-    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName ca-root.geodbInt1.com nodeAdmin admin --tls.certfiles $PWD/CA/local-server/ca-cert.pem
+    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName ca-root.geodbInt1.com nodeAdmin_${orgName} admin --tls.certfiles $PWD/CA/local-server/ca-cert.pem
 #    # Register and enroll user1 with the intermediate CA
     user1UserHome=$usersDir/User1@${orgName}
-    registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName ca-root.geodbInt1.com user1 user --tls.certfiles $PWD/CA/local-server/ca-cert.pem
+    registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName ca-root.geodbInt1.com user1_${orgName} user --tls.certfiles $PWD/CA/local-server/ca-cert.pem
 #    # Create nodes (orderers or peers)
     nodeCount=0
     while [ $nodeCount -lt $numNodes ]; do
@@ -144,6 +146,7 @@ function setupOrg {
 #       fi
        mkdir -p $nodeDir
        # Get TLS crypto for this node
+       echo "TLS ENROLL"
        tlsEnroll $nodeDir $rootCAPort $orgName
 #       # Register and enroll this node's identity
 #       register ${type}${nodeCount}.${orgName} "secret" $nodeDir $type https://ca-root.geodb.com:$rootCAPort --tls.certfiles $PWD/CA/downloads/ca-cert.pem
@@ -161,6 +164,13 @@ function setupOrg {
     normalizeMSP $adminHome $orgName
     normalizeMSP $adminUserHome $orgName
     normalizeMSP $user1UserHome $orgName
+
+    nodeCount=0
+    while [ $nodeCount -lt $numNodes ]; do
+      nodeDir=$orgDir/${type}s/${type}${nodeCount}.${orgName}
+      nodeCount=$(expr $nodeCount + 1)
+      cp -r $orgDir/msp/admincerts/ $nodeDir/msp/
+    done
 }
 
 # Start a root CA server:

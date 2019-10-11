@@ -17,7 +17,7 @@
 - [ ] Generate certificates that enables TLS with RAFT with script, not with cryptogen.
 - [ ] Provision ca-tls.yaml with `provisioner` block in terraform.
 - [ ] Generate peers certs & try full network.
-- [ ] Try without manual registering of orderers at CA TLS.
+- [x] Try without manual registering of orderers at CA TLS.
 - [ ] Automation download ca-cert.pem from CA TLS.
 - [ ] Enroll server CA TLS when it is uploaded.
 - [ ] orderer-base.yaml for SOLO deployment.
