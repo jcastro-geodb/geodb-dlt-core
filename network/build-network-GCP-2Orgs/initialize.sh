@@ -25,15 +25,18 @@ sleep 2s
 #getCertsCA
 #check_returnCode $?
 
-introduceIP
+#introduceIP
 
 cd ..
-buildCertificates operations0.geodb.com:4:1:7500:geodb:password:7501
+buildCertificates #orderer.geodb.com:0:5:7500:geodb:password:7501
 check_returnCode $?
 sleep 3s
 
-buildCertificates operations1.geodb.com:4:0:7500:geodb:password:7501
-check_returnCode $?
+# buildCertificates operations0.geodb.com:4:0:7500:geodb:password:7501
+# check_returnCode $?
+
+# buildCertificates operations1.geodb.com:4:0:7500:geodb:password:7501
+# check_returnCode $?
 
 # Generate genesis block
 
@@ -43,53 +46,53 @@ check_returnCode $?
 # Bring up the network
 
 cd $dir
-bringUpNetwork
-check_returnCode $?
-sleep 3s
+# bringUpNetwork
+# check_returnCode $?
+# sleep 3s
 
-# Create the channel on the peer from the genesis block
-operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations0.geodb.com:7050' 
-check_returnCode $?
+# # Create the channel on the peer from the genesis block
+# operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.orderer.geodb.com:7050' 
+# check_returnCode $?
 
-# Join the channel
+# # Join the channel
 
-echo
-echo "========================================================="
-echo "Joinning Channel"
-echo "========================================================="
-echo
+# echo
+# echo "========================================================="
+# echo "Joinning Channel"
+# echo "========================================================="
+# echo
 
-peers=$(docker ps --format '{{.Names}}' | grep clipeer)
+# peers=$(docker ps --format '{{.Names}}' | grep clipeer)
 
-for peer in $peers; do
-  echo "-------------------------------- $peer ------------------------------------------"
-  docker exec $peer bash -c 'peer channel join -b rewards.block'
-  check_returnCode $?
-  echo "-------------------------------- $peer joined -----------------------------------"
-  peer=$peer+1
-done
+# for peer in $peers; do
+#   echo "-------------------------------- $peer ------------------------------------------"
+#   docker exec $peer bash -c 'peer channel join -b rewards.block'
+#   check_returnCode $?
+#   echo "-------------------------------- $peer joined -----------------------------------"
+#   peer=$peer+1
+# done
 
-# Update anchor peer
-docker exec clipeer0.operations0.geodb.com bash -c 'peer channel update -o orderer0.operations0.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
-check_returnCode $?
+# # Update anchor peer
+# docker exec clipeer0.operations0.geodb.com bash -c 'peer channel update -o orderer0.orderer.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
+# check_returnCode $?
 
-docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer0.operations0.geodb.com:7050 -c rewards -f ./channels/geodbanchor2.tx'
-check_returnCode $?
-# docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer1.operations1.geodb.com:7150 -c rewards -f ./channels/geodbanchor.tx'
+# docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer0.orderer.geodb.com:7050 -c rewards -f ./channels/geodbanchor2.tx'
+# check_returnCode $?
+# # docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer1.operations1.geodb.com:7150 -c rewards -f ./channels/geodbanchor.tx'
 
-echo
-echo "========================================================="
-echo "You can deploy automatically default chaincode"
-echo "========================================================="
-echo
+# echo
+# echo "========================================================="
+# echo "You can deploy automatically default chaincode"
+# echo "========================================================="
+# echo
 
-cd ..
+# cd ..
 
-while true; do
-    read -p "Do you want to deploy default chaincode? " yn
-    case $yn in
-     [Yy]* ) installChaincode $ORGSTYPE; check_returnCode $?; break;;
-     [Nn]* ) echo "Federation is ready."; break;;
-     *) echo "Please answer local (Ll) or GCP (Gg).";
-    esac
-done
+# while true; do
+#     read -p "Do you want to deploy default chaincode? " yn
+#     case $yn in
+#      [Yy]* ) installChaincode $ORGSTYPE; check_returnCode $?; break;;
+#      [Nn]* ) echo "Federation is ready."; break;;
+#      *) echo "Please answer local (Ll) or GCP (Gg).";
+#     esac
+# done

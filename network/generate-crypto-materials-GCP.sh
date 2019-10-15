@@ -1,4 +1,4 @@
-#!/bin/bash +x
+I#!/bin/bash +x
 ###############################################################################
 # Usar este script como sustitución de cryptogen
 # en entornos de producción
@@ -53,6 +53,7 @@ function checkExecutables {
 
    if [ ! -x $SERVER ]; then
       cd $FCAHOME
+      echo $FCAHOME
       make fabric-ca-server
       if [ $? -ne 0 ]; then
          fatal "Failed to build $SERVER"
@@ -150,6 +151,7 @@ function setupOrg {
   echo "#################################################################"
   echo
 
+  echo "getcacertsInit $orgDir https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort $TLSROOTCERT $orgDir/ca/intermediate"
    getcacertsInit $orgDir https://${rootCAUser}:${rootCAPass}@ca-root.geodb.com:$rootCAPort $TLSROOTCERT $orgDir/ca/intermediate
 
   echo
@@ -225,14 +227,19 @@ function setupOrg {
       echo "###########    Getting TLS crypto for Orderer node  #############"
       echo "#################################################################"
       echo
-      tlsEnroll $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
+      tlsEnroll $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert orderer$ordererCount.$orgName
       # Register and enroll this node's identity
       echo
       echo "#################################################################"
       echo "###########  Registering and Enrolling Orderer node #############"
       echo "#################################################################"
       echo
-      registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert
+      echo "adminHome=$adminHome"
+      echo "nodeDir=$nodeDir"
+      echo "intermediateCAPort=$intermediateCAPort"
+      echo "orgName=$orgName"
+      echo "intermediateCATlsCert=$intermediateCATlsCert"
+      registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName $intermediateCATlsCert orderer$ordererCount.$orgName
       normalizeMSP $nodeDir $orgName $adminUserHome
       ordererCount=$(expr $ordererCount + 1)
    done
@@ -259,8 +266,8 @@ function startCA {
 
    mkdir -p $homeDir
    export FABRIC_CA_SERVER_HOME=$homeDir
-
-   $SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --csr.hosts ca-root.geodbInt1.com --tls.enabled --intermediate.tls.certfiles ../../msp/cacerts/ca-root-geodb-com-7500.pem> $homeDir/server.log 2>&1&
+   echo " El home es -------->>>>>> $FABRIC_CA_SERVER_HOME"
+   $SERVER start -d -p $port -b admin:adminpw -u $parentCAurl --ca.name CAintermediate --csr.hosts ca-root.geodbInt1.com,localhost --tls.enabled --intermediate.tls.certfiles ../../msp/cacerts/ca-root-geodb-com-7500.pem> $homeDir/server.log 2>&1&
 
    echo $! > $homeDir/server.pid
    if [ $? -ne 0 ]; then
@@ -270,7 +277,7 @@ function startCA {
    sleep 1
    checkCA $homeDir $port
    # Get the TLS crypto for this CA
-   tlsEnroll $homeDir $port $orgName
+   tlsEnrollServer $homeDir $port $orgName
 }
 
 # Make sure a CA server is running
@@ -291,11 +298,12 @@ function checkCA {
 
 # Enroll to get TLS crypto material
 #    tlsEnroll <homeDir> <serverPort> <orgName>
-function tlsEnroll {
+function tlsEnrollServer {
    homeDir=$1; shift
    port=$1; shift
    orgName=$1; shift
    tlsCert=$1; shift;
+   userName=$1; shift
 
    host=$(basename $homeDir),$(basename $homeDir | cut -d'.' -f1)
    tlsDir=$homeDir/tls
@@ -306,7 +314,43 @@ function tlsEnroll {
 
    srcMSP=$tlsDir/msp
    dstMSP=$homeDir/msp
-   enroll $tlsDir https://admin:adminpw@ca-root.geodbInt1.com:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls
+   echo "enroll $tlsDir https://admin:adminpw@ca-root.geodbInt1.com:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls"
+   enrollServer $tlsDir https://admin:adminpw@ca-root.geodbInt1.com:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls#$userName 
+   cp $srcMSP/signcerts/* $tlsDir/server.crt
+   cp $srcMSP/keystore/* $tlsDir/server.key
+   mkdir -p $dstMSP/keystore
+
+   cp $srcMSP/keystore/* $dstMSP/keystore
+   mkdir -p $dstMSP/cacerts
+   cp $srcMSP/cacerts/* $dstMSP/cacerts/tlsca.${orgName}-cert.pem
+   if [ -d $srcMSP/intermediatecerts ]; then
+      cp $srcMSP/intermediatecerts/* $tlsDir/ca.crt
+      mkdir -p $dstMSP/intermediatecerts
+      cp $srcMSP/intermediatecerts/* $dstMSP/intermediatecerts
+   else
+      cp $srcMSP/cacerts/* $tlsDir/ca.crt
+   fi
+   rm -rf $srcMSP $homeDir/enroll.log $homeDir/fabric-ca-client-config.yaml
+}
+
+function tlsEnroll {
+   homeDir=$1; shift
+   port=$1; shift
+   orgName=$1; shift
+   tlsCert=$1; shift;
+   userName=$1; shift
+
+   host=$(basename $homeDir),$(basename $homeDir | cut -d'.' -f1)
+   tlsDir=$homeDir/tls
+
+   if [ "$tlsCert" = "" ]; then
+     tlsCert=$(realpath $homeDir/tls-cert.pem)
+   fi
+
+   srcMSP=$tlsDir/msp
+   dstMSP=$homeDir/msp
+   echo "enroll $tlsDir https://admin:adminpw@ca-root.geodbInt1.com:$port $orgName $tlsCert --csr.hosts $host --enrollment.profile tls"
+   enroll $tlsDir https://admin:adminpw@ca-root.geodbInt1.com:$port $orgName $tlsCert $userName --csr.hosts $host --enrollment.profile tls#$userName
    cp $srcMSP/signcerts/* $tlsDir/server.crt
    cp $srcMSP/keystore/* $tlsDir/server.key
    mkdir -p $dstMSP/keystore
@@ -335,12 +379,17 @@ function registerAndEnroll {
   tlsCert=$1; shift
   userName=$1; shift
 
+  echo "registreeHomeDir=$registreeHomeDir"
+  echo "caPort=$caPort"
+  echo "orgName=$orgName"
+  echo "userName=$userName"
+
   if [ "$userName" = "" ]; then
     userName=$(basename $registreeHomeDir)
   fi
 
   register $userName "secret" $registrarHomeDir $tlsCert
-  enroll $registreeHomeDir https://admin:adminpw@ca-root.geodbInt1.com:$caPort $orgName $tlsCert
+  enroll $registreeHomeDir https://$userName:secret@ca-root.geodbInt1.com:$caPort $orgName $tlsCert $userName
 }
 
 function enrollIntermediate {
@@ -353,7 +402,7 @@ function enrollIntermediate {
    logFile=$homeDir/enroll.log
 
    # Get an enrollment certificate
-   $CLIENT enroll -d -u $url --tls.certfiles $tlsCert --csr.hosts ca-root.geodbInt1.com --enrollment.profile tls -H $homeDir > $logFile 2>&1
+   $CLIENT enroll -d --csr.names C=SG,ST=Spain,L=Seville,O=$orgName -u $url --tls.certfiles $tlsCert --csr.hosts ca-root.geodbInt1.com --enrollment.profile tls -H $homeDir > $logFile 2>&1
 
    if [ $? -ne 0 ]; then
       fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
@@ -369,14 +418,42 @@ function enroll {
    url=$1; shift
    orgName=$1; shift
    tlsCert=$1; shift
+   userName=$1; shift
    mkdir -p $homeDir
    export FABRIC_CA_CLIENT_HOME=$homeDir
    logFile=$homeDir/enroll.log
+   logFile_bckp=$homeDir/enroll_bckp.log
+
 
    # Get an enrollment certificate
    sleep 2s
-   $CLIENT enroll -d -u $url --tls.certfiles $tlsCert > $logFile 2>&1
+   echo "$CLIENT enroll -d --csr.names C=SG,ST=Spain,L=Seville,O=$orgName,CN=$userName -m $userName -u $url --tls.certfiles $tlsCert"
+   $CLIENT enroll -d --csr.names C=SG,ST=Spain,L=Seville,O=$orgName -m $userName -u $url --tls.certfiles $tlsCert > $logFile 2>&1
+   cp $logFile $logFile_bckp
+   if [ $? -ne 0 ]; then
+      fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
+   fi
+   # Get a TLS certificate
+   echo "Enrolled $homeDir with CA at $url"
+}
 
+function enrollServer {
+   homeDir=$1; shift
+   url=$1; shift
+   orgName=$1; shift
+   tlsCert=$1; shift
+   userName=$1; shift
+   mkdir -p $homeDir
+   export FABRIC_CA_CLIENT_HOME=$homeDir
+   logFile=$homeDir/enroll.log
+   logFile_bckp=$homeDir/enroll_bckp.log
+
+
+   # Get an enrollment certificate
+   sleep 2s
+   echo "$CLIENT enroll -d --csr.names C=SG,ST=Spain,L=Seville,O=$orgName,CN=$userName -m $userName -u $url --tls.certfiles $tlsCert"
+   $CLIENT enroll -d --csr.names C=SG,ST=Spain,L=Seville,O=$orgName -m $userName -u $url --tls.certfiles $tlsCert > $logFile 2>&1
+   cp $logFile $logFile_bckp
    if [ $? -ne 0 ]; then
       fatal "Failed to enroll $homeDir with CA at $url; see $logFile"
    fi
@@ -396,8 +473,12 @@ function register {
   export FABRIC_CA_CLIENT_HOME=$homeDir
   mkdir -p $homeDir
   logFile=$homeDir/register.log
-
-  $CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -d > $logFile 2>&1
+  echo $logFile_bckp
+  echo "FABRIC_CA_CLIENT_HOME=$FABRIC_CA_CLIENT_HOME"
+  logFile_bckp=$homeDir/register_bckp.log
+  echo "$CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -u https://ca-root.geodbInt1.com:7501 -d > $logFile 2>&1"
+  $CLIENT register --id.name $userName --id.secret $password --tls.certfiles $tlsCert --id.type user --id.affiliation org1 -u https://ca-root.geodbInt1.com:7501 -d > $logFile 2>&1
+  cp  $logFile $logFile_bckp
   if [ $? -ne 0 ]; then
     fatal "Failed to register $userName with CA as $homeDir; see $logFile"
   fi
@@ -416,7 +497,7 @@ function normalizeMSP {
    signcerts=$mspDir/signcerts
    cacertsfname=$cacerts/tlsca.${orgName}-cert.pem
    if [ ! -f $cacertsfname ]; then
-      mv $cacerts/* $cacertsfname
+      mv $cacerts/*-geodbInt1-com-7501.pem $cacertsfname
    fi
    intcertsfname=$intcerts/ca.${orgName}-cert.pem
    if [ ! -f $intcertsfname ]; then
@@ -476,6 +557,7 @@ function getcacertsInit {
   mkdir -p $dir
   export FABRIC_CA_CLIENT_HOME=$dir
   logFile=$dir/getcacert.out
+  echo "$CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert"
   $CLIENT getcacert -u $caUrl --tls.certfiles $tlsCert > $logFile 2>&1
   if [ $? -ne 0 ]; then
     fatal "Failed to get CA certificates $dir with CA at $caUrl; see $logFile"

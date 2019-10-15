@@ -53,7 +53,7 @@ function main {
    cd $mydir
    if [ -d $CDIR ]; then
       echo "Cleaning up ..."
-      #stopAllCAs
+      stopAllCAs
       rm -rf $CDIR
    fi
    echo "Setting up organizations ..."
@@ -110,13 +110,13 @@ function setupOrg {
    numNodes=${args[4]}
    IFS=$IFSBU
    # Start the root CA server
-   echo "startCA $orgDir/ca/root $rootCAPort $orgName"
+   echo "startCA $orgDir/ca/root $intermediateCAPort $orgName"
    export 
-   startCA 
+   startCA $orgDir/ca/root
    # Enroll an admin user with the root CA
    usersDir=$orgDir/users
    adminHome=$usersDir/rootAdmin
-   enroll $adminHome https://rca-org0-admin:rca-org0-adminpw@ca-root.geodbInt1.com:$intermediateCAPort $orgName $PWD/CA/local-server/ca-cert.pem
+   enroll $adminHome https://rca-org0-admin:rca-org0-adminpw@ca-root.geodbInt1.com:$intermediateCAPort $orgName $PWD/CA/local-server/$orgName/ca-cert.pem
 
 #    if [ "$INTERMEDIATE_CA" == "true" ]; then
 #       # Start the intermediate CA server
@@ -132,10 +132,10 @@ function setupOrg {
 #    fi
    # Register and enroll admin with the intermediate CA
     adminUserHome=$usersDir/Admin@${orgName}
-    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName ca-root.geodbInt1.com nodeAdmin_${orgName} admin --tls.certfiles $PWD/CA/local-server/ca-cert.pem
+    registerAndEnroll $adminHome $adminUserHome $intermediateCAPort $orgName ca-root.geodbInt1.com nodeAdmin admin --tls.certfiles $PWD/CA/local-server/$orgName/ca-cert.pem
 #    # Register and enroll user1 with the intermediate CA
     user1UserHome=$usersDir/User1@${orgName}
-    registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName ca-root.geodbInt1.com user1_${orgName} user --tls.certfiles $PWD/CA/local-server/ca-cert.pem
+    registerAndEnroll $adminHome $user1UserHome $intermediateCAPort $orgName ca-root.geodbInt1.com user1 user --tls.certfiles $PWD/CA/local-server/$orgName/ca-cert.pem
 #    # Create nodes (orderers or peers)
     nodeCount=0
     while [ $nodeCount -lt $numNodes ]; do
@@ -147,11 +147,11 @@ function setupOrg {
        mkdir -p $nodeDir
        # Get TLS crypto for this node
        echo "TLS ENROLL"
-       tlsEnroll $nodeDir $rootCAPort $orgName
+       tlsEnroll $nodeDir $rootCAPort $orgName ${type}${nodeCount}.${orgName} $type
 #       # Register and enroll this node's identity
 #       register ${type}${nodeCount}.${orgName} "secret" $nodeDir $type https://ca-root.geodb.com:$rootCAPort --tls.certfiles $PWD/CA/downloads/ca-cert.pem
-       echo "registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName ${type}${nodeCount}.${orgName} orderer --tls.certfiles $PWD/CA/local-server/ca-cert.pem"
-       registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName ca-root.geodbInt1.com ${type}${nodeCount}.${orgName} orderer --tls.certfiles $PWD/CA/local-server/ca-cert.pem
+       echo "registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName ${type}${nodeCount}.${orgName} $type --tls.certfiles $PWD/CA/local-server/$orgName/ca-cert.pem"
+       registerAndEnroll $adminHome $nodeDir $intermediateCAPort $orgName ca-root.geodbInt1.com ${type}${nodeCount}.${orgName} $type --tls.certfiles $PWD/CA/local-server/$orgName/ca-cert.pem
 #       normalizeMSP $nodeDir $orgName $adminUserHome
        nodeCount=$(expr $nodeCount + 1)
     done
@@ -178,12 +178,12 @@ function setupOrg {
 # Start an intermediate CA server:
 #    startCA <homeDirectory> <listeningPort> <orgName> <parentURL>
 function startCA {
-
+   homeDir=$1
    #if [ $# -gt 0 ]; then
       #$SERVER start -p $port -b admin:adminpw -u $1 $DEBUG > $homeDir/server.log 2>&1&
    #else
       echo $PWD
-      SERVER_HOME=$PWD docker-compose -f $PWD/build-network-GCP-2Orgs/ca-local.yaml up -d
+      SERVER_HOME=$PWD/CA/local-server/$orgName docker-compose -f $PWD/build-network-GCP-2Orgs/ca-local.yaml up -d
    #fi
    #echo $! > $homeDir/server.pid
    if [ $? -ne 0 ]; then
@@ -214,22 +214,31 @@ function checkCA {
 
 # Stop all CA servers
 function stopAllCAs {
-   for pidFile in `find $CDIR -name server.pid`
-   do
-      if [ ! -f $pidFile ]; then
-         fatal "\"$pidFile\" is not a file"
-      fi
-      pid=`cat $pidFile`
-      dir=$(dirname $pidFile)
-      debug "Stopping CA server in $dir with PID $pid ..."
-      if ps -p $pid > /dev/null
-      then
-         kill -9 $pid
-         wait $pid 2>/dev/null
-         rm -f $pidFile
-         debug "Stopped CA server in $dir with PID $pid"
-      fi
-   done
+   # for pidFile in `find $CDIR -name server.pid`
+   # do
+   #    if [ ! -f $pidFile ]; then
+   #       fatal "\"$pidFile\" is not a file"
+   #    fi
+   #    pid=`cat $pidFile`
+   #    dir=$(dirname $pidFile)
+   #    debug "Stopping CA server in $dir with PID $pid ..."
+   #    if ps -p $pid > /dev/null
+   #    then
+   #       kill -9 $pid
+   #       wait $pid 2>/dev/null
+   #       rm -f $pidFile
+   #       debug "Stopped CA server in $dir with PID $pid"
+   #    fi
+   # done
+
+   containers=$(docker ps -f name="rca*" -a -q)
+   if [ $containers -eq 0 ]; then
+      echo "No such a container CA found"
+   else
+      docker stop $container
+      docker rm $container
+      docker volume prune
+   fi
 }
 
 # Register a new user
@@ -299,6 +308,7 @@ function tlsEnroll {
    homeDir=$1
    port=$2
    orgName=$3
+   userNameTLS=$4
    host=$(basename $homeDir),$(basename $homeDir | cut -d'.' -f1)
    echo "tlsDir=$homeDir/tls"
    tlsDir=$homeDir/tls
@@ -306,7 +316,7 @@ function tlsEnroll {
    srcMSP=$tlsDir/msp
    echo "dstMSP=$homeDir/msp"
    dstMSP=$homeDir/msp
-   enroll $tlsDir https://geodb:password@ca-root.geodb.com:$port $orgName $PWD/CA/downloads/ca-cert.pem --csr.hosts $host --enrollment.profile tls
+   enroll $tlsDir https://$userNameTLS:secret@ca-root.geodb.com:$port $orgName $PWD/CA/downloads/ca-cert.pem --csr.hosts $host --enrollment.profile tls
    echo "cp $srcMSP/signcerts/* $tlsDir/server.crt"
    cp $srcMSP/signcerts/* $tlsDir/server.crt
    echo "cp $srcMSP/keystore/* $tlsDir/server.key"

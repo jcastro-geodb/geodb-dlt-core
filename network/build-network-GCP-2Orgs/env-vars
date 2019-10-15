@@ -1,3 +1,5 @@
 PROJECT="dlt-testing-245512"
 CERTFILE="/srv/fabricCA-server/tls-cert.pem"
+CACERTFILE="/srv/fabricCA-server/ca-cert.pem"
 DESTCERTFILE="CA/fabric-ca-server/"
+DOWNLOADSCERTFILES="CA/downloads/"
