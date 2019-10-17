@@ -7,6 +7,11 @@ services:
     image: hyperledger/fabric-tools:1.4.1
     environment:
       - GOPATH=/opt/gopath
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls/ca.crt
+      # - CORE_PEER_TLS_CLIENTAUTHREQUIRED=true
+      - CORE_PEER_TLS_CLIENTCERT_FILE=/etc/hyperledger/tls/server.crt
+      - CORE_PEER_TLS_CLIENTKEY_FILE=/etc/hyperledger/tls/server.key
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     volumes:
       - ../orderer/:/opt/gopath/src/github.com/hyperledger/fabric/peer/orderer

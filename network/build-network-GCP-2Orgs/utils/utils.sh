@@ -4,7 +4,7 @@ check_returnCode() {
         else
                 >&2 echo -e "ERROR:.... Proccess ERROR: $1"
 		cd $dir
-		./reset.sh
+		#./reset.sh
 		echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
                 exit $1
         fi
@@ -36,7 +36,7 @@ checkSomeCA(){
     getCertsCA 1
   else
     echo "A rootCA has been detected, skipping this step"
-    getCertsCA 1
+    getCertsCA 0
   fi
 
 }
@@ -63,9 +63,11 @@ getCertsCA(){
   echo
 
   mkdir -p ../$DESTCERTFILE
+  mkdir -p ../$DOWNLOADSCERTFILES
 
   gcloud compute scp $instanceName:$CERTFILE ../$DESTCERTFILE   #### CAMBIAR PARA SUBIR A STORAGE -- ES NECESARIO GENERAR POLÍTICAS DE IAM
-
+  gcloud compute scp $instanceName:$CERTFILE ../$DOWNLOADSCERTFILES
+  gcloud compute scp $instanceName:$CACERTFILE ../$DOWNLOADSCERTFILES
 }
 
 introduceIP(){
@@ -97,11 +99,12 @@ introduceIP(){
 buildCertificates(){
   echo
   echo "========================================================="
-  echo "Buildng certificates"
+  echo "Buildng Orderer  certificates"
   echo "========================================================="
   echo
 
-  ./generate-crypto-materials-GCP.sh --orgs $1
+  ./generate-crypto-materials-GCP_RAFT.sh #--orgs $1
+
 }
 
 genesisBlock(){
@@ -134,7 +137,7 @@ bringUpNetwork(){
   echo "========================================================="
   echo
   pwd
-  docker-compose -f docker-compose.yaml up -d
+  docker-compose -f docker-compose-orderer.yaml -f docker-compose-orderer-RAFT.yaml -f docker-compose.yaml up -d
 }
 
 operationsWithPeer(){

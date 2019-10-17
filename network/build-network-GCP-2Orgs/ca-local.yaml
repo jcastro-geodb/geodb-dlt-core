@@ -15,7 +15,7 @@ services:
       - FABRIC_CA_SERVER_CSR_HOSTS=ca-root.geodbInt1.com
       - FABRIC_CA_SERVER_DEBUG=true
    volumes:
-           - $SERVER_HOME/CA/local-server/:/tmp/hyperledger/fabric-ca
+           - $SERVER_HOME:/tmp/hyperledger/fabric-ca
    networks:
       - fabric-ca
    ports:
