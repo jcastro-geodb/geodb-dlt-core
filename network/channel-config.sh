@@ -53,7 +53,11 @@ echo "##################################################################"
 echo "####### Generating orderer rewards channel genesis block #########"
 echo "##################################################################"
 echo
+
 configtxgen -profile RewardsChannel -outputCreateChannelTx ./channels/rewards.tx -channelID rewards
+check_returnCode $?
+
+configtxgen -profile PrivateNodeChannel -outputCreateChannelTx ./channels/privatenode1.tx -channelID privatenode1
 check_returnCode $?
 
 echo

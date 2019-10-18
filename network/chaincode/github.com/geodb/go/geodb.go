@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
-	"github.com/hyperledger/fabric/common/util"
+	"crypto/sha256"
 
+	"github.com/hyperledger/fabric/common/util"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/core/chaincode/shim/ext/cid"
 	pb "github.com/hyperledger/fabric/protos/peer"
@@ -26,6 +28,23 @@ type EthereumAddress struct {
 	Amount    string `json:"amount"`
 	MspId     string `json:"mspId"`
 	Timestamp int64  `json:"timestamp"`
+}
+
+type Delegated struct {
+	Delegado    string        `json:"delegado"`
+	Recompensas []Recompensas `json:"recompensas"`
+}
+
+type Recompensas struct {
+	EthAddr  string `json:"eth_addr"`
+	Cantidad int    `json:"cantidad"`
+}
+
+type UserData struct {
+	EthAddr   string `json:"eth_addr"`
+	Lat       string `json:"lat"`
+	Long      string `json:"long"`
+	Timestamp string `json:"timestamp"`
 }
 
 const WALLETADDRESS = "0xDCF7bAECE1802D21a8226C013f7be99dB5941bEa"
@@ -58,6 +77,8 @@ func (t *Chaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 		return shim.Error(err.Error())
 	}
 
+	stub.PutState("numberPut", []byte(strconv.Itoa(0)))
+
 	return shim.Success(nil)
 }
 
@@ -81,6 +102,12 @@ func (t *Chaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		return t.getMSP(stub, args)
 	} else if function == "queryFederationMembers" {
 		return t.queryFederationMembers(stub, args)
+	} else if function == "putUserData" {
+		return t.putUserData(stub, args)
+	} else if function == "getUserData" {
+		return t.getUserData(stub, args)
+	} else if function == "getDelegatedBlock" {
+		return t.getDelegatedBlock(stub, args)
 	} else if function == "callSC" {
 		return t.callSC(stub, args)
 	}
@@ -201,8 +228,92 @@ func (t *Chaincode) queryFederationMembers(stub shim.ChaincodeStubInterface, arg
 	return shim.Success(nil)
 }
 
+func (t *Chaincode) putUserData(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	if len(args) != 1 {
+		shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+	userData := UserData{}
+	json.Unmarshal([]byte(args[0]), &userData)
+
+	dataBytes, _ := json.Marshal(userData)
+	dataHash := sha256.Sum256(dataBytes)
+	dataHashString := fmt.Sprintf("%x", dataHash)
+	fmt.Println("Hash Address: ")
+	fmt.Println(dataHashString)
+	stub.PutState(dataHashString, dataBytes)
+
+	var numberPutHashArr []byte
+	numberPutHashBytes, _ := stub.GetState("numberPutHash")
+	json.Unmarshal(numberPutHashBytes, &numberPutHashArr)
+	numberPutHashArr = append(numberPutHashArr, dataHash[:]...)
+	numberPutHashBytes, _ = json.Marshal(numberPutHashArr)
+	stub.PutState("numberPutHash", numberPutHashBytes)
+
+	var eth_addressesArr []string
+	eth_addressesBytes, _ := stub.GetState("ethAddresses")
+	json.Unmarshal(eth_addressesBytes, &eth_addressesArr)
+	eth_addressesArr = append(eth_addressesArr, userData.EthAddr)
+	eth_addressesBytes, _ = json.Marshal(eth_addressesArr)
+	stub.PutState("ethAddresses", eth_addressesBytes)
+
+	numberPut, _ := stub.GetState("numberPut")
+	numberPutInt, _ := strconv.Atoi(string(numberPut))
+	numberPutInt++
+	numberPutStr := strconv.Itoa(numberPutInt)
+	stub.PutState("numberPut", []byte(numberPutStr))
+
+	if numberPutInt == 5 {
+		mspId, _ := cid.GetMSPID(stub)
+		var putHashArr []byte
+		putHashBytes, _ := stub.GetState("numberPutHash")
+		json.Unmarshal(putHashBytes, &putHashArr)
+		dataHashes := sha256.Sum256(putHashArr)
+		dataHashesString := fmt.Sprintf("%x", dataHashes)
+		var recompensas []Recompensas
+		var recompensa Recompensas
+		for i := 0; i < 5; i++ {
+			recompensa = Recompensas{
+				eth_addressesArr[i],
+				1,
+			}
+			recompensas = append(recompensas, recompensa)
+		}
+		delegated := Delegated{
+			mspId,
+			recompensas,
+		}
+		delegatedBytes, _ := json.Marshal(delegated)
+		stub.PutState(dataHashesString, delegatedBytes)
+		stub.PutState("ethAddresses", nil)
+		stub.PutState("numberPutHash", nil)
+		stub.PutState("numberPut", []byte(strconv.Itoa(0)))
+		fmt.Println("Delegated Block HASH: ")
+		fmt.Println(dataHashesString)
+		return shim.Success(delegatedBytes)
+	} else {
+		fmt.Println(numberPutInt)
+		return shim.Success(nil)
+	}
+}
+
+func (t *Chaincode) getUserData(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	if len(args) != 1 {
+		shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+	userData, _ := stub.GetState(args[0])
+	return shim.Success(userData)
+}
+
+func (t *Chaincode) getDelegatedBlock(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	if len(args) != 1 {
+		shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+	delegatedBlock, _ := stub.GetState(args[0])
+	return shim.Success(delegatedBlock)
+}
+
 func (t *Chaincode) callSC(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	chainCodeArgs := util.ToChaincodeArgs("callSmartContract")
+	chainCodeArgs := util.ArrayToChaincodeArgs(args)
 	response := stub.InvokeChaincode("geodbSmart", chainCodeArgs, "rewards")
 	if response.Status != shim.OK {
 		return shim.Error(response.Message)

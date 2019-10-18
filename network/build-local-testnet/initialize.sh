@@ -108,8 +108,14 @@ sleep 3s
 operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.operations.geodb.com:7050' 
 check_returnCode $?
 
+operationsWithPeer 'peer channel create -c privatenode1 -f ./channels/privatenode1.tx -o orderer0.operations.geodb.com:7050' 
+check_returnCode $?
+
 # Join the channel
 operationsWithPeer 'peer channel join -b rewards.block'
+check_returnCode $?
+
+operationsWithPeer 'peer channel join -b privatenode1.block'
 check_returnCode $?
 
 # Update anchor peer

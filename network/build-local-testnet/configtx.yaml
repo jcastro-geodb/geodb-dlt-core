@@ -100,3 +100,13 @@ Profiles:
         - *GeoDB
       Capabilities:
         <<: *ApplicationCapabilities
+
+  PrivateNodeChannel:
+    <<: *ChannelDefaults
+    Consortium: GeoDB
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *GeoDB
+      Capabilities:
+        <<: *ApplicationCapabilities

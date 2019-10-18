@@ -12,53 +12,34 @@ check_returnCode() {
         fi
 }
 
-# Remove docker containers created after the testnet and their artifacts
-removeNodeArtifacts() {
+downAll(){
   echo
   echo "========================================================="
-  echo "Killing docker containers defined in /node-artifacts/local"
+  echo "Killing all dockers and reset system"
   echo "========================================================="
   echo
 
   sleep 2s
 
-  while [ -d "$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)" ]; do
-
-    composeDir="$(find ../node-artifacts/local -maxdepth 1 -mindepth 1 -type d  | head -1)"
-    dirname="${DOCKER_FILE%"${DOCKER_FILE##*[!/]}"}"
-    dirname="${result##*/}"
-
-    COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml down --remove-orphans \
-    && COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml kill
-
-
-    if [ $? -ne 0 ]; then
-      echo "ERROR: Could not stop containers defined in $composeDir, skipping further deletions"
-      return 1
-    fi
-
-    rm -rf $composeDir
-
-    if [ $? -ne 0 ]; then
-      echo "ERROR: Could not delete directory $composeDir, skipping further deletions"
-      return 1
-    fi
-
-  done
+  docker-compose -f docker-compose.yaml kill && docker-compose -f docker-compose.yaml down
 }
 
-# Remove the basic (operations.geodb.com) containers that bootstrap the network
-removeLocalTestnetBaseContainers() {
-  echo
-  echo "========================================================="
-  echo "Killing base docker containers"
-  echo "========================================================="
-  echo
+clearContainers() {
+  CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*.*/) {print $1}')
+    if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" == " " ]; then
+      echo "---- No containers available for deletion ----"
+    else
+      docker rm -f $CONTAINER_IDS
+    fi
+}
 
-  sleep 2s
-
-  docker-compose -f docker-compose.yaml down --remove-orphans && docker-compose -f docker-compose.yaml kill
-
+removeUnwantedImages() { 
+  DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*.*/) {print $3}')
+    if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" == " " ]; then
+      echo "---- No images available for deletion ----"
+    else
+      docker rmi -f $DOCKER_IMAGE_IDS
+    fi
 }
 
 regenerateCryptoMaterial(){
@@ -88,11 +69,6 @@ cleanDirectories(){
     echo "Removing ./orderer"
     rm -rf rm -rf ./orderer
   fi
-
-  if [ -d "./configtxlator-artifacts" ]; then
-    echo "Removing ./configtxlator-artifacts"
-    rm -rf rm -rf ./configtxlator-artifacts
-  fi
 }
 
 restoreCA(){
@@ -111,11 +87,13 @@ restoreCA(){
     rm -rf ./fabric-ca-server
   fi
 }
-
-removeNodeArtifacts
+downAll
 check_returnCode $?
 
-removeLocalTestnetBaseContainers
+clearContainers
+check_returnCode $?
+
+removeUnwantedImages
 check_returnCode $?
 
 regenerateCryptoMaterial
