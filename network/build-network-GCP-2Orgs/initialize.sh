@@ -46,8 +46,8 @@ check_returnCode $?
 # Bring up the network
 
 cd $dir
-# bringUpNetwork
-# check_returnCode $?
+bringUpNetwork
+check_returnCode $?
 # sleep 3s
 
 # # Create the channel on the peer from the genesis block
