@@ -48,6 +48,9 @@ func (t *Chaincode) getNodePrivateKey(stub shim.ChaincodeStubInterface, args []s
 	var nodeKeys NodeKeys
 	nodeBytes, _ := stub.GetState("nodeKeys")
 	json.Unmarshal(nodeBytes, &nodeKeys)
+	fmt.Println(nodeKeys.PrivateKey)
+	node := []byte(nodeKeys.PrivateKey)
+	fmt.Println(node)
 	return shim.Success([]byte(nodeKeys.PrivateKey))
 }
 

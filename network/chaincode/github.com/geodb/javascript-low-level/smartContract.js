@@ -45,25 +45,12 @@ let Chaincode = class {
     });
   }
 
-  bin2String(array) {
-    var result = "";
-    for (var i = 0; i < array.length; i++) {
-      result += String.fromCharCode(parseInt(array[i], 2));
-    }
-    return result;
-  }
-
   async send(stub, args){
     let channelName = "privatenode1";
     let responseKey = await stub.invokeChaincode('privatenode1', ["getNodePrivateKey"], channelName);
-    console.log("responseKey BEFOREEEEEEEEEE")
-    console.log(responseKey.payload)
-    console.log("responseKey AFTEEEEEEEEEEER")
-    console.log(this.bin2String(responseKey))
-    console.log("BYTE1 BEFOREEEEEEEEEE")
-    console.log(this.bin2String(responseKey.payload))
-    console.log("BYTE2 BEFOREEEEEEEEEE")
-    /*const PRIVATE_KEY = Buffer.from(PRIVATE_KEY,'hex')
+    responseKey = responseKey.payload;
+    let privateKey = responseKey.buffer.toString('ascii', responseKey.offset, responseKey.limit);
+    const PRIVATE_KEY = Buffer.from(privateKey,'hex')
     web3.eth.getTransactionCount("0x7769DBfe0F90f10c9E366b14D33cf9bd23c22A55", (err, txCount) => {
       const trxObject =
       {
@@ -86,7 +73,7 @@ let Chaincode = class {
       console.log("HASHHHHHHHHHH");
       console.log(txHash);
       });
-    });*/
+    });
   }
 };
 
