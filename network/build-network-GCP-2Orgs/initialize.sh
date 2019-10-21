@@ -73,13 +73,13 @@ for peer in $peers; do
   peer=$peer+1
 done
 
-# # Update anchor peer
-# docker exec clipeer0.operations0.geodb.com bash -c 'peer channel update -o orderer0.orderer.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
-# check_returnCode $?
+# Update anchor peer
+docker exec clipeer0.operations0.geodb.com bash -c 'peer channel update -o orderer0.orderer.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx --tls --cafile /etc/hyperledger/crypto/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/msp/tlscacerts/tlsca.orderer.geodb.com-cert.pem --clientauth --certfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.crt --keyfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.key'
+check_returnCode $?
 
-# docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer0.orderer.geodb.com:7050 -c rewards -f ./channels/geodbanchor2.tx'
-# check_returnCode $?
-# # docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer1.operations1.geodb.com:7150 -c rewards -f ./channels/geodbanchor.tx'
+docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer0.orderer.geodb.com:7050 -c rewards -f ./channels/geodbanchor2.tx --tls --cafile /etc/hyperledger/crypto/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/msp/tlscacerts/tlsca.orderer.geodb.com-cert.pem --clientauth --certfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.crt --keyfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.key'
+check_returnCode $?
+# docker exec clipeer0.operations1.geodb.com bash -c 'peer channel update -o orderer1.operations1.geodb.com:7150 -c rewards -f ./channels/geodbanchor.tx'
 
 # echo
 # echo "========================================================="
