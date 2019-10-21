@@ -52,25 +52,26 @@ sleep 10s
 
 # # Create the channel on the peer from the genesis block
 operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.orderer.geodb.com:7050 --tls --cafile /etc/hyperledger/crypto/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/msp/tlscacerts/tlsca.orderer.geodb.com-cert.pem --clientauth --certfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.crt --keyfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.key' 
-# check_returnCode $?
+check_returnCode $?
 
-# # Join the channel
+# Join the channel
 
-# echo
-# echo "========================================================="
-# echo "Joinning Channel"
-# echo "========================================================="
-# echo
+echo
+echo "========================================================="
+echo "Joinning Channel"
+echo "========================================================="
+echo
 
-# peers=$(docker ps --format '{{.Names}}' | grep clipeer)
+peers=$(docker ps --format '{{.Names}}' | grep clipeer)
 
-# for peer in $peers; do
-#   echo "-------------------------------- $peer ------------------------------------------"
-#   docker exec $peer bash -c 'peer channel join -b rewards.block'
-#   check_returnCode $?
-#   echo "-------------------------------- $peer joined -----------------------------------"
-#   peer=$peer+1
-# done
+for peer in $peers; do
+  echo "-------------------------------- $peer ------------------------------------------"
+  echo "docker exec $peer bash -c peer channel join -b rewards.block --tls --cafile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/msp/tlscacerts/tlsca.operations0.geodb.com-cert.pem"
+  docker exec $peer bash -c 'peer channel join -b rewards.block --tls --cafile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/msp/tlscacerts/tlsca.operations0.geodb.com-cert.pem'
+  check_returnCode $?
+  echo "-------------------------------- $peer joined -----------------------------------"
+  peer=$peer+1
+done
 
 # # Update anchor peer
 # docker exec clipeer0.operations0.geodb.com bash -c 'peer channel update -o orderer0.orderer.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'

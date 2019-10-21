@@ -9,7 +9,8 @@ services:
       - GOPATH=/opt/gopath
       - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls/ca.crt
-      # - CORE_PEER_TLS_CLIENTAUTHREQUIRED=true
+      - CORE_PEER_TLS_CLIENTAUTHREQUIRED=true
+      - CORE_PEER_TLS_CLIENTROOTCAS_FILES=/etc/hyperledger/peer/tls/msp/tlscacerts/tls-ca-root-geodb-com-7500.pem
       - CORE_PEER_TLS_CLIENTCERT_FILE=/etc/hyperledger/tls/server.crt
       - CORE_PEER_TLS_CLIENTKEY_FILE=/etc/hyperledger/tls/server.key
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer

@@ -150,6 +150,7 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations0.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations0.geodb.com/peers/peer1.operations0.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
       - peer1.operations0.geodb.com
     networks:
@@ -169,6 +170,7 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations0.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations0.geodb.com/peers/peer2.operations0.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
       - peer2.operations0.geodb.com
     networks:
@@ -188,6 +190,7 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations0.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations0.geodb.com/peers/peer3.operations0.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
       - peer3.operations0.geodb.com
     networks:
@@ -201,11 +204,11 @@ services:
     image: hyperledger/fabric-peer
     environment:
       - CORE_PEER_ID=peer0.operations1.geodb.com
-      - CORE_PEER_ADDRESS=peer0.operations1.geodb.com:7051
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
-      - CORE_PEER_LOCALMSPID=geodbMSP
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.operations1.geodb.com:7051
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.operations1.geodb.com:7151 peer2.operations1.geodb.com:7251 peer3.operations1.geodb.com:7351
+      - CORE_PEER_ADDRESS=peer0.operations1.geodb.com:8051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+      - CORE_PEER_LOCALMSPID=geodb2MSP
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.operations1.geodb.com:8051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.operations1.geodb.com:8151 peer2.operations1.geodb.com:8251 peer3.operations1.geodb.com:8351
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/org1/peer0
     volumes:
       - /var/run:/host/var/run
@@ -224,11 +227,11 @@ services:
     image: hyperledger/fabric-peer
     environment:
       - CORE_PEER_ID=peer1.operations1.geodb.com
-      - CORE_PEER_ADDRESS=peer1.operations1.geodb.com:7151
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:7151
-      - CORE_PEER_LOCALMSPID=geodbMSP
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.operations1.geodb.com:7151
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations1.geodb.com:7051 peer2.operations1.geodb.com:7251 peer3.operations1.geodb.com:7351
+      - CORE_PEER_ADDRESS=peer1.operations1.geodb.com:8151
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8151
+      - CORE_PEER_LOCALMSPID=geodb2MSP
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.operations1.geodb.com:8151
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations1.geodb.com:8051 peer2.operations1.geodb.com:8251 peer3.operations1.geodb.com:8351
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/org1/peer1
     volumes:
       - /var/run:/host/var/run
@@ -247,11 +250,11 @@ services:
     image: hyperledger/fabric-peer
     environment:
       - CORE_PEER_ID=peer2.operations1.geodb.com
-      - CORE_PEER_ADDRESS=peer2.operations1.geodb.com:7251
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:7251
-      - CORE_PEER_LOCALMSPID=geodbMSP
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.operations1.geodb.com:7251
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations1.geodb.com:7051 peer1.operations1.geodb.com:7151 peer3.operations1.geodb.com:7351
+      - CORE_PEER_ADDRESS=peer2.operations1.geodb.com:8251
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8251
+      - CORE_PEER_LOCALMSPID=geodb2MSP
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.operations1.geodb.com:8251
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations1.geodb.com:8051 peer1.operations1.geodb.com:8151 peer3.operations1.geodb.com:8351
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/org1/peer2
     volumes:
       - /var/run:/host/var/run
@@ -270,11 +273,11 @@ services:
     image: hyperledger/fabric-peer
     environment:
       - CORE_PEER_ID=peer3.operations1.geodb.com
-      - CORE_PEER_ADDRESS=peer3.operations1.geodb.com:7351
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:7351
-      - CORE_PEER_LOCALMSPID=geodbMSP
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3.operations1.geodb.com:7351
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations1.geodb.com:7051 peer1.operations1.geodb.com:7151 peer2.operations1.geodb.com:7251
+      - CORE_PEER_ADDRESS=peer3.operations1.geodb.com:8351
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8351
+      - CORE_PEER_LOCALMSPID=geodb2MSP
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3.operations1.geodb.com:8351
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.operations1.geodb.com:8051 peer1.operations1.geodb.com:8151 peer2.operations1.geodb.com:8251
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/org1/peer2
     volumes:
       - /var/run:/host/var/run
@@ -299,12 +302,13 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations1.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations1.geodb.com/peers/peer0.operations1.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
       - peer0.operations1.geodb.com
     networks:
       - geodb
 
-  cli.operations1.geodb.com:
+  clipeer1.operations1.geodb.com:
     extends:
       file: ../bases/cli-base.yaml
       service: cli
@@ -318,6 +322,7 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations1.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations1.geodb.com/peers/peer1.operations1.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
       - peer1.operations1.geodb.com
     networks:
@@ -337,6 +342,7 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations1.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations1.geodb.com/peers/peer2.operations1.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
       - peer2.operations1.geodb.com
     networks:
@@ -356,6 +362,7 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations1.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations1.geodb.com/peers/peer3.operations1.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
       - peer3.operations1.geodb.com
     networks:
