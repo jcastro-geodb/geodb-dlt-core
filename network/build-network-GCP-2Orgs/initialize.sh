@@ -30,7 +30,7 @@ sleep 2s
 cd ..
 buildCertificates #orderer.geodb.com:0:5:7500:geodb:password:7501
 check_returnCode $?
-sleep 3s
+#sleep 3s
 
 # buildCertificates operations0.geodb.com:4:0:7500:geodb:password:7501
 # check_returnCode $?
@@ -48,10 +48,10 @@ check_returnCode $?
 cd $dir
 bringUpNetwork
 check_returnCode $?
-# sleep 3s
+sleep 10s
 
 # # Create the channel on the peer from the genesis block
-# operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.orderer.geodb.com:7050' 
+operationsWithPeer 'peer channel create -c rewards -f ./channels/rewards.tx -o orderer0.orderer.geodb.com:7050 --tls --cafile /etc/hyperledger/crypto/ordererOrganizations/orderer.geodb.com/orderers/orderer0.orderer.geodb.com/msp/tlscacerts/tlsca.orderer.geodb.com-cert.pem --clientauth --certfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.crt --keyfile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls/server.key' 
 # check_returnCode $?
 
 # # Join the channel

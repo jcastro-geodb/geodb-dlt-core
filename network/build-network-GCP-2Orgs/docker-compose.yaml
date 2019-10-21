@@ -113,7 +113,7 @@ services:
       service: cli
     container_name: clipeer0.operations0.geodb.com
     environment:
-      - CORE_PEER_ID=clipeer0.operations0.geodb.com
+      - CORE_PEER_ID=cli.operations0.geodb.com
       - CORE_PEER_ADDRESS=peer0.operations0.geodb.com:7051
       - CORE_PEER_LOCALMSPID=geodbMSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@operations0.geodb.com/msp
@@ -121,8 +121,18 @@ services:
     volumes:
       - ../crypto-config/peerOrganizations/operations0.geodb.com:/etc/hyperledger/msp
       - ../crypto-config/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/tls:/etc/hyperledger/tls
+      - ../crypto-config:/etc/hyperledger/crypto
     depends_on:
+      #- orderer0.orderer.geodb.com
       - peer0.operations0.geodb.com
+      #- peer1.operations0.geodb.com
+      #- peer2.operations0.geodb.com
+      #- peer3.operations0.geodb.com
+      #- peer0.operations1.geodb.com
+      #- peer1.operations1.geodb.com
+      #- peer2.operations1.geodb.com
+      #- peer3.operations1.geodb.com
+
     networks:
       - geodb
 
@@ -294,7 +304,7 @@ services:
     networks:
       - geodb
 
-  clipeer1.operations1.geodb.com:
+  cli.operations1.geodb.com:
     extends:
       file: ../bases/cli-base.yaml
       service: cli
