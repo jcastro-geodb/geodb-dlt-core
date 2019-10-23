@@ -1,1 +1,13 @@
 ORGSTYPE="build-network-GCP-2Orgs"
+CAUSER_NAME="rca-org0-admin"
+CAPASS=rca-org0-adminpw
+CAEXT_NAME="ca-root.geodbInt1.com"
+LOCALSERVER_PATH="/CA/local-server/"
+CAPUBLIC_CERT="/ca-cert.pem"
+CAROOT_DOWNLOAD="/CA/downloads"
+CAROOT_NAME="ca-root.geodb.com"
+USERCATLS_PASS="secret"
+SUCCESS='\e[32m'
+FATAL='\e[31m'
+NC='\033[0m'
+INFO='\e[34m'

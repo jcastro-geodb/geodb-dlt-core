@@ -5,13 +5,13 @@ networks:
 
 services:
   rca-org0:
-   container_name: rca-org0
+   container_name: $CALOCAL_NAME
    image: hyperledger/fabric-ca
-   command: /bin/bash -c 'fabric-ca-server start -d -b rca-org0-admin:rca-org0-adminpw --port 7501'
+   command: /bin/bash -c 'fabric-ca-server start -d -b $CAUSER_NAME:$CAPASS --port $CAPORT'
    environment:
       - FABRIC_CA_SERVER_HOME=/tmp/hyperledger/fabric-ca
       - FABRIC_CA_SERVER_TLS_ENABLED=true
-      - FABRIC_CA_SERVER_CSR_CN=rca-org0
+      - FABRIC_CA_SERVER_CSR_CN=$CALOCAL_NAME
       - FABRIC_CA_SERVER_CSR_HOSTS=ca-root.geodbInt1.com
       - FABRIC_CA_SERVER_DEBUG=true
    volumes:
@@ -19,4 +19,4 @@ services:
    networks:
       - fabric-ca
    ports:
-      - 7501:7501
+      - $CAPORT:$CAPORT

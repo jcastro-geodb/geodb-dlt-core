@@ -28,15 +28,16 @@ sleep 2s
 #introduceIP
 
 cd ..
-buildCertificates #orderer.geodb.com:0:5:7500:geodb:password:7501
+echo "-------------->>>>>>>>>>>>>>>>>>>>> ORDERER"
+buildCertificates orderer:orderer.geodb.com:7500:7501:5
 check_returnCode $?
-#sleep 3s
-
-# buildCertificates operations0.geodb.com:4:0:7500:geodb:password:7501
-# check_returnCode $?
-
-# buildCertificates operations1.geodb.com:4:0:7500:geodb:password:7501
-# check_returnCode $?
+sleep 3s
+echo "-------------->>>>>>>>>>>>>>>>>>>>> OP0"
+buildCertificates peer:operations0.geodb.com:7500:7502:4
+check_returnCode $?
+echo "-------------->>>>>>>>>>>>>>>>>>>>> OP1"
+buildCertificates peer:operations1.geodb.com:7500:7503:4
+check_returnCode $?
 
 # Generate genesis block
 
@@ -66,7 +67,6 @@ peers=$(docker ps --format '{{.Names}}' | grep clipeer)
 
 for peer in $peers; do
   echo "-------------------------------- $peer ------------------------------------------"
-  echo "docker exec $peer bash -c peer channel join -b rewards.block --tls --cafile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/msp/tlscacerts/tlsca.operations0.geodb.com-cert.pem"
   docker exec $peer bash -c 'peer channel join -b rewards.block --tls --cafile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/msp/tlscacerts/tlsca.operations0.geodb.com-cert.pem'
   check_returnCode $?
   echo "-------------------------------- $peer joined -----------------------------------"
