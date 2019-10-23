@@ -38,22 +38,15 @@ check_returnCode() {
 }
 
 startRootCA(){
-  echo
-  echo "========================================================="
-  echo "Starting Root CA"
-  echo "========================================================="
-  echo
+
+  infoStage 'Starting Root CA'
 
   terraform init
   terraform apply -var-file="./secret/secret.tfvars" -auto-approve
 }
 
 checkSomeCA(){
-  echo
-  echo "========================================================="
-  echo "Checking if exists some CA active at GCP"
-  echo "========================================================="
-  echo
+  infoStage 'Checking if exists some CA active at GCP'
 
   instances=$(gcloud compute instances list | grep ca-root)
 
@@ -75,19 +68,11 @@ getCertsCA(){
   instanceName=$(gcloud compute instances list --filter=labels.hl-f:ca-root --format="value(name.scope())")
 
   if [ $wait == 1 ]; then
-    echo
-    echo "========================================================="
-    echo "Waiting for FabricCA server. Please Wait"
-    echo "========================================================="
-    echo
+    infoStage 'Waiting for FabricCA server. Please Wait'
     sleep 120s
   fi 
 
-  echo
-  echo "========================================================="
-  echo "Downloading cert, please insert passphrase."
-  echo "========================================================="
-  echo
+  infoStage 'Downloading cert, please insert passphrase.'
 
   mkdir -p ../$DESTCERTFILE
   mkdir -p ../$DOWNLOADSCERTFILES
@@ -124,32 +109,20 @@ introduceIP(){
 }
 
 buildCertificates(){
-  echo
-  echo "========================================================="
-  echo "Buildng Orderer  certificates"
-  echo "========================================================="
-  echo
+  infoStage 'Buildng Orderer  certificates'
 
   ./generate-crypto-materials-GCP_RAFT.sh --orgs $1
 
 }
 
 genesisBlock(){
-  echo
-  echo "========================================================="
-  echo "Generating Genesis Block"
-  echo "========================================================="
-  echo
+  infoStage 'Generating Genesis Block and channels artifacts'
 
   ./channel-config.sh $1 $2
 }
 
 checkIfNetworkExists(){
-  echo
-  echo "========================================================="
-  echo "Checking if network exists"
-  echo "========================================================="
-  echo
+  infoStage 'Checking if network exists'
 
   if [ "$(docker network ls | grep ${COMPOSE_PROJECT_NAME}_geodb)" ]; then
     >&2 echo "Network already exists. Stop the network first"
@@ -158,11 +131,7 @@ checkIfNetworkExists(){
 }
 
 bringUpNetwork(){
-  echo
-  echo "========================================================="
-  echo "Bringing up the network"
-  echo "========================================================="
-  echo
+  infoStage 'Bringing up the network'
   pwd
   docker-compose -f docker-compose-orderer.yaml -f docker-compose-orderer-RAFT.yaml -f docker-compose.yaml up -d
 }
@@ -177,12 +146,31 @@ operationsWithPeer(){
   docker exec clipeer0.operations0.geodb.com bash -c "$@"
 }
 
+operationsWithPeerOp1(){
+  echo
+  echo "========================================================="
+  echo $@ | cut -f2,3 -d" "
+  echo "========================================================="
+  echo
+
+  docker exec clipeer0.operations1.geodb.com bash -c "$@"
+}
+
+joinChannel(){
+   infoStage 'Joinning Channel'
+   peers=$(docker ps --format '{{.Names}}' | grep clipeer)
+
+   for peer in $peers; do
+      infoPrint 'Joinning peer '$peer
+      docker exec $peer bash -c 'peer channel join -b rewards.block --tls --cafile /etc/hyperledger/crypto/peerOrganizations/operations0.geodb.com/peers/peer0.operations0.geodb.com/msp/tlscacerts/tlsca.operations0.geodb.com-cert.pem'
+      check_returnCode $?
+      successPrint $peer' Joinned to channel'
+      peer=$peer+1
+   done
+}
+
 installChaincode(){
-  echo
-  echo "========================================================="
-  echo "Installing ChainCode"
-  echo "========================================================="
-  echo
+  infoStage 'Installing ChainCode'
 
   ./install-upg-chaincode.sh $1
 
