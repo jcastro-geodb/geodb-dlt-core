@@ -32,4 +32,8 @@ contract BatchMint is Pausable, MinterRole {
         return tokenAddress.releaseReward(to, amount);
     }
 
+    function transferTokenOwnership(address to) public onlyOwner {
+        tokenAddress.transferOwnership(to);
+    }
+
 }
