@@ -1,4 +1,4 @@
-const { BN } = require("openzeppelin-test-helpers");
+const { BN } = require("@openzeppelin/test-helpers");
 
 const fundPartnersWithGeoTokens = async (amount, funder, accounts, token) => {
   for (let account of accounts) {

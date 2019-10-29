@@ -1,5 +1,5 @@
 const GeoToken = artifacts.require("./GeoToken.sol");
-const { BN, expectEvent, expectRevert, singletons } = require("openzeppelin-test-helpers");
+const { BN, expectEvent, expectRevert, singletons } = require("@openzeppelin/test-helpers");
 const { toWei, fromWei } = require("web3-utils");
 const { geoconstants, ErrorMsgs } = require("./helpers");
 

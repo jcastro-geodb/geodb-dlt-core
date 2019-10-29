@@ -1,4 +1,4 @@
-const { BN } = require("openzeppelin-test-helpers");
+const { BN } = require("@openzeppelin/test-helpers");
 
 /*
   address: the address of the user that we want to check the balance of

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "2.3.0",
+    "@openzeppelin/test-helpers": "^0.5.3",
     "ethers": "^4.0.27",
     "fs-extra": "^7.0.1",
     "ganache-cli": "^6.4.3",
@@ -20,8 +21,7 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "gulp": "^4.0.2",
-    "gulp-watch": "^5.0.1",
-    "openzeppelin-test-helpers": "^0.4.0"
+    "gulp-watch": "^5.0.1"
   },
   "scripts": {
     "compile": "rm -rf ./build; truffle compile; cp ./build/contracts/GeoDB.json ../network/chaincode/github.com/geodb/ethereum/abi/GeoDB.json",

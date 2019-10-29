@@ -7,7 +7,7 @@ const { fundPartnersWithGeoTokens, addMembersToFederation, exitFederation } = re
 
 const { initialMinimumFederationStake, initialFundingForPartners } = require("./helpers/geoconstants");
 
-const { BN, expectEvent, expectRevert, singletons } = require("openzeppelin-test-helpers");
+const { BN, expectEvent, expectRevert, singletons } = require("@openzeppelin/test-helpers");
 
 contract("GeoFederation", ([_, erc1820funder, geodb, partner, partner2, emptyAccount, ...accounts]) => {
   let erc1820, token, federation;

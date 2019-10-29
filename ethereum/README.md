@@ -12,3 +12,10 @@
 - [x] Implement ERC777 token
 - [ ] Implement token lock compatible with ERC777 token
 - [ ] Implement tests for the ERC777 model.
+
+# Using gulp
+
+To use gulp and automatically running tests while developing, you can use
+
+- To watch over all changes in the ethereum directory: `gulp watch`
+- To watch only changes related to a single contract: `CONTRACT=<ContractName> gulp watch`. Example: `CONTRACT=BatchMint gulp watch`

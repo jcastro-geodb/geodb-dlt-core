@@ -1,4 +1,4 @@
-const { BN } = require("openzeppelin-test-helpers");
+const { BN } = require("@openzeppelin/test-helpers");
 
 module.exports.symbol = "GEO";
 module.exports.name = "GeoToken";
