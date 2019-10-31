@@ -31,13 +31,14 @@ type EthereumAddress struct {
 }
 
 type Delegated struct {
-	Delegado    string        `json:"delegado"`
-	Recompensas []Recompensas `json:"recompensas"`
+	Delegado string    `json:"delegado"`
+	Rewards  []Rewards `json:"rewards"`
+	Status   string    `json:"status"`
 }
 
-type Recompensas struct {
-	EthAddr  string `json:"eth_addr"`
-	Cantidad int    `json:"cantidad"`
+type Rewards struct {
+	EthAddr string `json:"eth_addr"`
+	Amount  int    `json:"amount"`
 }
 
 type UserData struct {
@@ -104,6 +105,10 @@ func (t *Chaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		return t.queryFederationMembers(stub, args)
 	} else if function == "putUserData" {
 		return t.putUserData(stub, args)
+	} else if function == "putBlockData" {
+		return t.putBlockData(stub, args)
+	} else if function == "getDelegatedBlockByStatus" {
+		return t.getDelegatedBlockByStatus(stub, args)
 	} else if function == "getUserData" {
 		return t.getUserData(stub, args)
 	} else if function == "getDelegatedBlock" {
@@ -238,8 +243,6 @@ func (t *Chaincode) putUserData(stub shim.ChaincodeStubInterface, args []string)
 	dataBytes, _ := json.Marshal(userData)
 	dataHash := sha256.Sum256(dataBytes)
 	dataHashString := fmt.Sprintf("%x", dataHash)
-	fmt.Println("Hash Address: ")
-	fmt.Println(dataHashString)
 	stub.PutState(dataHashString, dataBytes)
 
 	var numberPutHashArr []byte
@@ -269,31 +272,91 @@ func (t *Chaincode) putUserData(stub shim.ChaincodeStubInterface, args []string)
 		json.Unmarshal(putHashBytes, &putHashArr)
 		dataHashes := sha256.Sum256(putHashArr)
 		dataHashesString := fmt.Sprintf("%x", dataHashes)
-		var recompensas []Recompensas
-		var recompensa Recompensas
+		var rewards []Rewards
+		var reward Rewards
 		for i := 0; i < 5; i++ {
-			recompensa = Recompensas{
+			reward = Rewards{
 				eth_addressesArr[i],
 				1,
 			}
-			recompensas = append(recompensas, recompensa)
+			rewards = append(rewards, reward)
 		}
 		delegated := Delegated{
 			mspId,
-			recompensas,
+			rewards,
+			"pending",
 		}
 		delegatedBytes, _ := json.Marshal(delegated)
 		stub.PutState(dataHashesString, delegatedBytes)
 		stub.PutState("ethAddresses", nil)
 		stub.PutState("numberPutHash", nil)
 		stub.PutState("numberPut", []byte(strconv.Itoa(0)))
-		fmt.Println("Delegated Block HASH: ")
-		fmt.Println(dataHashesString)
+
+		indexName := "status~hash"
+
+		statusIndexKey, err := stub.CreateCompositeKey(indexName, []string{delegated.Status, dataHashesString})
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+		//  Save index entry to state. Only the key name is needed, no need to store a duplicate copy of the marble.
+		//  Note - passing a 'nil' value will effectively delete the key from state, therefore we pass null character as value
+		value := []byte{0x00}
+		stub.PutState(statusIndexKey, value)
 		return shim.Success(delegatedBytes)
-	} else {
-		fmt.Println(numberPutInt)
-		return shim.Success(nil)
 	}
+	return shim.Success(nil)
+}
+
+func (t *Chaincode) putBlockData(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	fmt.Println("----------------------------------- INIT PUT BLOCK DATA -----------------------------------")
+	if len(args) != 1 {
+		shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+
+	delegated := Delegated{}
+	json.Unmarshal([]byte(args[0]), &delegated)
+
+	fmt.Println("----------------------------------- END PUT BLOCK DATA -----------------------------------")
+	return shim.Success(nil)
+}
+
+func (t *Chaincode) getDelegatedBlockByStatus(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	fmt.Println("----------------------------------- INIT GET DELEGATED BLOCK STATUS -----------------------------------")
+	if len(args) != 1 {
+		shim.Error("Incorrect number of arguments. Expecting status value")
+	}
+	status := args[0]
+	var delegatedBlocks []Delegated
+
+	statusResultsIterator, err := stub.GetStateByPartialCompositeKey("status~hash", []string{status})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	defer statusResultsIterator.Close()
+
+	// Iterate through result set and for each marble found, transfer to newOwner
+	var i int
+	for i = 0; statusResultsIterator.HasNext(); i++ {
+		// Note that we don't get the value (2nd return variable), we'll just get the marble name from the composite key
+		responseRange, err := statusResultsIterator.Next()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+
+		_, compositeKeyParts, err := stub.SplitCompositeKey(responseRange.Key)
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+		returnedHash := compositeKeyParts[1]
+		var delegated Delegated
+		delegatedBytes, _ := stub.GetState(returnedHash)
+		json.Unmarshal(delegatedBytes, &delegated)
+		delegatedBlocks = append(delegatedBlocks, delegated)
+	}
+
+	delegatedBlocksBytes, _ := json.Marshal(delegatedBlocks)
+	fmt.Println("----------------------------------- END GET DELEGATED BLOCK STATUS -----------------------------------")
+	return shim.Success(delegatedBlocksBytes)
 }
 
 func (t *Chaincode) getUserData(stub shim.ChaincodeStubInterface, args []string) pb.Response {
