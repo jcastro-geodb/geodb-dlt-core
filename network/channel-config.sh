@@ -26,18 +26,27 @@ deploy=$2
 export FABRIC_CFG_PATH=$CONFIG_PATH
 
 printSection "Generating orderer genesis block"
-configtxgen -profile GeoDBOrdererGenesis -outputBlock $NETWORK_DIR/orderer/genesis.block -channelID systemchannel
+configtxgen -profile GeoDBOrdererGenesis \
+  -outputBlock $NETWORK_DIR/orderer/genesis.block \
+  -channelID systemchannel
 checkFatalError $?
 
 printSection "Generating orderer rewards channel genesis block"
-configtxgen -profile RewardsChannel -outputCreateChannelTx $NETWORK_DIR/channels/rewards.tx -channelID rewards
+configtxgen -profile RewardsChannel \
+  -outputCreateChannelTx $NETWORK_DIR/channels/rewards.tx \
+  -channelID rewards
+checkFatalError $?
+
+printSection "Generating private ethereum channel"
+configtxgen -profile PrivateNodeChannel \
+  -outputCreateChannelTx ./channels/privatenode1.tx \
+  -channelID privatenode1
 checkFatalError $?
 
 printSection "Setting GeoDB anchor peer for the channel"
 configtxgen -profile RewardsChannel \
   -outputAnchorPeersUpdate $NETWORK_DIR/channels/geodbanchor.tx \
   -channelID rewards -asOrg GeoDB
-
 checkFatalError $?
 
 if [ "$deploy" == "$ORGSTYPE" ]; then

@@ -1,19 +1,5 @@
 #!/bin/bash
 
-source ./env-vars
-
-check_returnCode() {
-        if [ $1 -eq 0 ]; then
-                echo -e "INFO:.... Proccess Succeed"
-        else
-                >&2 echo -e "ERROR:.... Proccess ERROR: $1"
-		cd $dir
-		./reset.sh
-		echo -e "INFO: System has been reloaded to stable previous point. However, please check errors, check if system has been properly reloaded and retry if it's ok..."
-                exit $1
-        fi
-}
-
 # Chaincode: install dependencies
 echo "INSTALLING DEPENDENCIES"
 cd ./chaincode/github.com/geodb
@@ -27,16 +13,20 @@ dep ensure
 cd ..
 mv ./go /$pwd
 
+cd $pwd
+cd privateNode
+rm -r ./vendor
+cd ..
+mv ./privateNode $GOPATH/src
+cd $GOPATH/src/privateNode
+dep ensure
+cd ..
+mv ./privateNode /$pwd
+
 # Chaincode: install and instantiate
 echo "INSTALLING CHAINCODE"
 
-deployType=$1
-
-if [ "$deployType" == "$ORGSTYPE" ]; then
-  chaincodeInfo=`docker exec -i clipeer0.operations0.geodb.com bash -c "peer chaincode list --installed" | tail -n +2 | tr -d ' '`
-else
-  chaincodeInfo=`docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode list --installed" | tail -n +2 | tr -d ' '`
-fi
+chaincodeInfo=`docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode list --installed" | tail -n +2 | tr -d ' '`
 
 declare -a versions=()
 i=0
@@ -72,70 +62,46 @@ else
   versions[1]=$((versions[1] + 1))
 fi
 
-versionJS=${versions[0]}
+if [ -z "${versions[2]}" ]; then
+  echo "No chaincode installed"
+  versions[2]=1
+else
+  echo "Detected version: ${versions[2]}"
+  versions[2]=$((versions[2] + 1))
+fi
+
+versionPrivateNode=${versions[0]}
 version=${versions[1]}
+versionJS=${versions[2]}
 
-echo
-echo "========================================================="
-echo "Installing Chaincode"
-echo "========================================================="
-echo
-
-peers=$(docker ps --format '{{.Names}}' | grep clipeer)
-
-if [ $versionJS -eq 1 ]; then
-  echo "Starting setup for JS chaincode version ${versionJS}"
-
-  for peer in $peers; do
-    echo "-------------------------------- $peer ------------------------------------------"
-    docker exec -i $peer bash -c "peer chaincode install -n geodbSmart -v ${versionJS} -p /opt/gopath/src/github.com/geodb/javascript-low-level/ -l node"
-    check_returnCode $?
-    echo "-------------------------------- $peer installed JS chaincode -----------------------------------"
-    peer=$peer+1
-  done
-  # docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n geodbSmart -v ${versionJS} -p /opt/gopath/src/github.com/geodb/javascript-low-level/ -l node"
-  docker exec -i clipeer0.operations0.geodb.com bash -c "peer chaincode instantiate -o orderer0.operations0.geodb.com:7050 -C rewards -n geodbSmart -l node -v ${versionJS} -c '{\"Args\":[]}'"
+if [ $versionPrivateNode -eq 1 ]; then
+  echo "Starting setup for GO nodeprivate chaincode version ${versionPrivateNode}"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n privateNode -v ${versionPrivateNode} -p \github.com/geodb/privateNode/"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode instantiate -o orderer0.operations.geodb.com:7050 -C privatenode1 -n privateNode -v ${versionPrivateNode} -c '{\"Args\":[]}'"
 
 else
-  echo "Upgrading JS chaincode to version ${versionJS}"
-  
-  for peer in $peers; do
-    echo "-------------------------------- $peer ------------------------------------------"
-    docker exec -i $peer bash -c "peer chaincode install -n geodbSmart -v ${versionJS} -p /opt/gopath/src/github.com/geodb/javascript-low-level/ -l node"
-    check_returnCode $?
-    echo "-------------------------------- $peer upgraded JS chaincode -----------------------------------"
-    peer=$peer+1
-  done  
-  
-  # docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n geodbSmart -v ${versionJS} -p /opt/gopath/src/github.com/geodb/javascript-low-level/ -l node"
-  docker exec -i clipeer0.operations0.geodb.com bash -c "peer chaincode upgrade -o orderer0.operations0.geodb.com:7050 -C rewards -n geodbSmart -l node -v ${versionJS} -c '{\"Args\":[]}'"
+  echo "Upgrading Go nodeprivate chaincode to version ${versionPrivateNode}"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n privateNode -v ${versionPrivateNode} -p \github.com/geodb/privateNode/"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode upgrade -o orderer0.operations.geodb.com:7050 -C privatenode1 -n privateNode -v ${versionPrivateNode} -c '{\"Args\":[]}'"
 fi
 
 if [ $version -eq 1 ]; then
   echo "Starting setup for GO chaincode version ${version}"
-  
-  for peer in $peers; do
-    echo "-------------------------------- $peer ------------------------------------------"
-    docker exec -i $peer bash -c "peer chaincode install -n geodb -v ${version} -p \github.com/geodb/go/"
-    check_returnCode $?
-    echo "-------------------------------- $peer installed GO chaincode -----------------------------------"
-    peer=$peer+1
-  done 
-  
-  # docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n geodb -v ${version} -p \github.com/geodb/go/"
-  docker exec -i clipeer0.operations0.geodb.com bash -c "peer chaincode instantiate -o orderer0.operations0.geodb.com:7050 -C rewards -n geodb -l node -v ${version} -c '{\"Args\":[]}'"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n geodb -v ${version} -p \github.com/geodb/go/"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode instantiate -o orderer0.operations.geodb.com:7050 -C rewards -n geodb -v ${version} -c '{\"Args\":[]}'"
 
 else
   echo "Upgrading GO chaincode to version ${version}"
-  
-  for peer in $peers; do
-    echo "-------------------------------- $peer ------------------------------------------"
-    docker exec -i $peer bash -c "peer chaincode install -n geodb -v ${version} -p \github.com/geodb/go/"
-    check_returnCode $?
-    echo "-------------------------------- $peer upgraded GO chaincode -----------------------------------"
-    peer=$peer+1
-  done 
-  
-  # docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n geodb -v ${version} -p \github.com/geodb/go/"
-  docker exec -i clipeer0.operations0.geodb.com bash -c "peer chaincode upgrade -o orderer0.operations0.geodb.com:7050 -C rewards -n geodb -v ${version} -c '{\"Args\":[]}'"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n geodb -v ${version} -p \github.com/geodb/go/"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode upgrade -o orderer0.operations.geodb.com:7050 -C rewards -n geodb -v ${version} -c '{\"Args\":[]}'"
+fi
+
+if [ $versionJS -eq 1 ]; then
+  echo "Starting setup for JS chaincode version ${versionJS}"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n web3Node -v ${versionJS} -p /opt/gopath/src/github.com/geodb/web3/ -l node"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode instantiate -o orderer0.operations.geodb.com:7050 -C privatenode1 -n web3Node -l node -v ${versionJS} -c '{\"Args\":[]}'"
+else
+  echo "Upgrading JS chaincode to version ${versionJS}"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode install -n web3Node -v ${versionJS} -p /opt/gopath/src/github.com/geodb/web3/ -l node"
+  docker exec -i clipeer0.operations.geodb.com bash -c "peer chaincode upgrade -o orderer0.operations.geodb.com:7050 -C privatenode1 -n web3Node -l node -v ${versionJS} -c '{\"Args\":[]}'"
 fi

@@ -12,10 +12,12 @@
   "engine-strict": true,
   "license": "Apache-2.0",
   "dependencies": {
-    "fabric-shim": "~1.4.0",
+    "ethereumjs-tx": "^1.3.7",
     "ethers": "^4.0.23",
-    "web3": "^1.0.0-beta.52",
-    "jsonschema": "^1.2.4"
+    "fabric-shim": "~1.4.0",
+    "jsonschema": "^1.2.4",
+    "util": "^0.12.1",
+    "web3": "^1.0.0-beta.52"
   },
   "prettier": {
     "printWidth": 120
