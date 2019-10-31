@@ -39,7 +39,7 @@ checkFatalError $?
 
 printSection "Generating private ethereum channel"
 configtxgen -profile PrivateNodeChannel \
-  -outputCreateChannelTx ./channels/privatenode1.tx \
+  -outputCreateChannelTx $NETWORK_DIR/privatenode1.tx \
   -channelID privatenode1
 checkFatalError $?
 

@@ -1,18 +1,18 @@
-# !/bin/bash
+#!/bin/bash
 
 if [ -z "$GDBROOT" ]; then
   echo "GDBROOT is not set as environment variable. Please set it"
   exit 1
 fi
 
-source $GDBROOT/network/global-env-vars.sh
-source $GDBROOT/network/utils/utils.sh
+source "$GDBROOT/network/global-env-vars.sh"
+source "$GDBROOT/network/utils/utils.sh"
 checkMandatoryEnvironmentVariable "NETWORK_DIR"
 checkMandatoryEnvironmentVariable "LOCAL_TESTNET_DIR"
 checkMandatoryEnvironmentVariable "CA_ROOT_DIR"
 checkMandatoryEnvironmentVariable "CA_ROOT_COMPOSE_PROJECT_NAME"
 
-source $LOCAL_TESTNET_DIR/local-testnet-env-vars.sh
+source "$LOCAL_TESTNET_DIR/local-testnet-env-vars.sh"
 checkMandatoryEnvironmentVariable "LOCAL_TESTNET_COMPOSE_PROJECT_NAME"
 
 
@@ -31,24 +31,24 @@ removeNodeArtifacts() {
     COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml down --remove-orphans \
     && COMPOSE_PROJECT_NAME=$dirname docker-compose -f $composeDir/node-docker-compose.yaml kill
 
-
-    if [ $? -ne 0 ]; then
+    if [ $? -ne "0" ]; then
       printError "Could not stop containers defined in $composeDir, skipping further deletions"
       return 1
     fi
 
     rm -rf $composeDir
 
-    if [ $? -ne 0 ]; then
+    if [ $? -ne "0" ]; then
       printError "Could not delete directory $composeDir, skipping further deletions"
       return 1
     fi
+  done
 }
 
 removeChaincodeContainers() {
   CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*.*/) {print $1}')
     if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" == " " ]; then
-      echo "---- No containers available for deletion ----"
+      printInfo "No chaincode containers available for deletion"
     else
       docker rm -f $CONTAINER_IDS
     fi
@@ -69,7 +69,7 @@ removeLocalTestnetBaseContainers() {
 removeChaincodeImages() { 
   DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*.*/) {print $3}')
     if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" == " " ]; then
-      echo "---- No images available for deletion ----"
+      printInfo "No chaincode images available for deletion"
     else
       docker rmi -f $DOCKER_IMAGE_IDS
     fi
@@ -110,8 +110,6 @@ restoreCA() {
     rm -rf $CA_ROOT_DIR/fabric-ca-server
   fi
 }
-downAll
-check_returnCode $?
 
 removeNodeArtifacts
 checkFatalError $?
@@ -120,10 +118,10 @@ removeLocalTestnetBaseContainers
 checkFatalError $?
 
 removeChaincodeContainers
-check_returnCode $?
+checkFatalError $?
 
 removeChaincodeImages
-check_returnCode $?
+checkFatalError $?
 
 regenerateCryptoMaterial
 checkFatalError $?
