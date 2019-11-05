@@ -182,8 +182,8 @@
 [[projects]]
   name = "github.com/sykesm/zap-logfmt"
   packages = ["."]
-  revision = "ccbdde42f96b57b635a2dfb32b342fe68df8003a"
-  version = "v0.0.2"
+  revision = "1666602def8efca40a622a0227708d81509ba2fd"
+  version = "v0.0.3"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -248,6 +248,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4854e05412cd02599c87a5a03e3a50854b8620dea60ae85fa15e1585ebc32945"
+  inputs-digest = "cc2c4e6a7e53f0b3d409de122ecd2fb8d65b5d4e1bb4d432b5d0226b096949e1"
   solver-name = "gps-cdcl"
   solver-version = 1

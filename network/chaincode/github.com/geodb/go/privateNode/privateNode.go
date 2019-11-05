@@ -13,10 +13,10 @@ import (
 type Chaincode struct {
 }
 
-type Delegated struct {
-	Delegado string    `json:"delegado"`
-	Rewards  []Rewards `json:"rewards"`
-	Status   string    `json:"status"`
+type RewardsBlock struct {
+	DelegatePeer string    `json:"delegatePeer"`
+	Rewards      []Rewards `json:"rewards"`
+	Status       string    `json:"status"`
 }
 
 type Rewards struct {
@@ -42,58 +42,24 @@ func (t *Chaincode) getEthereumRewards(stub shim.ChaincodeStubInterface, args []
 	chaincodeName := "geodb"
 	chaincodeArgs := util.ToChaincodeArgs("getDelegatedBlockByStatus", "pending")
 	var responseBytes = stub.InvokeChaincode(chaincodeName, chaincodeArgs, channelName)
-	var delegated []Delegated
-	json.Unmarshal(responseBytes.GetPayload(), &delegated)
-	fmt.Println("DELEGATED BLOCKS")
-	fmt.Println(delegated)
-	for i := 0; i < len(delegated); i++ {
+	var rewardsBlocks []RewardsBlock
+	json.Unmarshal(responseBytes.GetPayload(), &rewardsBlocks)
+	fmt.Println("rewardsBlocks BLOCKS")
+	fmt.Println(rewardsBlocks)
+	for i := 0; i < len(rewardsBlocks); i++ {
 		//TODO: Call smart contract
 		chName := "privatenode1"
 		chainName := "web3Node"
-		blockToSend, _ := json.Marshal(delegated[i])
+		blockToSend, _ := json.Marshal(rewardsBlocks[i])
 		chaincodeArgs = util.ToChaincodeArgs("mint", string(blockToSend))
 		stub.InvokeChaincode(chainName, chaincodeArgs, chName)
-		delegated[i].Status = "emitted"
+		rewardsBlocks[i].Status = "emitted"
 		chaincodeArgs = util.ToChaincodeArgs("putBlockData", string(blockToSend))
 		stub.InvokeChaincode(chaincodeName, chaincodeArgs, channelName)
 	}
 	fmt.Println("----------------------------------- END GET ETHEREUM REWARDS -----------------------------------")
 	return shim.Success(nil)
 }
-
-/*
-  async mintFunction(stub, args){
-    let nodeKeyBytes = await stub.getState("nodeKeys");
-    if (!nodeKeyBytes || nodeKeyBytes.toString().length <= 0) {
-      throw new Error("node keys doesn't exist: ");
-    }
-    const PRIVATE_KEY = Buffer.from(nodeKeyBytes.toString().privateKey,'hex')
-    web3.eth.getTransactionCount("0x7769DBfe0F90f10c9E366b14D33cf9bd23c22A55", (err, txCount) => {
-      const trxObject =
-      {
-        nonce: web3.utils.toHex(txCount),
-        gasPrice: web3.utils.toHex(web3.utils.toWei('10', 'gwei')),
-        gasLimit: web3.utils.toHex(210000),
-        from: "0x7769DBfe0F90f10c9E366b14D33cf9bd23c22A55",
-        to: "0xd938458b43ebe82cA43676B1d38f9ac0f04592F9",
-        data: contract.methods.releaseReward("0x7D039295C40a9518E59d48321670055224077cE3", 100000).encodeABI()
-      }
-
-      var tx = new EthereumTx(trxObject);
-      tx.sign(PRIVATE_KEY);
-
-      const serializedTrx = tx.serialize();
-      const raw = '0x' + serializedTrx.toString('hex');
-
-      web3.eth.sendSignedTransaction(raw, (err, txHash) => {
-      console.log(err);
-      console.log("HASHHHHHHHHHH");
-      console.log(txHash);
-      });
-    });
-  }
-  }
-*/
 
 func main() {
 	err := shim.Start(new(Chaincode))
