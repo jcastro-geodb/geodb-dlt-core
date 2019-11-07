@@ -34,8 +34,6 @@ type UserData struct {
 	Timestamp string `json:"timestamp"`
 }
 
-const WALLETADDRESS = "0xDCF7bAECE1802D21a8226C013f7be99dB5941bEa"
-
 func (t *Chaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 	fmt.Println("=========== Instantiated chaincode ===========")
 	return shim.Success(nil)
@@ -55,6 +53,7 @@ func (t *Chaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	return shim.Error("Invalid invoke function name. Expecting \"invoke\" \"delete\" \"query\"")
 }
 
+// Save all the userData and turns them into a block
 func (t *Chaincode) putUserData(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	if len(args) != 1 {
 		shim.Error("Incorrect number of arguments. Expecting 1")
@@ -62,11 +61,13 @@ func (t *Chaincode) putUserData(stub shim.ChaincodeStubInterface, args []string)
 	userData := UserData{}
 	json.Unmarshal([]byte(args[0]), &userData)
 
+	// Save user's data hash
 	dataBytes, _ := json.Marshal(userData)
 	dataHash := sha256.Sum256(dataBytes)
 	dataHashString := fmt.Sprintf("%x", dataHash)
 	stub.PutState(dataHashString, dataBytes)
 
+	// Array with all data users hash
 	var numberPutHashArr []byte
 	numberPutHashBytes, _ := stub.GetState("numberPutHash")
 	json.Unmarshal(numberPutHashBytes, &numberPutHashArr)
@@ -129,6 +130,7 @@ func (t *Chaincode) putUserData(stub shim.ChaincodeStubInterface, args []string)
 	return shim.Success(nil)
 }
 
+// Save block of rewards into the blockchain
 func (t *Chaincode) putBlockData(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	fmt.Println("----------------------------------- INIT PUT BLOCK DATA -----------------------------------")
 	if len(args) != 1 {
@@ -142,6 +144,7 @@ func (t *Chaincode) putBlockData(stub shim.ChaincodeStubInterface, args []string
 	return shim.Success(nil)
 }
 
+// Returns all the blocks by state
 func (t *Chaincode) getDelegatedBlockByStatus(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	fmt.Println("----------------------------------- INIT GET DELEGATED BLOCK STATUS -----------------------------------")
 	if len(args) != 1 {

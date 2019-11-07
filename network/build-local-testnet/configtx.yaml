@@ -101,7 +101,7 @@ Profiles:
       Capabilities:
         <<: *ApplicationCapabilities
 
-  PrivateNodeChannel:
+  NodePrivateChannel:
     <<: *ChannelDefaults
     Consortium: GeoDB
     Application:

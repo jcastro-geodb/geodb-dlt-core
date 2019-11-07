@@ -36,6 +36,7 @@ func (t *Chaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	return shim.Error("Invalid invoke function name. Expecting \"invoke\" \"delete\" \"query\"")
 }
 
+// Get all blocks of rewards by pending status from public channel and send them to the ethereum smart contract
 func (t *Chaincode) getEthereumRewards(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	fmt.Println("----------------------------------- INIT GET ETHEREUM REWARDS -----------------------------------")
 	channelName := "rewards"
@@ -49,7 +50,7 @@ func (t *Chaincode) getEthereumRewards(stub shim.ChaincodeStubInterface, args []
 	for i := 0; i < len(rewardsBlocks); i++ {
 		//TODO: Call smart contract
 		chName := "privatenode1"
-		chainName := "web3Node"
+		chainName := "smartCaller"
 		blockToSend, _ := json.Marshal(rewardsBlocks[i])
 		chaincodeArgs = util.ToChaincodeArgs("mint", string(blockToSend))
 		stub.InvokeChaincode(chainName, chaincodeArgs, chName)

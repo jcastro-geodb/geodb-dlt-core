@@ -87,9 +87,9 @@ setupRewardsChannel() {
 }
 
 setupPrivateNodeChannel() {
-  operationsWithPeer clipeer0.operations.geodb.com \ 'peer channel create -c privatenode1 -f ./channels/privatenode1.tx -o orderer0.operations.geodb.com:7050'
+  operationsWithPeer clipeer0.operations.geodb.com \ 'peer channel create -c nodeprivatech -f ./channels/nodeprivatech.tx -o orderer0.operations.geodb.com:7050'
  
-  operationsWithPeer clipeer0.operations.geodb.com 'peer channel join -b privatenode1.block'
+  operationsWithPeer clipeer0.operations.geodb.com 'peer channel join -b nodeprivatech.block'
 }
 
 operationsWithPeer(){

@@ -38,9 +38,9 @@ configtxgen -profile RewardsChannel \
 checkFatalError $?
 
 printSection "Generating private ethereum channel"
-configtxgen -profile PrivateNodeChannel \
-  -outputCreateChannelTx $NETWORK_DIR/channels/privatenode1.tx \
-  -channelID privatenode1
+configtxgen -profile NodePrivateChannel \
+  -outputCreateChannelTx $NETWORK_DIR/channels/nodeprivatech.tx \
+  -channelID nodeprivatech
 checkFatalError $?
 
 printSection "Setting GeoDB anchor peer for the channel"
