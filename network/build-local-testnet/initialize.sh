@@ -37,6 +37,8 @@ main() {
   bringUpNetwork && sleep 3s
   # With the network online, create the channel rewards
   setupRewardsChannel
+  # With the network online, create the channel privatenode1
+  setupPrivateNodeChannel
 }
 
 checkIfNetworkExists(){
@@ -82,6 +84,12 @@ setupRewardsChannel() {
 
   operationsWithPeer clipeer0.operations.geodb.com \
     'peer channel update -o orderer0.operations.geodb.com:7050 -c rewards -f ./channels/geodbanchor.tx'
+}
+
+setupPrivateNodeChannel() {
+  operationsWithPeer clipeer0.operations.geodb.com \ 'peer channel create -c privatenode1 -f ./channels/privatenode1.tx -o orderer0.operations.geodb.com:7050'
+ 
+  operationsWithPeer clipeer0.operations.geodb.com 'peer channel join -b privatenode1.block'
 }
 
 operationsWithPeer(){
