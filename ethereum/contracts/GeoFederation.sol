@@ -11,7 +11,7 @@ import "../externals/openzeppelin-solidity/contracts/introspection/IERC1820Regis
 // import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 // import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 // in production
-import "./GeoToken.sol";
+import "./IGeoToken.sol";
 import "./GeoDBClasses.sol";
 
 /**
@@ -22,7 +22,7 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
   
   // Token requirements Initialiozation
 
-  GeoToken public token;
+  IGeoToken public token;
 
   IERC1820Registry private _erc1820 = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24); // See EIP1820
   bytes32 constant private TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender"); // See EIP777
@@ -166,7 +166,7 @@ contract GeoFederation is GeoDBClasses, Pausable, IERC777Recipient, IERC777Sende
 
   constructor(address _token) public {
     require(address(_token) != address(0), "Token address cannot be 0x0");
-    token = GeoToken(_token);
+    token = IGeoToken(_token);
     // Register as a token receiver
     _erc1820.setInterfaceImplementer(address(this), TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
     // Register as a token sender

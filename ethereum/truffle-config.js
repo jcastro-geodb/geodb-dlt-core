@@ -80,10 +80,10 @@ if (secrets && secrets.mnemonic && secrets.endpoints) {
 
     const defaultConfig = defaultNetworksConfig.hasOwnProperty(networkName)
       ? { ...defaultNetworksConfig[networkName] }
-      : {};
+      : { network_id: "*" };
 
     networks[`${networkName}`] = {
-      provider: new HDWalletProvider(mnemonic, secrets.endpoints[`${networkName}`]),
+      provider: new HDWalletProvider(mnemonic, secrets.endpoints[`${networkName}`], 0, 10),
       confirmations: 2,
       ...defaultConfig
     };
@@ -91,6 +91,10 @@ if (secrets && secrets.mnemonic && secrets.endpoints) {
 }
 
 module.exports = {
+  plugins: ["truffle-plugin-verify"],
+  api_keys: {
+    etherscan: "N3AN8X6UJ7RWTRUVGRM4VGYRJDZEC6YFAC"
+  },
   networks: {
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.

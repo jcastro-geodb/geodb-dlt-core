@@ -17,6 +17,13 @@ module.exports = function(deployer, network, accounts) {
     })
     .then(instance => {
       tokenAddress = instance.address;
-      return deployer.deploy(BatchMint, tokenAddress);
-    });
+      return deployer.deploy(BatchMint, tokenAddress, { from: accounts[0] });
+    })
+    .then(instance => {
+      return instance.transferOwnership(accounts[1], { from: accounts[0] });
+    })
+    .then(result => {
+      if (result) console.log(`Successfully transfered ownership to ${accounts[1]}`);
+    })
+    .catch(console.error);
 };

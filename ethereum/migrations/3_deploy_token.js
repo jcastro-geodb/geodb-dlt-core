@@ -65,5 +65,27 @@ module.exports = function(deployer, network, accounts) {
     // do not deploy, each test should deploy by itself
     return;
 
-  deployer.deploy(GeoToken, "GeoDB Coin", "GEO", []);
+  const oldOwner = accounts[2];
+  const newOwner = accounts[1];
+
+  deployer
+    .deploy(GeoToken, "GeoDB Coin", "GEO", [], { from: oldOwner })
+    .then(instance => {
+      console.log(`Transfering token ownership from ${oldOwner} to ${newOwner}`);
+      return instance.transferOwnership(newOwner, { from: oldOwner });
+    })
+    .then(result => {
+      if (result) console.log(`Successfully transfered ownership to ${newOwner}`);
+      console.log(`Transfering balance from ${oldOwner} to ${newOwner}`);
+      return GeoToken.deployed().then(instance =>
+        instance.balanceOf(oldOwner).then(amount => instance.send(newOwner, amount, [], { from: oldOwner }))
+      );
+    })
+    .then(result => {
+      if (result) console.log(`Successfully transfered balance to ${accounts[1]}`);
+    })
+    // .then(result => {
+    //   if (result) console.log(`Balance of ${accounts[2]} is ${result.toString()}`);
+    // })
+    .catch(console.error);
 };
