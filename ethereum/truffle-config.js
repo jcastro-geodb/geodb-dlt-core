@@ -37,8 +37,7 @@ const HDWalletProvider = require("truffle-hdwallet-provider");
  */
 
 const secretsPath = path.resolve(__dirname, ".secrets.json");
-let secrets = undefined;
-if (fs.pathExistsSync(secretsPath)) secrets = fs.readJsonSync(secretsPath, { throws: false });
+let secrets = fs.readJsonSync(secretsPath, { throws: false }) || {};
 
 /**
  * Configuration for the most popular testnets and GeoDB's own testnet: stars
@@ -90,10 +89,12 @@ if (secrets && secrets.mnemonic && secrets.endpoints) {
   }
 }
 
+const etherscanAPIKey = secrets.etherscanAPIKey || "";
+
 module.exports = {
   plugins: ["truffle-plugin-verify"],
   api_keys: {
-    etherscan: "N3AN8X6UJ7RWTRUVGRM4VGYRJDZEC6YFAC"
+    etherscan: etherscanAPIKey
   },
   networks: {
     // Useful for testing. The `development` name is special - truffle uses it by default
@@ -158,9 +159,10 @@ module.exports = {
     solc: {
       version: "0.5.7", // Fetch exact version from solc-bin (default: truffle's version)
       optimizer: {
-        enabled: true,
+        enabled: false,
         runs: 200
-      }
+      },
+      evmVersion: "petersburg"
     }
   }
 };

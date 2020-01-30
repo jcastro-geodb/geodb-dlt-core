@@ -15,18 +15,20 @@
     "mocha": "^6.1.4",
     "moment": "^2.24.0",
     "truffle-hdwallet-provider": "^1.0.8",
-    "truffle-plugin-verify": "^0.3.5",
+    "truffle-plugin-verify": "^0.3.8",
     "web3": "^1.0.0-beta.54",
     "web3-utils": "^1.0.0-beta.54"
   },
   "devDependencies": {
     "chai": "^4.2.0",
     "gulp": "^4.0.2",
-    "gulp-watch": "^5.0.1"
+    "gulp-watch": "^5.0.1",
+    "sol-merger": "^1.2.2"
   },
   "scripts": {
     "compile": "rm -rf ./build; truffle compile; cp ./build/contracts/GeoDB.json ../network/chaincode/github.com/geodb/ethereum/abi/GeoDB.json",
-    "test": "mocha ./test/*.test.js"
+    "test": "mocha ./test/*.test.js",
+    "merge": "sol-merger -a _me \"./contracts/GeoToken.sol\""
   },
   "author": "",
   "license": "ISC",
